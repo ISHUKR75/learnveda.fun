@@ -1,0 +1,16 @@
+# ============================================================
+# pnpm Workspace Configuration for LearnVeda Monorepo
+# ============================================================
+# Defines which directories contain packages that pnpm
+# should manage as part of the workspace.
+# ============================================================
+
+packages:
+  # -- Applications --
+  - "apps/*"
+
+  # -- Shared Packages / Libraries --
+  - "packages/*"
+
+  # -- Backend Microservices --
+  - "services/*"

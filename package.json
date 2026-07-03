@@ -1,0 +1,45 @@
+{
+  "name": "learnveda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LearnVeda — AI-Powered Enterprise-Grade EdTech Platform for Class 9 to Graduation",
+  "author": "ISHUKR75",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ISHUKR75/LearnVeda.git"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "clean": "turbo clean && rm -rf node_modules",
+    "type-check": "turbo type-check",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "prettier": "^3.4.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.3.0",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
