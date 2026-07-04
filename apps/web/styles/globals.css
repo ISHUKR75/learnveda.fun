@@ -1,0 +1,188 @@
+/**
+ * @file globals.css
+ * @description Global CSS styles for LearnVeda Web Application
+ * Defines CSS custom properties (design tokens), base styles, and utility classes
+ * Used by the root layout to apply site-wide styling
+ */
+
+/* ─── Tailwind Directives ──────────────────────────────────────────────────── */
+@tailwind base;       /* Normalize/reset styles across browsers */
+@tailwind components; /* Tailwind component classes */
+@tailwind utilities;  /* Tailwind utility classes */
+
+/* ─── CSS Design Tokens (Light Mode) ──────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Background and foreground colors */
+    --background:   0 0% 100%;       /* White background in light mode */
+    --foreground:   222.2 84% 4.9%;  /* Near-black text */
+
+    /* Card surface colors */
+    --card:             0 0% 100%;
+    --card-foreground:  222.2 84% 4.9%;
+
+    /* Popover/dropdown colors */
+    --popover:            0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary brand color — indigo */
+    --primary:            239 84% 67%;   /* #6366f1 — LearnVeda brand indigo */
+    --primary-foreground: 210 40% 98%;   /* White text on primary */
+
+    /* Secondary — subtle gray-blue */
+    --secondary:            210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* Muted / disabled states */
+    --muted:            210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent — slightly more vibrant than secondary */
+    --accent:            210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    /* Destructive / error states */
+    --destructive:            0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Border and input ring colors */
+    --border: 214.3 31.8% 91.4%;
+    --input:  214.3 31.8% 91.4%;
+    --ring:   222.2 84% 4.9%;
+
+    /* Border radius scale */
+    --radius: 0.75rem; /* Base border radius — 12px */
+  }
+
+  /* ─── Dark Mode Design Tokens ──────────────────────────────────────────── */
+  .dark {
+    --background:   222.2 84% 4.9%;  /* Deep navy background */
+    --foreground:   210 40% 98%;     /* Light text */
+
+    --card:             222.2 84% 4.9%;
+    --card-foreground:  210 40% 98%;
+
+    --popover:            222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary:            239 84% 67%;  /* Same indigo brand in dark mode */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary:            217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted:            217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent:            217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive:            0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input:  217.2 32.6% 17.5%;
+    --ring:   212.7 26.8% 83.9%;
+  }
+}
+
+/* ─── Base Element Resets & Defaults ───────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border; /* Apply border color to all borders */
+  }
+
+  html {
+    scroll-behavior: smooth;      /* Smooth scrolling for anchor links */
+    text-rendering: optimizeLegibility; /* Better text rendering */
+    -webkit-font-smoothing: antialiased; /* Smooth fonts on WebKit */
+    -moz-osx-font-smoothing: grayscale;  /* Smooth fonts on macOS Firefox */
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans; /* Apply base colors and font */
+    font-feature-settings: "rlig" 1, "calt" 1;      /* Enable ligatures */
+  }
+
+  /* Focus visible ring — accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection highlight — brand color */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  /* Custom scrollbar — modern browsers */
+  ::-webkit-scrollbar {
+    width: 6px;  /* Thin scrollbar */
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/60;
+  }
+}
+
+/* ─── Utility Classes ───────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-500 to-purple-500;
+  }
+
+  /* Glassmorphism card */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-md border border-white/10;
+  }
+
+  /* Shine / shimmer animation for loading skeletons */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Gradient border utility */
+  .gradient-border {
+    background: linear-gradient(var(--background), var(--background)) padding-box,
+                linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7) border-box;
+    border: 2px solid transparent;
+  }
+
+  /* Noise texture overlay */
+  .noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Safe area padding for mobile notches */
+  .safe-top    { padding-top:    env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* ─── Reduced Motion Support (Accessibility) ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:        0.01ms !important; /* Disable animations */
+    animation-iteration-count: 1      !important;
+    transition-duration:       0.01ms !important;
+    scroll-behavior:           auto   !important;
+  }
+}
+
+/* ─── Print Styles ──────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; } /* Hide navigation, ads, etc. when printing */
+}
