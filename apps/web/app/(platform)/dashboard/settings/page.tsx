@@ -123,7 +123,7 @@ export default function SettingsPage() {
 
               <div className="p-5 space-y-4">
                 {/* Form fields (for Profile section) */}
-                {"fields" in section && section.fields.map((field) => (
+                {"fields" in section && section.fields?.map((field) => (
                   <div key={field.label} className="space-y-1.5">
                     <label className="text-sm font-medium">{field.label}</label>
                     {field.type === "textarea" ? (
@@ -164,7 +164,7 @@ export default function SettingsPage() {
                 ))}
 
                 {/* Toggle rows (for Notifications, Privacy, Appearance) */}
-                {"toggles" in section && section.toggles.map((toggle) => (
+                {"toggles" in section && section.toggles?.map((toggle) => (
                   <div key={toggle.label} className="flex items-center justify-between gap-4 py-1">
                     <div>
                       <div className="text-sm font-medium">{toggle.label}</div>

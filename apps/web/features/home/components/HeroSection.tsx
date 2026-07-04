@@ -23,8 +23,8 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden:  { opacity: 0, y: 30 },          // Each item starts below + invisible
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  hidden:  { opacity: 0.01, y: 24 },       // Near-invisible + slightly below — avoids blank SSR paint
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
 };
 
 /* ─── Floating Feature Pills ─────────────────────────────────────────────── */

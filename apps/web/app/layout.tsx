@@ -100,11 +100,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Conditionally import ClerkProvider only when valid keys are set
   // This avoids a crash in dev/demo mode when keys are placeholders
-  let ClerkProvider: React.ComponentType<{ children: React.ReactNode; appearance?: unknown }> | null = null;
+  // Use a permissive type for the dynamic import — Clerk's ClerkProvider has complex generics
+  // that conflict with React.ComponentType when used with `appearance`. We cast via unknown.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let ClerkProvider: React.ComponentType<any> | null = null;
 
   if (hasClerk) {
     const clerk = await import("@clerk/nextjs");
-    ClerkProvider = clerk.ClerkProvider;
+    ClerkProvider = clerk.ClerkProvider as React.ComponentType<any>; // Cast needed — Clerk generics are complex
   }
 
   const content = (

@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "framer-motion", "@radix-ui/react-icons"], // Tree-shake large icon/animation packages
   },
 
+  // ─── Allowed Dev Origins ───────────────────────────────────────────────────
+  // Allow Replit's proxied iframe origin during development
+  allowedDevOrigins: ["*.replit.dev", "*.pike.replit.dev", "*.repl.co"],
+
   // Packages that should only run on the server (not bundled for client)
   serverExternalPackages: ["mongoose", "sharp"],
 

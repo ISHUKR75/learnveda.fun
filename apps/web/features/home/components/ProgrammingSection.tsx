@@ -14,23 +14,27 @@ import { Badge } from "@/components/ui/badge";   // Badge component
 
 /* ─── Programming Language Data ──────────────────────────────────────────── */
 const languages = [
-  { id: "c",          name: "C",          days: 30, level: "Beginner",     emoji: "©️",  color: "from-blue-500 to-blue-600"   },
-  { id: "cpp",        name: "C++",        days: 30, level: "Intermediate", emoji: "➕", color: "from-blue-600 to-indigo-600" },
-  { id: "java",       name: "Java",       days: 45, level: "Intermediate", emoji: "☕", color: "from-orange-500 to-red-500"  },
-  { id: "python",     name: "Python",     days: 45, level: "Beginner",     emoji: "🐍", color: "from-yellow-500 to-green-500"},
-  { id: "javascript", name: "JavaScript", days: 30, level: "Beginner",     emoji: "🌐", color: "from-yellow-400 to-yellow-600"},
-  { id: "typescript", name: "TypeScript", days: 25, level: "Intermediate", emoji: "📘", color: "from-blue-500 to-cyan-500"   },
-  { id: "rust",       name: "Rust",       days: 40, level: "Advanced",     emoji: "🦀", color: "from-orange-600 to-red-700"  },
-  { id: "go",         name: "Go",         days: 30, level: "Intermediate", emoji: "🔵", color: "from-cyan-500 to-teal-500"   },
-  { id: "kotlin",     name: "Kotlin",     days: 30, level: "Intermediate", emoji: "🟣", color: "from-purple-500 to-violet-600"},
-  { id: "swift",      name: "Swift",      days: 30, level: "Intermediate", emoji: "🐦", color: "from-orange-500 to-pink-500" },
-  { id: "sql",        name: "SQL",        days: 20, level: "Beginner",     emoji: "🗄️", color: "from-teal-500 to-cyan-600"   },
-  { id: "dart",       name: "Dart",       days: 25, level: "Beginner",     emoji: "🎯", color: "from-cyan-400 to-blue-500"   },
-  { id: "ruby",       name: "Ruby",       days: 25, level: "Beginner",     emoji: "💎", color: "from-red-500 to-pink-500"    },
+  { id: "c",          name: "C",          days: 30, level: "Beginner"     as DifficultyLevel, emoji: "©️",  color: "from-blue-500 to-blue-600"   },
+  { id: "cpp",        name: "C++",        days: 30, level: "Intermediate" as DifficultyLevel, emoji: "➕", color: "from-blue-600 to-indigo-600" },
+  { id: "java",       name: "Java",       days: 45, level: "Intermediate" as DifficultyLevel, emoji: "☕", color: "from-orange-500 to-red-500"  },
+  { id: "python",     name: "Python",     days: 45, level: "Beginner"     as DifficultyLevel, emoji: "🐍", color: "from-yellow-500 to-green-500"},
+  { id: "javascript", name: "JavaScript", days: 30, level: "Beginner"     as DifficultyLevel, emoji: "🌐", color: "from-yellow-400 to-yellow-600"},
+  { id: "typescript", name: "TypeScript", days: 25, level: "Intermediate" as DifficultyLevel, emoji: "📘", color: "from-blue-500 to-cyan-500"   },
+  { id: "rust",       name: "Rust",       days: 40, level: "Advanced"     as DifficultyLevel, emoji: "🦀", color: "from-orange-600 to-red-700"  },
+  { id: "go",         name: "Go",         days: 30, level: "Intermediate" as DifficultyLevel, emoji: "🔵", color: "from-cyan-500 to-teal-500"   },
+  { id: "kotlin",     name: "Kotlin",     days: 30, level: "Intermediate" as DifficultyLevel, emoji: "🟣", color: "from-purple-500 to-violet-600"},
+  { id: "swift",      name: "Swift",      days: 30, level: "Intermediate" as DifficultyLevel, emoji: "🐦", color: "from-orange-500 to-pink-500" },
+  { id: "sql",        name: "SQL",        days: 20, level: "Beginner"     as DifficultyLevel, emoji: "🗄️", color: "from-teal-500 to-cyan-600"   },
+  { id: "dart",       name: "Dart",       days: 25, level: "Beginner"     as DifficultyLevel, emoji: "🎯", color: "from-cyan-400 to-blue-500"   },
+  { id: "ruby",       name: "Ruby",       days: 25, level: "Beginner"     as DifficultyLevel, emoji: "💎", color: "from-red-500 to-pink-500"    },
 ];
 
+/* ─── Difficulty level type ────────────────────────────────────────────── */
+// Strictly typed so levelVariant lookup is always safe (no TS7053)
+type DifficultyLevel = "Beginner" | "Intermediate" | "Advanced";
+
 /* ─── Level badge variants ───────────────────────────────────────────────── */
-const levelVariant = {
+const levelVariant: Record<DifficultyLevel, string> = {
   Beginner:     "success",
   Intermediate: "warning",
   Advanced:     "destructive",
@@ -86,7 +90,7 @@ export function ProgrammingSection() {
                 </div>
 
                 {/* Difficulty badge */}
-                <Badge variant={levelVariant[lang.level] as any} className="text-xs">
+                <Badge variant={levelVariant[lang.level] as "default" | "secondary" | "destructive" | "outline"} className="text-xs">
                   {lang.level}
                 </Badge>
 
