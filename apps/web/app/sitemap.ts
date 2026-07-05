@@ -1,75 +1,91 @@
 /**
  * @file app/sitemap.ts
- * @description Dynamic XML sitemap generator for LearnVeda
- * Generated at build time (or on-demand with ISR) for all public pages
- * Critical for SEO — helps search engines discover and index all pages
+ * @description Dynamic sitemap generator for LearnVeda
+ * Returns all public pages for search engine indexing
+ * Next.js automatically serves this at /sitemap.xml
+ * In production: augments with dynamic routes from MongoDB (blog posts, etc.)
  */
 
-import type { MetadataRoute } from "next"; // Next.js sitemap type
+import { MetadataRoute } from "next"; // Next.js sitemap type
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://learnveda.in"; // Base URL for all entries
+/* ─── Base URL ────────────────────────────────────────────────────────────── */
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://learnveda.in"; // Production base URL
 
-/* ─── Static Pages ───────────────────────────────────────────────────────── */
-const staticPages: MetadataRoute.Sitemap = [
-  // Home
-  { url: baseUrl, lastModified: new Date(), changeFrequency: "daily",   priority: 1.0   },
-
-  // Marketing pages
-  { url: `${baseUrl}/about`,            lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-  { url: `${baseUrl}/features`,         lastModified: new Date(), changeFrequency: "weekly",  priority: 0.9 },
-  { url: `${baseUrl}/pricing`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
-  { url: `${baseUrl}/contact`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
-  { url: `${baseUrl}/privacy-policy`,   lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
-  { url: `${baseUrl}/terms-of-service`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
-  { url: `${baseUrl}/blog`,             lastModified: new Date(), changeFrequency: "daily",   priority: 0.8 },
-
-  // Learn section
-  { url: `${baseUrl}/learn`,             lastModified: new Date(), changeFrequency: "weekly", priority: 0.95 },
-  { url: `${baseUrl}/learn/class-9`,     lastModified: new Date(), changeFrequency: "weekly", priority: 0.9  },
-  { url: `${baseUrl}/learn/class-10`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.9  },
-  { url: `${baseUrl}/learn/class-11`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.9  },
-  { url: `${baseUrl}/learn/class-12`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.9  },
-  { url: `${baseUrl}/learn/engineering`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-  { url: `${baseUrl}/learn/programming`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-  { url: `${baseUrl}/learn/core-cs`,     lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-
-  // Programming languages
-  ...["c", "cpp", "java", "python", "javascript", "typescript", "rust", "go", "kotlin", "swift", "sql", "dart", "ruby"].map(
-    (lang) => ({
-      url:             `${baseUrl}/learn/programming/${lang}`,
-      lastModified:    new Date(),
-      changeFrequency: "weekly" as const,
-      priority:        0.8,
-    })
-  ),
-
-  // Core CS subjects
-  ...["dsa", "system-design", "web-development", "dbms", "os", "cn", "git", "cp", "interview-prep"].map(
-    (subject) => ({
-      url:             `${baseUrl}/learn/core-cs/${subject}`,
-      lastModified:    new Date(),
-      changeFrequency: "weekly" as const,
-      priority:        0.8,
-    })
-  ),
-
-  // Platform pages
-  { url: `${baseUrl}/practice`,     lastModified: new Date(), changeFrequency: "daily",  priority: 0.8 },
-  { url: `${baseUrl}/test-center`,  lastModified: new Date(), changeFrequency: "daily",  priority: 0.8 },
-  { url: `${baseUrl}/simulations`,  lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-  { url: `${baseUrl}/leaderboard`,  lastModified: new Date(), changeFrequency: "hourly", priority: 0.7 },
-  { url: `${baseUrl}/community`,    lastModified: new Date(), changeFrequency: "hourly", priority: 0.7 },
-  { url: `${baseUrl}/events`,       lastModified: new Date(), changeFrequency: "daily",  priority: 0.75 },
-  { url: `${baseUrl}/live-battles`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.7 },
-  { url: `${baseUrl}/explore`,      lastModified: new Date(), changeFrequency: "daily",  priority: 0.7 },
-];
-
+/* ─── Sitemap Generator ───────────────────────────────────────────────────── */
 /**
- * Next.js sitemap function
- * Returns an array of URL entries that Next.js converts to sitemap.xml
- * In production: extend this to also fetch dynamic URLs from MongoDB
- * (courses, blog posts, community posts, user profiles, etc.)
+ * Generates the complete sitemap for all public pages.
+ * Next.js serves this at GET /sitemap.xml automatically.
+ *
+ * Priorities:
+ * - 1.0 = Homepage (highest)
+ * - 0.9 = Key marketing pages
+ * - 0.8 = Content hubs (learn, practice, simulations)
+ * - 0.7 = Subject/chapter pages
+ * - 0.6 = Programming tracks
+ * - 0.5 = Community, events, blog
+ * - 0.4 = Legal pages
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  return staticPages; // Return all static page entries
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+
+  /* ── Marketing / Static Pages ─────────────────────────────────────────── */
+  const staticPages: MetadataRoute.Sitemap = [
+    // ── Core marketing pages ──────────────────────────────────────────
+    { url: `${BASE_URL}/`,               lastModified: new Date(), changeFrequency: "weekly",  priority: 1.0 },
+    { url: `${BASE_URL}/features`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/pricing`,        lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/about`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/blog`,           lastModified: new Date(), changeFrequency: "daily",   priority: 0.8 },
+    { url: `${BASE_URL}/contact`,        lastModified: new Date(), changeFrequency: "yearly",  priority: 0.7 },
+    { url: `${BASE_URL}/events`,         lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+
+    // ── Learning content hubs ─────────────────────────────────────────
+    { url: `${BASE_URL}/practice`,       lastModified: new Date(), changeFrequency: "weekly",  priority: 0.9 },
+    { url: `${BASE_URL}/simulations`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/test-center`,    lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+
+    // ── Class pages ───────────────────────────────────────────────────
+    { url: `${BASE_URL}/learn/class-9`,  lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/learn/class-10`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/learn/class-11`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/learn/class-12`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/learn/engineering`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+
+    // ── Programming tracks ────────────────────────────────────────────
+    { url: `${BASE_URL}/programming`,           lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/programming/python`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/javascript`,lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/java`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/cpp`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/dsa`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/programming/c`,         lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/typescript`,lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/react`,     lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/nodejs`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/golang`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/rust`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/programming/sql`,       lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+
+    // ── Class 9 subject pages ─────────────────────────────────────────
+    { url: `${BASE_URL}/learn/class-9/mathematics`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/learn/class-9/science`,        lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/learn/class-9/social-science`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/learn/class-9/english`,        lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/learn/class-9/hindi`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+
+    // ── Community ─────────────────────────────────────────────────────
+    { url: `${BASE_URL}/community`,         lastModified: new Date(), changeFrequency: "daily",  priority: 0.7 },
+
+    // ── Legal ─────────────────────────────────────────────────────────
+    { url: `${BASE_URL}/privacy-policy`,    lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/terms-of-service`,  lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
+  ];
+
+  /* ── Dynamic Pages (from MongoDB in production) ───────────────────────── */
+  // In production, fetch dynamic blog post slugs:
+  // const response  = await fetch(`${BASE_URL}/api/blog/slugs`);
+  // const blogPosts = await response.json();
+  // const blogPages = blogPosts.map(slug => ({ url: `${BASE_URL}/blog/${slug}`, lastModified: new Date(), priority: 0.6 }));
+  // return [...staticPages, ...blogPages];
+
+  return staticPages;
 }

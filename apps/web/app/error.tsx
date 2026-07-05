@@ -1,54 +1,83 @@
 /**
  * @file app/error.tsx
- * @description Root error boundary for LearnVeda
- * Catches unhandled runtime errors and shows a friendly fallback UI
- * Must be a Client Component — Next.js requires "use client" for error boundaries
+ * @description Global error boundary for LearnVeda
+ * Catches unhandled runtime errors during rendering and shows a friendly message
+ * Next.js requires "use client" on error boundaries for React error handling
  */
 
-"use client"; // Required — Error component must be a Client Component
+"use client"; // Error boundaries MUST be client components
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { RefreshCw, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useEffect } from "react"; // React core + lifecycle
+import Link from "next/link";              // Client-side navigation
+import { Button } from "@/components/ui/button"; // Button component
 
-interface ErrorPageProps {
-  error:  Error & { digest?: string }; // The error object (digest = server error ID)
-  reset:  () => void;                  // Function to re-render and retry the segment
+/* ─── Error Props ─────────────────────────────────────────────────────────── */
+interface ErrorProps {
+  error:  Error & { digest?: string }; // Runtime error object (digest = server error ID)
+  reset:  () => void;                  // Next.js function to retry rendering the segment
 }
 
-export default function ErrorPage({ error, reset }: ErrorPageProps) {
-  // Log error to console in development — in production use Sentry via error.digest
+/* ─── Global Error Page ───────────────────────────────────────────────────── */
+/**
+ * Shown when an unhandled error occurs in any route segment.
+ * Provides a "Try again" button to retry rendering and a home link as fallback.
+ */
+export default function GlobalError({ error, reset }: ErrorProps) {
+  /* ── Log error to monitoring service in production ──────────────────── */
   useEffect(() => {
-    console.error("[LearnVeda Error]", error);
+    // In production: send to Sentry, Datadog, or custom error tracking
+    // Sentry.captureException(error);
+    console.error("[LearnVeda Error Boundary]", error); // Log to console in dev
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-      {/* Error icon */}
-      <div className="mb-6 text-7xl">💥</div>
+    <html lang="en"> {/* Required wrapper for app-level error boundaries */}
+      <body className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
+        <div className="max-w-md w-full text-center space-y-6">
 
-      <h1 className="text-3xl font-bold mb-3">Something Went Wrong</h1>
-      <p className="text-muted-foreground mb-2 max-w-md">
-        An unexpected error occurred. Our team has been notified. You can try refreshing the page or go back home.
-      </p>
+          {/* ── Error emoji indicator ─────────────────────────────────── */}
+          <div className="text-6xl" role="img" aria-label="Error">⚠️</div>
 
-      {/* Error ID for support */}
-      {error.digest && (
-        <p className="text-xs text-muted-foreground/60 mb-8 font-mono">
-          Error ID: {error.digest}
-        </p>
-      )}
+          {/* ── Error heading ─────────────────────────────────────────── */}
+          <h1 className="text-2xl font-bold">Something went wrong</h1>
 
-      {/* Action buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="gradient" onClick={reset}>
-          <RefreshCw className="h-4 w-4" /> Try Again
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/"><ArrowLeft className="h-4 w-4" /> Go Home</Link>
-        </Button>
-      </div>
-    </div>
+          {/* ── Error message ─────────────────────────────────────────── */}
+          <p className="text-muted-foreground">
+            An unexpected error occurred. Our team has been notified.
+            {/* Show digest in development for easier debugging */}
+            {error.digest && (
+              <span className="block mt-1 text-xs font-mono text-muted-foreground/60">
+                Error ID: {error.digest}
+              </span>
+            )}
+          </p>
+
+          {/* ── Action buttons ─────────────────────────────────────────── */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {/* Retry button — re-renders the segment */}
+            <Button
+              onClick={reset}
+              className="bg-brand-600 hover:bg-brand-700 text-white"
+            >
+              Try Again
+            </Button>
+
+            {/* Fallback — go to homepage */}
+            <Button asChild variant="outline">
+              <Link href="/">Go Home</Link>
+            </Button>
+          </div>
+
+          {/* ── Support link ─────────────────────────────────────────── */}
+          <p className="text-sm text-muted-foreground">
+            If the problem persists,{" "}
+            <Link href="/contact" className="text-brand-500 hover:underline">
+              contact support
+            </Link>
+          </p>
+
+        </div>
+      </body>
+    </html>
   );
 }

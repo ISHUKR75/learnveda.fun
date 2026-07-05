@@ -1,57 +1,146 @@
 /**
  * @file middleware.ts
  * @description Next.js middleware for LearnVeda
- * When Clerk keys are configured: protects authenticated routes
- * When Clerk keys are not set (dev/demo mode): passthrough — no auth required
+ * Handles auth protection, security headers, and request processing
+ * Runs at the edge before any page or API handler is invoked
+ *
+ * Auth behavior:
+ * - Clerk configured → redirect unauthenticated users away from protected routes to /sign-in
+ * - Demo mode (no Clerk keys) → allow all routes so UI is explorable without auth
+ *
+ * Security headers applied to every response (non-static assets).
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server"; // Next.js middleware helpers
 
-/**
- * Check whether real Clerk keys have been configured.
- * We look for the publishable key in the server environment (process.env).
- * In Next.js middleware, NEXT_PUBLIC_ variables ARE available via process.env.
- */
+/* ─── Protected Platform Routes ───────────────────────────────────────────── */
+// These routes require authentication — unauthenticated users are redirected to /sign-in
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/ai-tutor",
+  "/mentorship",
+  "/live",
+  "/live-battles",
+  "/leaderboard",
+  "/compiler",
+  "/notifications",
+  "/profile",
+  "/semester",
+  "/core-cs",
+  "/community/chat",
+];
+
+/* ─── Auth Check ──────────────────────────────────────────────────────────── */
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+  );
+}
+
+/* ─── Clerk Key Detection ─────────────────────────────────────────────────── */
+// Only enforce auth when real Clerk keys are configured
 const hasRealClerkKeys =
   !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("placeholder") &&
-  (
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_live_") ||
-    (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_test_") &&
-     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 20)
-  );
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
 /* ─── Middleware Function ─────────────────────────────────────────────────── */
 export async function middleware(request: NextRequest) {
-  // In demo / dev mode (no real Clerk keys), just pass through all requests
-  if (!hasRealClerkKeys) {
-    return NextResponse.next(); // Allow all requests without auth check
+  const { pathname } = request.nextUrl;
+
+  /* ── 1. Skip static assets & Next.js internals ─────────────────────────── */
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/screenshots/") ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|css|js|map)$/)
+  ) {
+    return NextResponse.next();
   }
 
-  // When real Clerk keys are present, apply auth protection
-  // Dynamically import Clerk to avoid initialization errors when keys are missing
-  const { clerkMiddleware, createRouteMatcher } = await import("@clerk/nextjs/server");
+  /* ── 2. Auth enforcement (Clerk-configured environments only) ───────────── */
+  if (hasRealClerkKeys && isProtectedRoute(pathname)) {
+    try {
+      // Dynamically import Clerk auth — only runs when keys are present
+      const { auth } = await import("@clerk/nextjs/server");
+      const { userId } = await auth(); // Verify session JWT
 
-  const isProtectedRoute = createRouteMatcher([
-    "/dashboard(.*)",
-    "/explore(.*)",
-    "/api/user(.*)",
-    "/api/progress(.*)",
-    "/api/battle(.*)",
-  ]);
-
-  // Apply Clerk middleware protection
-  return clerkMiddleware(async (auth, req) => {
-    if (isProtectedRoute(req)) {
-      await auth.protect();
+      if (!userId) {
+        // Unauthenticated — redirect to sign-in with return URL
+        const signInUrl = new URL("/sign-in", request.url);
+        signInUrl.searchParams.set("redirect_url", pathname); // Post-login redirect
+        return NextResponse.redirect(signInUrl, { status: 302 });
+      }
+    } catch (err) {
+      // Clerk error — fail-closed: redirect to sign-in rather than exposing the protected page
+      console.error("[Middleware] Clerk auth check failed:", err);
+      const signInUrl = new URL("/sign-in", request.url);
+      return NextResponse.redirect(signInUrl, { status: 302 });
     }
-  })(request, {} as never);
+  }
+
+  /* ── 3. Demo mode notice for protected routes ───────────────────────────── */
+  // In demo mode, allow access but set a header the layout can read to show a demo banner
+  if (!hasRealClerkKeys && isProtectedRoute(pathname)) {
+    const response = NextResponse.next();
+    response.headers.set("X-LearnVeda-Demo", "1"); // Platform layout reads this for demo banner
+    applySecurityHeaders(response);
+    return response;
+  }
+
+  /* ── 4. Apply security headers to all other responses ──────────────────── */
+  const response = NextResponse.next();
+  applySecurityHeaders(response);
+  return response;
 }
 
-/* ─── Middleware Matcher ──────────────────────────────────────────────────── */
+/* ─── Security Headers Helper ─────────────────────────────────────────────── */
+function applySecurityHeaders(response: NextResponse): void {
+  // Content Security Policy — prevents XSS attacks
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      // Allow inline scripts (required for Next.js hydration) and Clerk scripts
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev",
+      "style-src 'self' 'unsafe-inline'",
+      // Allow images from self, data URIs, blob, and Clerk CDN
+      "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.com",
+      // Allow connections to Clerk auth APIs
+      "connect-src 'self' https://*.clerk.accounts.dev wss://*.clerk.accounts.dev",
+      "font-src 'self' data:",
+      // Allow Clerk and Google OAuth in iframes
+      "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
+    ].join("; "),
+  );
+
+  // Force HTTPS in production only (Replit dev uses HTTP)
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload", // 2-year HSTS preload
+    );
+  }
+
+  // Prevent MIME type sniffing
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  // Prevent clickjacking — only allow embedding from same origin
+  response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  // Control Referer header sent with cross-origin requests
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // Restrict browser feature access — deny camera/geolocation, allow microphone for AI voice
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(self), geolocation=(), payment=(self)",
+  );
+}
+
+/* ─── Matcher Config ──────────────────────────────────────────────────────── */
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    // Run middleware on all paths EXCEPT Next.js static assets and image optimisation
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|css|js)).*)",
   ],
 };

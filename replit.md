@@ -2,120 +2,112 @@
 
 ## Project Overview
 
-**LearnVeda** is an enterprise-grade, open-source EdTech platform for Class 9 to Graduation. It combines the best of Coursera, Khan Academy, LeetCode, Physics Wallah, and GeeksforGeeks into a single ecosystem.
+LearnVeda is a **production-level EdTech website** for Indian students from Class 9 to Graduation. It is a **Turborepo + pnpm monorepo** — only the `apps/web` (Next.js 15 App Router) runs on Replit; microservices require external Docker/Kubernetes.
 
-### What It Does
-- **CBSE Class 9–12** — Complete NCERT-aligned curriculum with simulations, quizzes, and notes
-- **Engineering** — 9 branches × 8 semesters (CSE, ECE, EEE, Mechanical, Civil, Chemical, AI, IT, Data Science)
-- **Programming** — 14 language day-plans (C, C++, Java, Python, JS, TS, Rust, Go, Kotlin, Swift, SQL, Dart, Ruby)
-- **Core CS** — DSA, Web Dev, System Design, DBMS, OS, CN, Git, CP, Interview Prep
-- **AI Tutor** — 24/7 AI-powered doubt solving
-- **Live Battles** — Real-time 1v1 coding and quiz battles
-- **140+ Simulations** — Physics, Chemistry, Biology, DSA, OS, Networks, Circuits
-- **Community** — Q&A forums, study groups, leaderboard, events
+### Live App
+- **URL**: Runs on port 5000 (mapped to port 80)
+- **Start command**: `cd apps/web && npm run dev`
+- **Stack**: Next.js 15 (App Router), TypeScript, Tailwind CSS, Zustand v5, Framer Motion, Radix UI, shadcn/ui, Clerk (optional), MongoDB (optional), Redis (optional)
 
-## Tech Stack
+---
 
-### Frontend (apps/web)
-- **Framework**: Next.js 15 (App Router) + React 19 + TypeScript
-- **Styling**: Tailwind CSS v3 + shadcn/ui + Radix UI
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **State**: Zustand + TanStack Query
-- **Forms**: React Hook Form + Zod
+## Architecture
 
-### Authentication
-- **Clerk** (optional — runs in demo mode without keys)
-- Sign-in/sign-up at `/sign-in` and `/sign-up`
-- Dashboard at `/dashboard` (works in demo mode without auth)
+```
+apps/web/                   ← Next.js 15 App Router (the only runnable app on Replit)
+├── app/
+│   ├── (marketing)/        ← Public pages: home, about, blog, pricing, features, events, etc.
+│   ├── (platform)/         ← Auth-protected student area: dashboard, AI tutor, battles, etc.
+│   ├── (auth)/             ← Clerk sign-in/sign-up pages (demo mode when no keys)
+│   ├── (legal)/            ← Privacy policy, terms of service
+│   └── api/                ← API routes: health, search, analytics, AI, email, webhooks
+├── features/               ← Feature components organized by domain
+├── components/ui/           ← shadcn/ui component library
+├── store/                  ← Zustand client state (uiStore, userPrefsStore, notifStore)
+├── hooks/                  ← Custom React hooks (useLocalStorage, useDebounce, etc.)
+├── types/                  ← TypeScript type definitions
+├── lib/                    ← External service clients (MongoDB, Redis, Clerk, Stripe, etc.)
+├── providers/              ← React context providers (theme, auth, query, toast)
+├── middleware.ts            ← Auth protection + security headers
+├── app/sitemap.ts           ← Dynamic SEO sitemap
+└── app/robots.ts            ← robots.txt generator
+```
 
-### Database
-- **MongoDB** (via Mongoose) — configure MONGODB_URI env var
+---
 
-### Monorepo
-- **Package Manager**: pnpm workspaces (use `npm install` in apps/web for Replit)
-- **Build tool**: Turborepo
-
-## How to Run
-
-The main web app runs via the configured workflow:
+## Running the App
 
 ```bash
-cd apps/web && npm run dev
+cd apps/web && npm run dev   # Start dev server on port 5000
+cd apps/web && npm run build # Production build (clears .next — restart workflow after)
+cd apps/web && npx tsc --noEmit  # Type check only
 ```
 
-App runs on port 5000 at `http://localhost:5000`.
+**Important**: Running `npm run build` deletes `.next/` — always restart the "Start application" workflow after a build to restore dev server.
 
-### Environment Variables
+---
 
-Required to enable Clerk auth (optional — works without):
-```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-```
+## Environment Variables / Secrets
 
-Optional MongoDB:
-```
-MONGODB_URI=mongodb://localhost:27017/learnveda
-```
+All external services work in **demo/passthrough mode** when keys are not configured. No crashes, just limited functionality.
 
-The app detects placeholder keys and runs in **demo mode** when real keys aren't configured.
+| Secret | Purpose | Demo Behavior |
+|--------|---------|---------------|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` | Authentication | Demo mode — all users shown as "Student" |
+| `MONGODB_URI` | Database | Pages use mock data |
+| `REDIS_URL` | Caching + rate limiting | In-memory fallback |
+| `OPENAI_API_KEY` or `GEMINI_API_KEY` | AI Tutor | Shows demo response explaining setup |
+| `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Payments | Pricing shown but not charged |
+| `RAZORPAY_KEY_ID` | Indian payments | Same as above |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook security | Demo mode accepts all (WARNING in logs) |
+| `SESSION_SECRET` | Session encryption | Configured ✅ |
 
-## Project Structure
+---
 
-```
-learnveda/
-├── apps/
-│   ├── web/          ← Main Next.js web app (primary — runs on Replit)
-│   │   ├── app/      ← Next.js App Router pages
-│   │   │   ├── (marketing)/   ← Public pages (home, about, pricing, etc.)
-│   │   │   ├── (platform)/    ← Auth-protected pages (dashboard, etc.)
-│   │   │   └── (auth)/        ← Sign-in/sign-up pages
-│   │   ├── components/  ← Shared UI components (navbar, footer, ui/*)
-│   │   ├── features/    ← Feature-specific components (one folder per feature)
-│   │   ├── providers/   ← React context providers
-│   │   ├── lib/         ← Utilities, helpers
-│   │   └── styles/      ← Global CSS
-│   ├── admin/        ← Admin panel (placeholder)
-│   ├── landing/      ← Landing page variant (placeholder)
-│   ├── mobile/       ← React Native app (placeholder)
-│   └── desktop/      ← Electron desktop app (placeholder)
-├── packages/         ← Shared packages (ui, hooks, utils, config, etc.)
-├── services/         ← Backend microservices (20+ services, placeholders)
-└── infrastructure/   ← Docker, K8s, CI/CD configs
-```
+## Pages & Routes
 
-## Key Pages
+### Marketing (public)
+- `/` — Homepage with 10 sections
+- `/about`, `/blog`, `/contact`, `/events`, `/features`, `/pricing`
+- `/practice`, `/simulations`, `/test-center`
 
-| Route | Description |
-|-------|-------------|
-| `/` | Home — Hero, Stats, Learn Tracks, Simulations, Programming |
-| `/learn` | Learning Hub — Class 9-12, Engineering, Programming, Core CS |
-| `/learn/class-9` through `/learn/class-12` | CBSE subject pages |
-| `/learn/engineering` | Engineering branch selector |
-| `/programming` | All 14 language day-plans |
-| `/simulations` | 140+ interactive simulation catalogue |
-| `/practice` | Quiz, Mock Tests, Coding Playground, PYQs |
-| `/test-center` | CBSE, JEE, NEET, Company mock tests |
-| `/dashboard` | Student dashboard (XP, streak, progress) |
-| `/live-battles` | Real-time 1v1 academic battles |
-| `/leaderboard` | Global/subject/class rankings |
-| `/community` | Q&A forum, study groups |
-| `/events` | Olympiads, hackathons, code sprints |
-| `/pricing` | Free/Pro/Team plans |
-| `/features` | Full feature overview |
-| `/about` | Mission, team, values |
-| `/blog` | Study tips, guides, updates |
-| `/contact` | Contact form |
-| `/sign-in` | Clerk auth (demo mode without keys) |
-| `/sign-up` | Clerk auth (demo mode without keys) |
+### Learning Content (authenticated via platform layout)
+- `/learn/class-9`, `/learn/class-10`, `/learn/class-11`, `/learn/class-12`
+- `/learn/class-9/[subject]`, `/learn/class-9/[subject]/[chapter]`
+- `/learn/engineering`
+- `/programming`, `/programming/[language]`, `/programming/[language]/[day]`
+- `/semester/[n]` — BTech semester guides
+- `/core-cs/[slug]` — DSA, OS, DBMS, CN deep dives
+
+### Platform Features
+- `/dashboard` + subpages (analytics, progress, achievements, goals, calendar, etc.)
+- `/ai-tutor` — AI Tutor chat (needs OPENAI_API_KEY or GEMINI_API_KEY)
+- `/mentorship` — Book 1:1 mentor sessions
+- `/live` — Live classes with countdowns
+- `/live-battles` — 1v1 knowledge battles
+- `/leaderboard` — Student rankings
+- `/compiler` — In-browser code editor
+- `/community` + subpages (posts, questions, groups, chat)
+- `/simulations/[category]`
+
+### API Routes
+- `GET /api/health` — Service health check
+- `GET /api/search?q=...` — Global search
+- `GET /api/analytics` — Platform statistics
+- `GET /api/auth` — Session check
+- `POST /api/ai` — AI Tutor chat (rate-limited, auth-gated in Clerk mode)
+- `POST /api/email` — Contact form
+- `POST /api/webhooks/clerk` — Clerk user sync (fail-closed verification)
+- `POST /api/webhooks/stripe` — Payment events (fail-closed verification)
+
+---
 
 ## User Preferences
 
-- **Language**: Mix of Hindi and English communication preferred
-- **No files/folders should ever be deleted** — only add new ones
-- **Every file must have detailed comments** explaining each section
-- **Separate folders** for every page, section, and component
-- **Production-level code** with proper TypeScript, SEO, and performance
-- All new features should maintain the existing folder structure pattern
-- Uses Clerk for auth, MongoDB for database — both optional in dev mode
+- **No deletion policy**: Never delete existing files or folders — only additions allowed
+- **Mock data convention**: All mock data has `// TODO: replace with /api/... in production` comments
+- **Every file gets JSDoc**: Every line of every file should have a detailed comment
+- **Separate feature folders**: Every feature lives in its own `features/[name]/components/` directory
+- **Framer Motion**: Use `opacity: 0.01` (not `0`) as initial opacity for above-the-fold animations (prevents blank SSR screenshots)
+- **TypeScript strict**: All code is TypeScript with no `any` unless explicitly justified
+- **No hardcoded localhost**: Use `$REPLIT_DEV_DOMAIN` in shell, relative URLs in app code

@@ -1,57 +1,99 @@
 /**
  * @file app/manifest.ts
- * @description Web App Manifest for LearnVeda PWA (Progressive Web App)
- * Enables "Add to Home Screen" on mobile devices
- * Defines app name, icons, colors, and display mode
+ * @description Web App Manifest for LearnVeda PWA
+ * Enables "Add to Home Screen" on mobile browsers
+ * Configures app display mode, icons, theme colors, and shortcuts
+ * Next.js automatically serves this at /manifest.webmanifest
  */
 
-import type { MetadataRoute } from "next"; // Next.js manifest type
+import { MetadataRoute } from "next"; // Next.js manifest type
 
+/* ─── Web App Manifest ────────────────────────────────────────────────────── */
 /**
- * Generates the web app manifest (manifest.json)
- * Makes LearnVeda installable as a PWA on mobile and desktop
+ * Returns the PWA manifest configuration.
+ * This enables LearnVeda to be installed as an app on Android and iOS devices.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name:             "LearnVeda — Learn from Class 9 to Graduation", // Full app name
-    short_name:       "LearnVeda",                                    // Name on home screen
-    description:      "AI-powered EdTech platform for Indian students — CBSE, Engineering, Programming, Simulations.",
-    start_url:        "/",             // URL opened when PWA launches
-    display:          "standalone",   // Looks like native app (no browser UI)
-    background_color: "#ffffff",      // Splash screen background (light mode)
-    theme_color:      "#6366f1",      // Brand indigo — browser chrome color
-    orientation:      "portrait",     // Default orientation
-    scope:            "/",            // App scope — all URLs under /
-    lang:             "en",           // Primary language
-    categories:       ["education", "productivity"], // App store categories
+    name:             "LearnVeda",                                    // Full app name
+    short_name:       "LearnVeda",                                    // Compact name for home screen
+    description:      "India's most engaging EdTech platform — Learn, Battle, Master!", // App description
+    start_url:        "/",                                            // Open on home when launched
+    display:          "standalone",                                   // Full-screen app experience (no browser chrome)
+    background_color: "#ffffff",                                      // Splash screen background
+    theme_color:      "#4f46e5",                                      // Brand purple (matches CSS variables)
+    orientation:      "portrait",                                     // Lock to portrait on mobile
+    scope:            "/",                                            // App scope boundary
+    lang:             "en",                                           // Primary language
+    categories:       ["education", "productivity", "games"],         // App Store categories
 
-    // App icons in multiple sizes for different devices
+    /* ── App Icons ─────────────────────────────────────────────────────── */
+    // Note: Add actual icon files to public/ directory
+    // Required sizes: 192x192 (Android baseline), 512x512 (Android/iOS fullscreen)
     icons: [
-      { src: "/icons/icon-72x72.png",   sizes: "72x72",   type: "image/png", purpose: "maskable" as const },
-      { src: "/icons/icon-96x96.png",   sizes: "96x96",   type: "image/png", purpose: "maskable" as const },
-      { src: "/icons/icon-128x128.png", sizes: "128x128", type: "image/png", purpose: "any"      as const },
-      { src: "/icons/icon-144x144.png", sizes: "144x144", type: "image/png", purpose: "maskable" as const },
-      { src: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png", purpose: "maskable" as const },
-      { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png", purpose: "any"      as const },
-      { src: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png", purpose: "maskable" as const },
-      { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "any"      as const },
-    ],
-
-    // App shortcuts for quick access from home screen
-    shortcuts: [
       {
-        name:       "My Dashboard",
-        short_name: "Dashboard",
-        description: "View your learning progress",
-        url:        "/dashboard",
-        icons:      [{ src: "/icons/icon-96x96.png", sizes: "96x96" }],
+        src:     "/icons/icon-192x192.png",
+        sizes:   "192x192",
+        type:    "image/png",
+        purpose: "maskable", // Maskable icon for Android adaptive icons
       },
       {
-        name:       "Live Battles",
-        short_name: "Battles",
-        description: "Join a live coding battle",
-        url:        "/live-battles",
-        icons:      [{ src: "/icons/icon-96x96.png", sizes: "96x96" }],
+        src:     "/icons/icon-512x512.png",
+        sizes:   "512x512",
+        type:    "image/png",
+        purpose: "any",      // Standard icon
+      },
+      {
+        src:     "/icons/icon-512x512.png",
+        sizes:   "512x512",
+        type:    "image/png",
+        purpose: "maskable", // Also maskable for splash screens
+      },
+    ],
+
+    /* ── App Shortcuts ─────────────────────────────────────────────────── */
+    // Long-press shortcuts on Android home screen icon
+    shortcuts: [
+      {
+        name:        "Dashboard",
+        short_name:  "Dashboard",
+        description: "Jump to your learning dashboard",
+        url:         "/dashboard",
+        icons:       [{ src: "/icons/icon-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name:        "AI Tutor",
+        short_name:  "AI Tutor",
+        description: "Chat with LearnVeda AI Tutor",
+        url:         "/ai-tutor",
+        icons:       [{ src: "/icons/icon-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name:        "Live Battles",
+        short_name:  "Battles",
+        description: "Start a 1v1 knowledge battle",
+        url:         "/live-battles",
+        icons:       [{ src: "/icons/icon-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name:        "Practice",
+        short_name:  "Practice",
+        description: "Practice with quizzes and tests",
+        url:         "/practice",
+        icons:       [{ src: "/icons/icon-192x192.png", sizes: "192x192" }],
+      },
+    ],
+
+    /* ── Screenshots ───────────────────────────────────────────────────── */
+    // Used in app install prompts on Chrome Android
+    screenshots: [
+      {
+        src:          "/screenshots/homepage.png",
+        sizes:        "1280x720",
+        type:         "image/png",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        form_factor:  "wide" as any,
+        label:        "LearnVeda Home",
       },
     ],
   };
