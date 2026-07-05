@@ -1,0 +1,200 @@
+
+> @learnveda/web@0.1.0 dev
+> next dev --port 5000
+
+[1G[0K   [1m[38;2;173;127;168m▲ Next.js 15.5.20[39m[22m
+   - Local:        http://localhost:5000
+   - Network:      http://172.24.0.2:5000
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ [32m[1m✓[22m[39m Starting...
+ [32m[1m✓[22m[39m Ready in 3.4s
+ [37m[1m○[22m[39m Compiling /middleware ...
+ [32m[1m✓[22m[39m Compiled /middleware in 1055ms (222 modules)
+ [37m[1m○[22m[39m Compiling / ...
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)[39m[22m
+ [32m[1m✓[22m[39m Compiled / in 10.6s (1900 modules)
+ GET / [32m200[39m in 9209ms
+ GET / [32m200[39m in 12660ms
+ [33m[1m⚠[22m[39m Cross origin request detected from 49275c6c-3075-4c60-84f7-ea58d290ff17-00-9g27lgrqy4ve.pike.replit.dev to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET / [32m200[39m in 407ms
+ [37m[1m○[22m[39m Compiling /_not-found ...
+ [32m[1m✓[22m[39m Compiled /_not-found in 3.9s (1901 modules)
+ GET / [32m200[39m in 115ms
+ GET / [32m200[39m in 661ms
+ GET /icon.png [33m404[39m in 108ms
+ [37m[1m○[22m[39m Compiling /learn ...
+ [32m[1m✓[22m[39m Compiled /learn in 2.3s (1900 modules)
+ GET /learn [32m200[39m in 2885ms
+ [37m[1m○[22m[39m Compiling /simulations ...
+ [32m[1m✓[22m[39m Compiled /simulations in 676ms (1910 modules)
+ GET /simulations [32m200[39m in 862ms
+ [37m[1m○[22m[39m Compiling /pricing ...
+ [32m[1m✓[22m[39m Compiled /pricing in 919ms (1935 modules)
+ GET /pricing [32m200[39m in 1394ms
+ GET /simulations/physics/newtons-laws [33m404[39m in 539ms
+ GET /simulations/physics/newtons-laws [33m404[39m in 71ms
+ GET /learn [32m200[39m in 141ms
+ [37m[1m○[22m[39m Compiling /about ...
+ [32m[1m✓[22m[39m Compiled /about in 6.4s (1974 modules)
+ GET /about [32m200[39m in 6904ms
+ [37m[1m○[22m[39m Compiling /contact ...
+ [32m[1m✓[22m[39m Compiled /contact in 1288ms (1990 modules)
+ GET /contact [32m200[39m in 1438ms
+ GET /learn/class-9 [33m404[39m in 198ms
+ GET /learn/core-cs [33m404[39m in 42ms
+ GET /learn/core-cs [33m404[39m in 74ms
+ GET / [32m200[39m in 194ms
+ [37m[1m○[22m[39m Compiling /sign-up/[[...sign-up]] ...
+ [32m[1m✓[22m[39m Compiled /sign-up/[[...sign-up]] in 2.5s (1988 modules)
+ GET /sign-up [32m200[39m in 3986ms
+ GET / [32m200[39m in 92ms
+ [37m[1m○[22m[39m Compiling /explore ...
+ [32m[1m✓[22m[39m Compiled /explore in 8.8s (2204 modules)
+ GET /explore [32m200[39m in 6531ms
+ GET /explore [32m200[39m in 125ms
+ GET /explore [32m200[39m in 110ms
+ [37m[1m○[22m[39m Compiling /learn ...
+ [32m[1m✓[22m[39m Compiled /learn in 1686ms (1184 modules)
+ GET /learn [32m200[39m in 1924ms
+ GET /learn [32m200[39m in 169ms
+ [32m[1m✓[22m[39m Compiled in 7.1s (2210 modules)
+ GET /learn [32m200[39m in 6198ms
+ GET /learn [32m200[39m in 101ms
+ [32m[1m✓[22m[39m Compiled in 4.7s (2210 modules)
+ GET /learn [32m200[39m in 3989ms
+ GET /learn [32m200[39m in 118ms
+ [32m[1m✓[22m[39m Compiled in 5.3s (2208 modules)
+ GET /learn [32m200[39m in 4208ms
+ GET /learn [32m200[39m in 155ms
+ [32m[1m✓[22m[39m Compiled in 5.6s (2208 modules)
+ GET /learn [32m200[39m in 3480ms
+ GET /learn [32m200[39m in 100ms
+ [32m[1m✓[22m[39m Compiled in 2.5s (820 modules)
+ GET /learn [32m200[39m in 115ms
+ GET /learn [32m200[39m in 149ms
+ [32m[1m✓[22m[39m Compiled in 5.7s (2208 modules)
+ GET /learn [32m200[39m in 4015ms
+ GET /learn [32m200[39m in 121ms
+ GET /learn [32m200[39m in 103ms
+ [32m[1m✓[22m[39m Compiled in 6.7s (2208 modules)
+ [37m[1m○[22m[39m Compiling /learn/class-9 ...
+ [32m[1m✓[22m[39m Compiled /learn/class-9 in 3.3s (2019 modules)
+ GET /learn/class-9 [32m200[39m in 4303ms
+ [32m[1m✓[22m[39m Compiled in 3.3s (822 modules)
+ [32m[1m✓[22m[39m Compiled in 4.5s (2234 modules)
+ [32m[1m✓[22m[39m Compiled in 5.2s (2234 modules)
+ [37m[1m○[22m[39m Compiling /learn/engineering ...
+ [32m[1m✓[22m[39m Compiled /learn/engineering in 3s (2009 modules)
+ [37m[1m○[22m[39m Compiling /programming ...
+ GET /learn/engineering [32m200[39m in 4414ms
+ [32m[1m✓[22m[39m Compiled /programming in 1088ms (2012 modules)
+ GET /programming [32m200[39m in 1725ms
+ GET /learn/engineering [32m200[39m in 415ms
+ GET /learn/engineering [32m200[39m in 304ms
+ GET /learn/engineering [32m200[39m in 246ms
+ GET /learn/engineering [32m200[39m in 449ms
+ GET /learn/engineering [32m200[39m in 350ms
+ GET /learn/engineering [32m200[39m in 476ms
+ GET /learn/engineering [32m200[39m in 221ms
+ [37m[1m○[22m[39m Compiling /programming/[language] ...
+ [32m[1m✓[22m[39m Compiled /programming/[language] in 1019ms (2006 modules)
+ GET /programming/python [32m200[39m in 4482ms
+ GET /sign-up [32m200[39m in 159ms
+ GET / [32m200[39m in 127ms
+ [32m[1m✓[22m[39m Compiled in 6.8s (2242 modules)
+ GET / [32m200[39m in 5619ms
+ GET / [32m200[39m in 130ms
+ [32m[1m✓[22m[39m Compiled in 5.6s (2236 modules)
+ GET / [32m200[39m in 4154ms
+ GET / [32m200[39m in 1455ms
+ [32m[1m✓[22m[39m Compiled in 4.7s (2231 modules)
+ GET / [32m200[39m in 2564ms
+ GET / [32m200[39m in 106ms
+ [37m[1m○[22m[39m Compiling /_not-found ...
+ [32m[1m✓[22m[39m Compiled /_not-found in 2.3s (1188 modules)
+ GET /learn/programming [33m404[39m in 2470ms
+ GET /learn/programming [33m404[39m in 198ms
+ [32m[1m✓[22m[39m Compiled in 4.1s (2232 modules)
+ GET /learn/programming [33m404[39m in 3021ms
+ GET /learn/programming [33m404[39m in 35ms
+ GET /learn/programming [33m404[39m in 196ms
+ [37m[1m○[22m[39m Compiling /contact ...
+ [32m[1m✓[22m[39m Compiled /contact in 1914ms (1200 modules)
+ GET /contact [32m200[39m in 2137ms
+ [32m[1m✓[22m[39m Compiled in 3.8s (2236 modules)
+ GET /contact [32m200[39m in 2531ms
+ GET /contact [32m200[39m in 125ms
+ [37m[1m○[22m[39m Compiling /events ...
+ [32m[1m✓[22m[39m Compiled /events in 4.8s (2012 modules)
+ GET /events [32m200[39m in 5021ms
+ [32m[1m✓[22m[39m Compiled in 5.6s (2236 modules)
+ GET /events [32m200[39m in 3373ms
+ GET /events [32m200[39m in 107ms
+ [32m[1m✓[22m[39m Compiled in 4.6s (2236 modules)
+ GET /events [32m200[39m in 3424ms
+ GET /events [32m200[39m in 177ms
+ [32m[1m✓[22m[39m Compiled in 7.8s (2236 modules)
+ GET /events [32m200[39m in 6846ms
+ GET /events [32m200[39m in 138ms
+ [32m[1m✓[22m[39m Compiled in 2.2s (826 modules)
+ GET /events [32m200[39m in 807ms
+ [32m[1m✓[22m[39m Compiled in 2.5s (2236 modules)
+ GET /events [32m200[39m in 786ms
+ GET /events [32m200[39m in 108ms
+ [32m[1m✓[22m[39m Compiled in 5.6s (2236 modules)
+ GET /events [32m200[39m in 4352ms
+ GET /events [32m200[39m in 104ms
+ [32m[1m✓[22m[39m Compiled in 5.6s (2236 modules)
+ GET /events [32m200[39m in 4466ms
+ GET /events [32m200[39m in 89ms
+ [32m[1m✓[22m[39m Compiled in 6.7s (2236 modules)
+ GET /events [32m200[39m in 4165ms
+ GET /events [32m200[39m in 95ms
+ GET /events [32m200[39m in 152ms
+ [32m[1m✓[22m[39m Compiled in 4s (2236 modules)
+ GET /events [32m200[39m in 274ms
+ [32m[1m✓[22m[39m Compiled in 3.3s (2236 modules)
+ GET /events [32m200[39m in 2273ms
+ GET /events [32m200[39m in 110ms
+ [32m[1m✓[22m[39m Compiled in 5.2s (2236 modules)
+ GET /events [32m200[39m in 2959ms
+ GET /events [32m200[39m in 179ms
+ [32m[1m✓[22m[39m Compiled in 5.2s (2236 modules)
+ GET /events [32m200[39m in 3852ms
+ GET /events [32m200[39m in 1376ms
+ [32m[1m✓[22m[39m Compiled in 5.8s (2236 modules)
+ GET /events [32m200[39m in 3025ms
+ GET /events [32m200[39m in 132ms
+ [37m[1m○[22m[39m Compiling /programming/[language]/[day] ...
+ [32m[1m✓[22m[39m Compiled /programming/[language]/[day] in 3.5s (2008 modules)
+ GET /programming/python/day-01 [32m200[39m in 6170ms
+ [37m[1m○[22m[39m Compiling /_not-found ...
+ [32m[1m✓[22m[39m Compiled /dashboard/achievements in 3.4s (1197 modules)
+ [32m[1m✓[22m[39m Compiled in 652ms (812 modules)
+ GET /dashboard/achievements [32m200[39m in 2058ms
+ GET /icon.png [33m404[39m in 154ms
+ [32m[1m✓[22m[39m Compiled in 6.7s (2236 modules)
+ GET /events [32m200[39m in 4386ms
+ GET /events [32m200[39m in 90ms
+Watchpack Error (watcher): Error: ENOSPC: System limit for number of file watchers reached, watch '/home/runner/workspace/apps/web/app/(platform)/semester/[n]'
+Watchpack Error (watcher): Error: ENOSPC: System limit for number of file watchers reached, watch '/home/runner/workspace/apps/web/app/(platform)/semester/[n]'
+ [32m[1m✓[22m[39m Compiled in 2.5s (826 modules)
+ GET /events [32m200[39m in 161ms
+ [32m[1m✓[22m[39m Compiled in 6.6s (2222 modules)
+ GET /events [32m200[39m in 5204ms
+ GET /events [32m200[39m in 107ms
+ GET /events [32m200[39m in 111ms
+ [37m[1m○[22m[39m Compiling /community/questions ...
+ [32m[1m✓[22m[39m Compiled /community/questions in 4.1s (2008 modules)
+ GET /community/questions [32m200[39m in 4971ms
+ [37m[1m○[22m[39m Compiling /compiler ...
+ [32m[1m✓[22m[39m Compiled /compiler in 3s (2016 modules)
+ GET /compiler [32m200[39m in 3635ms
+ [32m[1m✓[22m[39m Compiled /_not-found in 482ms (1194 modules)
+ GET /semester/1 [33m404[39m in 964ms
+[?25h
+[1G[0K⠙[1G[0K

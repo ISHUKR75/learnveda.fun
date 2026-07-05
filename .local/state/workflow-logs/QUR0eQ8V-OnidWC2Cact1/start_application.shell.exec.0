@@ -1,0 +1,47 @@
+
+> @learnveda/web@0.1.0 dev
+> next dev --port 5000
+
+[1G[0K   [1m[38;2;173;127;168m▲ Next.js 15.5.20[39m[22m
+   - Local:        http://localhost:5000
+   - Network:      http://172.24.0.2:5000
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ [32m[1m✓[22m[39m Starting...
+ [32m[1m✓[22m[39m Ready in 4.4s
+ [37m[1m○[22m[39m Compiling /middleware ...
+ [32m[1m✓[22m[39m Compiled /middleware in 722ms (222 modules)
+ [37m[1m○[22m[39m Compiling /simulations ...
+ [32m[1m✓[22m[39m Compiled /simulations in 16.7s (1821 modules)
+ GET /simulations [32m200[39m in 21139ms
+ [33m[1m⚠[22m[39m Blocked cross-origin request from 127.0.0.1 to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ [37m[1m○[22m[39m Compiling / ...
+ [32m[1m✓[22m[39m Compiled / in 5s (1913 modules)
+ GET / [32m200[39m in 5668ms
+ [32m[1m✓[22m[39m Compiled in 2.8s (785 modules)
+ [37m[1m○[22m[39m Compiling / ...
+ [32m[1m✓[22m[39m Compiled / in 572ms (1119 modules)
+ GET / [32m200[39m in 1292ms
+ GET / [32m200[39m in 464ms
+ GET / [32m200[39m in 77ms
+ [37m[1m○[22m[39m Compiling /pricing ...
+ [32m[1m✓[22m[39m Compiled /pricing in 2.2s (1916 modules)
+ GET /pricing [32m200[39m in 2450ms
+ [37m[1m○[22m[39m Compiling /features ...
+ [32m[1m✓[22m[39m Compiled /features in 1365ms (1926 modules)
+ GET /features [32m200[39m in 1554ms
+ [37m[1m○[22m[39m Compiling /live-battles ...
+ [32m[1m✓[22m[39m Compiled /live-battles in 3.3s (1962 modules)
+ GET /live-battles [32m200[39m in 3673ms
+ [37m[1m○[22m[39m Compiling /dashboard ...
+ [32m[1m✓[22m[39m Compiled /dashboard in 950ms (1982 modules)
+ GET /dashboard [32m200[39m in 1111ms
+ [37m[1m○[22m[39m Compiling /dashboard/progress ...
+ [32m[1m✓[22m[39m Compiled /dashboard/progress in 3.9s (1996 modules)
+ GET /dashboard/progress [32m200[39m in 4245ms
+ [37m[1m○[22m[39m Compiling /learn/class-9/[subject] ...
+ [32m[1m✓[22m[39m Compiled /learn/class-9/[subject] in 1434ms (1959 modules)
+ GET /learn/class-9/science [32m200[39m in 3637ms

@@ -1,0 +1,48 @@
+
+> @learnveda/web@0.1.0 dev
+> next dev --port 5000
+
+[1G[0K   [1m[38;2;173;127;168m▲ Next.js 15.5.20[39m[22m
+   - Local:        http://localhost:5000
+   - Network:      http://172.24.0.2:5000
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ [32m[1m✓[22m[39m Starting...
+ [32m[1m✓[22m[39m Ready in 5.1s
+ [37m[1m○[22m[39m Compiling /middleware ...
+ [32m[1m✓[22m[39m Compiled /middleware in 818ms (222 modules)
+ [37m[1m○[22m[39m Compiling / ...
+ [32m[1m✓[22m[39m Compiled / in 21s (1900 modules)
+ [37m[1m○[22m[39m Compiling /semester/[n] ...
+ GET / [32m200[39m in 24794ms
+ [33m[1m⚠[22m[39m Cross origin request detected from 49275c6c-3075-4c60-84f7-ea58d290ff17-00-9g27lgrqy4ve.pike.replit.dev to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ [32m[1m✓[22m[39m Compiled /semester/[n] in 11s (1935 modules)
+ GET / [32m200[39m in 553ms
+ GET /semester/1 [32m200[39m in 629ms
+ [32m[1m✓[22m[39m Compiled in 6.8s (2157 modules)
+ GET / [32m200[39m in 5278ms
+ GET / [32m200[39m in 92ms
+ [37m[1m○[22m[39m Compiling /core-cs/[slug] ...
+ [32m[1m✓[22m[39m Compiled /core-cs/[slug] in 1973ms (1928 modules)
+ GET /core-cs/binary-search [32m200[39m in 5114ms
+ [37m[1m○[22m[39m Compiling /dashboard/progress ...
+ [32m[1m✓[22m[39m Compiled /dashboard/progress in 1004ms (1934 modules)
+ GET /dashboard/progress [32m200[39m in 1809ms
+ [37m[1m○[22m[39m Compiling /learn/engineering ...
+ [32m[1m✓[22m[39m Compiled /learn/engineering in 1146ms (1944 modules)
+ GET /learn/engineering [32m200[39m in 2381ms
+ [37m[1m○[22m[39m Compiling /test-center ...
+ [32m[1m✓[22m[39m Compiled /test-center in 5.5s (1957 modules)
+ GET /test-center [32m200[39m in 6065ms
+ [37m[1m○[22m[39m Compiling /features ...
+ [32m[1m✓[22m[39m Compiled /features in 1494ms (1967 modules)
+ GET /features [32m200[39m in 2249ms
+ GET /features [32m200[39m in 102ms
+ [37m[1m○[22m[39m Compiling /pricing ...
+ [32m[1m✓[22m[39m Compiled /events in 4.8s (2000 modules)
+ GET /pricing [32m200[39m in 5091ms
+ GET /events [32m200[39m in 3838ms
+ GET / [32m200[39m in 143ms
