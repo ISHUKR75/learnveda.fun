@@ -91,3 +91,9 @@ mongodump/
 *.cert
 *.crt
 secrets/
+
+# -- AI Agents & Workspaces --
+artifacts/
+.local/
+.replit
+.cache/
