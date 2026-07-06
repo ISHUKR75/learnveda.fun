@@ -1,6 +1,6 @@
 /**
  * @file app/api/health/route.ts
- * @description Health-check endpoint for LearnVeda
+ * @description Platform health check endpoint — all service statuses
  * Route: GET /api/health
  *
  * Used by:

@@ -12,8 +12,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, Code2 } from "lucide-react";
+import { ChevronRight, Code2, Zap, Star, Clock, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title:       "Programming Languages — LearnVeda",
@@ -47,63 +48,130 @@ const LEVEL_COLORS: Record<string, string> = {
 /* ─── Page Component ─────────────────────────────────────────────────────── */
 export default function ProgrammingHubPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container px-4 md:px-6 py-10">
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="inline-flex p-3 rounded-2xl bg-brand-500 text-white mb-4">
-            <Code2 className="h-7 w-7" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">Programming Languages</h1>
-          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-            Structured 30-day learning plans for 13 programming languages.
-            From beginner to industry-ready, one day at a time.
-          </p>
-        </div>
+    <div className="min-h-screen pb-20">
 
-        {/* Languages grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {LANGUAGES.map((lang) => (
-            <Link
-              key={lang.slug}
-              href={`/programming/${lang.slug}`}
-              className={`group rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition-all ${lang.color}`}
-            >
-              {/* Emoji + name */}
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">{lang.emoji}</span>
-                <div>
-                  <h2 className="font-bold text-foreground group-hover:text-brand-500 transition-colors">
-                    {lang.name}
-                  </h2>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Badge variant="outline" className={`text-xs ${LEVEL_COLORS[lang.level]}`}>
-                      {lang.level}
-                    </Badge>
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="border-b bg-gradient-to-b from-brand-950/5 to-background py-14 md:py-18">
+        <div className="container px-4 md:px-6">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-5">
+            <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
+            <span>/</span>
+            <span className="text-foreground font-medium">Programming</span>
+          </nav>
+          <Badge variant="secondary" className="mb-3">13 Languages · 30-Day Plans</Badge>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            🖥️ Programming Languages
+          </h1>
+          <p className="text-muted-foreground text-lg mb-6 max-w-xl">
+            Structured day-by-day learning plans for 13 programming languages.
+            From your first "Hello World" to building real projects — one day at a time.
+          </p>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
+            <span className="flex items-center gap-1.5"><Code2 className="h-4 w-4" /> 13 Languages</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> 20–30 Days per language</span>
+            <span className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> 15K+ students enrolled</span>
+            <span className="flex items-center gap-1.5"><Zap className="h-4 w-4 text-brand-500" /> In-browser compiler</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="gradient" size="lg" asChild>
+              <Link href="/programming/python"><Zap className="h-4 w-4" /> Start with Python</Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/compiler"><BookOpen className="h-4 w-4" /> Open Compiler</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Languages grid ────────────────────────────────────────── */}
+      <section className="py-12">
+        <div className="container px-4 md:px-6">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold tracking-tight">Choose Your Language</h2>
+            <Badge variant="secondary">Days 1–5 are free for all</Badge>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {LANGUAGES.map((lang) => (
+              <Link
+                key={lang.slug}
+                href={`/programming/${lang.slug}`}
+                className={`group rounded-2xl border bg-card p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${lang.color}`}
+              >
+                {/* Emoji + name */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">{lang.emoji}</span>
+                  <div>
+                    <h2 className="font-bold text-foreground group-hover:text-brand-500 transition-colors">
+                      {lang.name}
+                    </h2>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Badge variant="outline" className={`text-xs ${LEVEL_COLORS[lang.level]}`}>
+                        {lang.level}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Tagline */}
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{lang.tagline}</p>
+                {/* Tagline */}
+                <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{lang.tagline}</p>
 
-              {/* Footer */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{lang.days}-day plan</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 transition-colors" />
-              </div>
-            </Link>
-          ))}
+                {/* Footer */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {lang.days}-day plan
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Note */}
-        <div className="mt-10 p-5 rounded-2xl border bg-muted/30 text-center">
-          <p className="text-sm text-muted-foreground">
-            All programming languages have a free introductory track (Days 1–5).
-            {" "}<Link href="/pricing" className="text-brand-500 hover:underline">Upgrade to Pro</Link> to unlock the full 30-day plan.
-          </p>
+      {/* ── Core CS Tracks ────────────────────────────────────────── */}
+      <section className="py-10 bg-muted/30">
+        <div className="container px-4 md:px-6">
+          <h2 className="text-xl font-bold mb-6">Also Learn: Core CS Subjects</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { name: "DSA — 60 Days",          href: "/core-cs/dsa",                  emoji: "🌳" },
+              { name: "System Design",           href: "/core-cs/system-design",        emoji: "🏗️" },
+              { name: "Web Development",         href: "/core-cs/web-development",      emoji: "🌐" },
+              { name: "Interview Preparation",   href: "/core-cs/interview-preparation", emoji: "💼" },
+            ].map((track) => (
+              <Link key={track.href} href={track.href}
+                className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:border-brand-500/40 hover:shadow-md transition-all group">
+                <span className="text-2xl">{track.emoji}</span>
+                <span className="font-semibold text-sm group-hover:text-brand-500 transition-colors">{track.name}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ── Pricing note ──────────────────────────────────────────── */}
+      <section className="py-8">
+        <div className="container px-4 md:px-6">
+          <div className="rounded-2xl border bg-card p-6 flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex-1">
+              <h3 className="font-bold">Start for Free</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Days 1–5 of every language are completely free.
+                Upgrade to Pro to unlock all 30 days, projects, and certification.
+              </p>
+            </div>
+            <div className="flex gap-3 shrink-0">
+              <Button variant="gradient" asChild>
+                <Link href="/pricing">View Plans</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/programming/python">Try Python Free</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
