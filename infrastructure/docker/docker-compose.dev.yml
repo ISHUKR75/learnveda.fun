@@ -1,0 +1,74 @@
+# docker-compose.dev.yml — LearnVeda development environment
+# Starts: MongoDB, Redis, and the Next.js web app
+#
+# Usage:
+#   docker-compose -f docker/docker-compose.dev.yml up
+#   docker-compose -f docker/docker-compose.dev.yml down
+#   docker-compose -f docker/docker-compose.dev.yml logs -f web
+
+version: "3.9"
+
+services:
+  # ── MongoDB ────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: learnveda-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"          # Expose to host for dev tools (Compass etc.)
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: devpassword   # Dev only — change in prod
+      MONGO_INITDB_DATABASE:     learnveda
+    volumes:
+      - mongodb_data:/data/db    # Persist data across restarts
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  # ── Redis ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: learnveda-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"             # Expose to host for dev tools
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data         # Persist AOF log
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  3s
+      retries:  5
+
+  # ── Web App (Next.js) ──────────────────────────────────────────────────
+  web:
+    build:
+      context: ../../                    # Monorepo root
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: learnveda-web-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis:   { condition: service_healthy }
+    environment:
+      NODE_ENV:                    development
+      MONGODB_URI:                 mongodb://root:devpassword@mongodb:27017/learnveda?authSource=admin
+      REDIS_URL:                   redis://redis:6379
+      # Clerk keys — add your real keys or use placeholder for demo mode
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-pk_test_demo}
+      CLERK_SECRET_KEY:            ${CLERK_SECRET_KEY:-sk_test_demo}
+    volumes:
+      - ../../apps/web:/app/apps/web   # Hot reload via volume mount
+      - /app/apps/web/node_modules     # Don't override node_modules
+      - /app/apps/web/.next            # Don't override .next cache
+
+volumes:
+  mongodb_data: {}
+  redis_data:   {}

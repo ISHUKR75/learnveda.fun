@@ -1,640 +1,508 @@
 /**
  * @file app/(platform)/programming/[language]/[day]/page.tsx
- * @description Daily programming lesson page — the core learning unit
- * Route: /programming/[language]/[day]  (e.g. /programming/python/day-01)
- * Shows: Day objective, theory content, code examples, exercises, next day CTA
- * This is where students spend most of their programming track time
+ * @description Individual day learning page for any programming language track
+ * Route: /programming/[language]/[day]  (e.g. /programming/python/day-1)
+ *
+ * Each "day" is a structured lesson covering:
+ *   - Learning objectives for the day
+ *   - Theory section with explanations and code examples
+ *   - Practice problems (3 per day)
+ *   - Exercise to complete before moving on
+ *   - Navigation to previous/next day
+ *
+ * Server component — SSG at build time for performance.
+ * Code examples rendered with syntax highlighting (CSS-based for SSR safety).
  */
 
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata } from "next"; // SEO
+import { notFound }      from "next/navigation"; // 404
+import Link              from "next/link"; // Navigation
 import {
-  ChevronRight, ChevronLeft, Code2, Play, CheckCircle2,
-  Clock, Target, Lightbulb, ArrowRight, BookOpen,
-} from "lucide-react";
-import { Badge }  from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+  ChevronRight, ChevronLeft, BookOpen, Code2,
+  Target, CheckCircle2, Play, ArrowRight, Clock,
+  Lightbulb, Terminal, Star,
+} from "lucide-react"; // Icons
+import { Badge }  from "@/components/ui/badge";   // Badge
+import { Button } from "@/components/ui/button";  // Button
 
-/* ─── Daily Lesson Content ───────────────────────────────────────────────── */
-// Sample daily lesson content for the first few days of Python
-// In production this is fetched from MongoDB course-service
-const DAILY_LESSONS: Record<string, Record<string, {
-  dayNumber: number;
-  title:     string;
-  objective: string;
-  timeEstimate: string;
-  theory:    { heading: string; content: string; codeExample?: string }[];
-  keyPoints: string[];
-  exercises: { title: string; description: string; difficulty: "Easy" | "Medium" | "Hard"; hint?: string }[];
-  prevDay?:  { id: string; title: string };
-  nextDay?:  { id: string; title: string };
-}>> = {
-  python: {
-    "day-01": {
-      dayNumber:    1,
-      title:        "Welcome to Python — Setup & Your First Program",
-      objective:    "Install Python, understand the interpreter, write your first Python program, and understand variables and basic output.",
-      timeEstimate: "45–60 min",
-      theory: [
-        {
-          heading:    "What is Python?",
-          content:    "Python is a high-level, interpreted, dynamically typed programming language created by Guido van Rossum in 1991. It emphasizes code readability — Python code reads almost like English. It runs on Windows, macOS, and Linux without modification.",
-          codeExample:
-`# Your very first Python program
-print("Hello, LearnVeda!")   # print() outputs text to the screen
+/* ─── Language Metadata ──────────────────────────────────────────────────── */
+const LANGUAGE_META: Record<string, {
+  name:       string;  // Display name
+  emoji:      string;  // Language emoji
+  totalDays:  number;  // Total days in the plan
+  color:      string;  // Tailwind color class
+}> = {
+  python:     { name: "Python",     emoji: "🐍", totalDays: 45, color: "blue"   },
+  javascript: { name: "JavaScript", emoji: "🟨", totalDays: 45, color: "yellow" },
+  java:       { name: "Java",       emoji: "☕", totalDays: 60, color: "orange" },
+  cpp:        { name: "C++",        emoji: "⚡", totalDays: 60, color: "purple" },
+  c:          { name: "C",          emoji: "🔧", totalDays: 30, color: "blue"   },
+  rust:       { name: "Rust",       emoji: "🦀", totalDays: 45, color: "orange" },
+  golang:     { name: "Go",         emoji: "🐹", totalDays: 30, color: "cyan"   },
+  typescript: { name: "TypeScript", emoji: "🔷", totalDays: 30, color: "blue"   },
+  kotlin:     { name: "Kotlin",     emoji: "🎯", totalDays: 30, color: "purple" },
+  swift:      { name: "Swift",      emoji: "🍎", totalDays: 30, color: "orange" },
+  dart:       { name: "Dart",       emoji: "🎯", totalDays: 30, color: "blue"   },
+  sql:        { name: "SQL",        emoji: "🗄️", totalDays: 30, color: "green"  },
+  r:          { name: "R",          emoji: "📊", totalDays: 30, color: "blue"   },
+};
 
-# Python is case-sensitive
-# Print and print are NOT the same`,
-        },
-        {
-          heading:    "Variables and Data Types",
-          content:    "A variable is a named container for data. Python automatically determines the type based on the value you assign. The four basic types are: int (integers), float (decimal numbers), str (text), and bool (True/False).",
-          codeExample:
-`# Integer
-age = 17
-print(age)           # Output: 17
+/* ─── Lesson Content Type ────────────────────────────────────────────────── */
+interface LessonSection {
+  type:  "heading" | "p" | "code" | "ul" | "note" | "exercise";
+  text?: string;          // For heading/p/note/exercise
+  code?: string;          // For code blocks
+  lang?: string;          // For code syntax highlighting label
+  items?: string[];       // For ul
+}
 
-# Float (decimal)
-height = 5.8
-print(height)        # Output: 5.8
+interface DayLesson {
+  title:       string;   // Day title (e.g., "Introduction to Python & Setup")
+  objectives:  string[]; // Learning objectives
+  duration:    string;   // Estimated study time
+  sections:    LessonSection[]; // Lesson content
+  practice: {
+    question: string;
+    hint:     string;
+    solution?: string;
+  }[];
+  prevDay?: number; // Previous day number
+  nextDay?: number; // Next day number
+}
 
-# String (text)
-name = "Arjun"
-print(name)          # Output: Arjun
+/* ─── Lesson Database ────────────────────────────────────────────────────── */
+// Key format: `${language}-day-${number}` (e.g. "python-day-1")
+// In production: fetched from MongoDB content collection via content-service
+const LESSONS: Record<string, DayLesson> = {
+  /* ── Python Day 1 ───────────────────────────────────────────────── */
+  "python-day-1": {
+    title:      "Introduction to Python & Setup",
+    objectives: [
+      "Understand what Python is and where it's used",
+      "Install Python 3.x and VS Code on your machine",
+      "Run your first Python program",
+      "Understand print(), variables, and basic data types",
+    ],
+    duration:   "2–3 hours",
+    sections: [
+      { type: "heading", text: "What is Python?" },
+      { type: "p",       text: "Python is a high-level, interpreted programming language created by Guido van Rossum in 1991. It's known for its clean, readable syntax that feels almost like writing English. Python is used for web development (Django, FastAPI), data science (pandas, NumPy), machine learning (TensorFlow, PyTorch), automation, and more." },
+      { type: "ul",      items: ["Interpreted: runs line by line, no compilation needed", "Dynamically typed: variable types are assigned at runtime", "Cross-platform: runs on Windows, macOS, Linux", "Open source: free to use and massive community"] },
+      { type: "heading", text: "Your First Python Program" },
+      { type: "p",       text: "After installing Python, open a terminal and type 'python3'. Then type:" },
+      { type: "code",    lang: "python", code: `# This is a comment in Python — lines starting with # are ignored
 
-# Boolean
-is_student = True
-print(is_student)    # Output: True
+# print() displays output to the terminal
+print("Hello, World!")
 
-# Check the type of any variable
-print(type(age))     # Output: <class 'int'>`,
-        },
-        {
-          heading:    "Basic Input and Output",
-          content:    "The input() function reads a string from the user. The print() function displays output. You can format output using f-strings — strings that start with f\" and allow you to embed variable values directly.",
-          codeExample:
-`# Reading user input
-name = input("Enter your name: ")   # Waits for user to type
+# Variables — no need to declare types
+name = "Aarav"     # This is a string
+age  = 16          # This is an integer
+gpa  = 9.5         # This is a float (decimal number)
+active = True      # This is a boolean (True/False)
 
-# f-string formatting
-print(f"Hello, {name}! Welcome to Python.")
+# f-strings: the modern way to embed variables in strings (Python 3.6+)
+print(f"My name is {name}, I am {age} years old and my GPA is {gpa}")
 
-# Multiple values in print
-score = 95
-print(f"Your score is {score} out of 100")
+# type() tells you the data type of any variable
+print(type(name))    # <class 'str'>
+print(type(age))     # <class 'int'>
+print(type(gpa))     # <class 'float'>
+print(type(active))  # <class 'bool'>` },
+      { type: "heading", text: "Data Types in Python" },
+      { type: "p",       text: "Python has 4 basic (scalar) data types you must know:" },
+      { type: "ul",      items: [
+        "int: whole numbers — 0, 1, -5, 1000000",
+        "float: decimal numbers — 3.14, -0.5, 9.8",
+        "str: text/strings — 'hello', 'LearnVeda', \"Python\"",
+        "bool: True or False (capital T/F, no quotes)",
+      ]},
+      { type: "heading", text: "Basic Arithmetic" },
+      { type: "code",    lang: "python", code: `# Arithmetic operators in Python
+x = 10
+y = 3
 
-# Arithmetic inside f-strings
-a = 10
-b = 3
-print(f"{a} + {b} = {a + b}")   # Output: 10 + 3 = 13`,
-        },
-        {
-          heading:    "Python Arithmetic Operators",
-          content:    "Python supports all standard mathematical operations. The // operator is integer division (floor division), ** is exponentiation (power), and % is modulo (remainder).",
-          codeExample:
-`x = 15
-y = 4
+print(x + y)    # Addition:       13
+print(x - y)    # Subtraction:    7
+print(x * y)    # Multiplication: 30
+print(x / y)    # Division:       3.3333 (always returns float)
+print(x // y)   # Floor division: 3 (integer quotient)
+print(x % y)    # Modulus:        1 (remainder)
+print(x ** y)   # Exponentiation: 1000 (10^3)` },
+      { type: "note",    text: "🔑 Key Insight: In Python, 10/3 = 3.3333 (float), but 10//3 = 3 (integer). The // operator gives you the floor division (integer quotient). This is used a LOT in DSA problems." },
+      { type: "heading", text: "Input from User" },
+      { type: "code",    lang: "python", code: `# input() reads a line from the terminal as a STRING
+name = input("Enter your name: ")
+print(f"Hello, {name}!")
 
-print(x + y)    # 19  — Addition
-print(x - y)    # 11  — Subtraction
-print(x * y)    # 60  — Multiplication
-print(x / y)    # 3.75 — Division (always returns float)
-print(x // y)   # 3  — Integer division (floor)
-print(x % y)    # 3  — Modulo (remainder)
-print(x ** y)   # 50625 — Power (15^4)`,
-        },
-      ],
-      keyPoints: [
-        "Python uses indentation (4 spaces) instead of curly braces to define code blocks",
-        "Variables don't need type declarations — Python infers them",
-        "print() can take multiple comma-separated values and joins them with space",
-        "input() always returns a string — use int() or float() to convert to numbers",
-        "Python is case-sensitive: name and Name are different variables",
-        "Single-line comments start with # and are ignored by Python",
-      ],
-      exercises: [
-        {
-          title:       "Hello World Variation",
-          description: "Write a Python program that asks the user for their name and class (e.g., 'Class 9') and prints: 'Welcome [name]! You are in [class].'\nExample: if name is 'Priya' and class is 'Class 9', print: 'Welcome Priya! You are in Class 9.'",
-          difficulty:  "Easy",
-          hint:        "Use input() twice — once for name, once for class. Use an f-string for the output.",
-        },
-        {
-          title:       "Simple Calculator",
-          description: "Ask the user for two numbers and print their sum, difference, product, quotient, and remainder on separate lines.\nLabel each result clearly.",
-          difficulty:  "Easy",
-          hint:        "Remember to convert input to int or float using int() or float().",
-        },
-        {
-          title:       "Circle Area",
-          description: "Ask the user for the radius of a circle. Calculate and print the area.\nUse π = 3.14159. Format to 2 decimal places using f'{area:.2f}'.",
-          difficulty:  "Medium",
-          hint:        "Area of circle = π × r². Use float() to convert the input.",
-        },
-      ],
-      nextDay: { id: "day-02", title: "Strings and String Methods" },
-    },
+# To get a number, you must convert the string to int/float
+age = int(input("Enter your age: "))   # int() converts string to integer
+print(f"Next year you'll be {age + 1}")
 
-    "day-02": {
-      dayNumber:    2,
-      title:        "Strings and String Methods",
-      objective:    "Master Python strings — creation, indexing, slicing, and the 20 most useful string methods.",
-      timeEstimate: "50–70 min",
-      theory: [
-        {
-          heading: "String Basics",
-          content: "A string is a sequence of characters enclosed in single quotes (''), double quotes (\"\"), or triple quotes (\"\"\" \"\"\"). Strings are immutable — you cannot change individual characters after creation.",
-          codeExample:
-`s1 = 'Hello'
-s2 = "World"
-s3 = """This is a
-multi-line string"""
-
-# String concatenation
-full = s1 + " " + s2
-print(full)    # Hello World
-
-# String repetition
-print("abc" * 3)  # abcabcabc
-
-# Length of string
-print(len(full))   # 11`,
-        },
-        {
-          heading: "Indexing and Slicing",
-          content: "Each character in a string has an index starting from 0. Negative indices count from the end. Slicing lets you extract a portion: s[start:end:step].",
-          codeExample:
-`s = "LearnVeda"
-
-# Positive indexing (0-based)
-print(s[0])     # L
-print(s[4])     # n
-
-# Negative indexing (from the end)
-print(s[-1])    # a (last character)
-print(s[-4])    # V
-
-# Slicing s[start:end] — end is exclusive
-print(s[0:5])   # Learn
-print(s[5:])    # Veda  (from index 5 to end)
-print(s[:5])    # Learn (from start to index 5)
-print(s[::-1])  # adeVnraeL (reverse the string)`,
-        },
-        {
-          heading: "Essential String Methods",
-          content: "String methods return new strings — they don't modify the original. Always assign the result if you need it.",
-          codeExample:
-`s = "  Hello, Python World!  "
-
-print(s.upper())          # "  HELLO, PYTHON WORLD!  "
-print(s.lower())          # "  hello, python world!  "
-print(s.strip())          # "Hello, Python World!"   (removes leading/trailing spaces)
-print(s.strip().title())  # "Hello, Python World!"
-
-# replace(old, new)
-print(s.replace("Python", "LearnVeda"))
-
-# split — converts string to list
-words = "apple,banana,mango"
-print(words.split(","))   # ['apple', 'banana', 'mango']
-
-# join — converts list to string
-fruits = ["apple", "banana", "mango"]
-print(", ".join(fruits))  # apple, banana, mango
-
-# find — returns index of first occurrence (-1 if not found)
-print(s.find("Python"))   # 9
-
-# startswith / endswith
-print(s.strip().startswith("Hello"))  # True
-print(s.strip().endswith("!"))        # True
-
-# count
-print("banana".count("a"))  # 3`,
-        },
-      ],
-      keyPoints: [
-        "String indices start at 0; negative indices start at -1 (last character)",
-        "Slicing s[start:end] — start is inclusive, end is exclusive",
-        "s[::-1] reverses a string (very common interview question)",
-        "String methods don't modify the original — they return a new string",
-        "strip() removes whitespace from both ends; lstrip()/rstrip() from one end",
-        "f-strings are the modern way to format strings — prefer them over .format()",
-      ],
-      exercises: [
-        {
-          title:       "Palindrome Checker",
-          description: "Ask the user for a word and check if it is a palindrome (reads the same forwards and backwards). Print 'Yes, it is a palindrome!' or 'No, it is not a palindrome.' (case-insensitive check).",
-          difficulty:  "Easy",
-          hint:        "Convert to lowercase first. Compare the string with its reverse using [::-1].",
-        },
-        {
-          title:       "Word Count",
-          description: "Ask the user for a sentence. Print the number of words, the longest word, and the sentence in reverse word order.",
-          difficulty:  "Medium",
-          hint:        "Use split() to get a list of words. Use len() for count. Use max(words, key=len) for the longest word.",
-        },
-        {
-          title:       "Username Generator",
-          description: "Ask the user for their first name, last name, and birth year. Generate a username in the format: firstlast_yy (e.g. Arjun Sharma 2007 → arjunsharma_07). Handle names with leading/trailing spaces.",
-          difficulty:  "Medium",
-          hint:        "Use .strip().lower() on names, then slice the last 2 digits of the birth year with str(year)[-2:].",
-        },
-      ],
-      prevDay: { id: "day-01", title: "Welcome to Python" },
-      nextDay: { id: "day-03", title: "Lists and Tuples" },
-    },
+# int() will throw a ValueError if you type "abc" — we'll handle exceptions on Day 8` },
+      { type: "exercise", text: "Mini Project: Write a Python program that asks the user for their name, age, and favorite subject, then prints a formatted summary. Store each input in a separate variable." },
+    ],
+    practice: [
+      {
+        question: "Write a program that takes two numbers as input and prints their sum, difference, product, and quotient.",
+        hint:     "Use input(), int() to convert strings, and f-strings to format the output.",
+        solution: "a = int(input())\nb = int(input())\nprint(f'{a+b} {a-b} {a*b} {a/b:.2f}')",
+      },
+      {
+        question: "Write a program to calculate the area and perimeter of a rectangle given its length and width.",
+        hint:     "Area = length × width. Perimeter = 2 × (length + width).",
+      },
+      {
+        question: "Swap two variables WITHOUT using a third variable. Print the values before and after swapping.",
+        hint:     "Python has a unique swap syntax: a, b = b, a — no temp variable needed!",
+      },
+    ],
+    prevDay: undefined,
+    nextDay:  2,
   },
+  /* ── Python Day 2 ───────────────────────────────────────────────── */
+  "python-day-2": {
+    title:      "Control Flow: if/elif/else & Comparison Operators",
+    objectives: [
+      "Use comparison operators (==, !=, <, >, <=, >=)",
+      "Write if, elif, and else blocks",
+      "Understand boolean logic (and, or, not)",
+      "Build decision-making programs",
+    ],
+    duration:   "2–3 hours",
+    sections: [
+      { type: "heading", text: "Comparison Operators" },
+      { type: "code",    lang: "python", code: `# Comparison operators — always return True or False
+x = 10
+y = 5
 
-  javascript: {
-    "day-01": {
-      dayNumber:    1,
-      title:        "JavaScript Fundamentals — Variables, Types & Operators",
-      objective:    "Understand JavaScript variables (let, const, var), primitive data types, and arithmetic/comparison operators.",
-      timeEstimate: "45–60 min",
-      theory: [
-        {
-          heading: "Variables in JavaScript",
-          content: "JavaScript has three ways to declare variables: var (old, function-scoped), let (block-scoped, can be reassigned), and const (block-scoped, cannot be reassigned). Always prefer const, use let when you need to reassign, and avoid var.",
-          codeExample:
-`// const — value cannot be changed
-const name = "Arjun";
-const PI = 3.14159;
+print(x == y)   # False — equal to
+print(x != y)   # True  — not equal to
+print(x > y)    # True  — greater than
+print(x < y)    # False — less than
+print(x >= y)   # True  — greater than or equal
+print(x <= y)   # False — less than or equal
 
-// let — can be reassigned
-let score = 0;
-score = 95;   // OK — reassignment allowed
+# IMPORTANT: == compares values, = assigns values
+# age = 18      # assigns 18 to age
+# age == 18     # checks IF age is 18` },
+      { type: "heading", text: "if / elif / else" },
+      { type: "code",    lang: "python", code: `# Basic if/elif/else structure
+marks = int(input("Enter your marks (0-100): "))
 
-// var — old way, avoid in modern JS
-var age = 17;
+if marks >= 90:
+    grade = "A+"
+    print(f"Excellent! Grade: {grade}")
+elif marks >= 80:
+    grade = "A"
+    print(f"Very Good! Grade: {grade}")
+elif marks >= 70:
+    grade = "B"
+    print(f"Good! Grade: {grade}")
+elif marks >= 60:
+    grade = "C"
+    print(f"Average. Grade: {grade}")
+elif marks >= 40:
+    grade = "D"
+    print(f"Below Average. Grade: {grade}")
+else:
+    grade = "F"
+    print(f"Fail. Grade: {grade}")
 
-// Try to reassign a const:
-// name = "Priya"; // ❌ TypeError: Assignment to constant variable`,
-        },
-        {
-          heading: "Data Types",
-          content: "JavaScript has 7 primitive types: string, number, boolean, null, undefined, BigInt, and Symbol. The typeof operator tells you what type a value is.",
-          codeExample:
-`const str    = "Hello World";   // string
-const num    = 42;              // number (integers AND floats are 'number')
-const pi     = 3.14;            // number
-const bool   = true;            // boolean
-const empty  = null;            // null (intentionally empty)
-let unknown;                    // undefined (declared but not assigned)
+# IMPORTANT: Python uses INDENTATION (4 spaces) to define code blocks
+# There are NO curly braces {} like in C/Java/JavaScript` },
+      { type: "heading", text: "Boolean Logic: and, or, not" },
+      { type: "code",    lang: "python", code: `age  = 17
+marks = 85
 
-console.log(typeof str);        // "string"
-console.log(typeof num);        // "number"
-console.log(typeof bool);       // "boolean"
-console.log(typeof null);       // "object" ← JS quirk/bug
-console.log(typeof unknown);    // "undefined"`,
-        },
-        {
-          heading: "Template Literals",
-          content: "Template literals (backtick strings) allow embedding expressions directly in strings, multi-line strings, and expression evaluation.",
-          codeExample:
-`const name  = "Priya";
-const score = 98;
+# and: BOTH conditions must be True
+if age >= 16 and marks >= 80:
+    print("Eligible for scholarship")
 
-// Old way (string concatenation)
-console.log("Hello, " + name + "! Score: " + score);
+# or: AT LEAST ONE condition must be True
+if age < 16 or marks < 40:
+    print("Need improvement")
 
-// Modern way — template literal (backticks)
-console.log(\`Hello, \${name}! Score: \${score}\`);
+# not: REVERSES the boolean value
+passed = True
+if not passed:
+    print("Better luck next time")
+else:
+    print("Congratulations!")
 
-// Expression inside template literal
-console.log(\`Percentage: \${score}%\`);
-console.log(\`10 + 5 = \${10 + 5}\`);
-
-// Multi-line string
-const msg = \`
-  Welcome to LearnVeda!
-  Today is your Day 1.
-\`;`,
-        },
-      ],
-      keyPoints: [
-        "Use const by default, let when reassignment needed, never var in modern JS",
-        "JavaScript has only one numeric type — number (for both integers and floats)",
-        "typeof null returns 'object' — this is a famous JavaScript bug, not a feature",
-        "Template literals use backticks (`) not quotes and ${} for interpolation",
-        "=== (strict equality) checks value AND type; == (loose equality) coerces types",
-        "JavaScript is case-sensitive: name and Name are different variables",
-      ],
-      exercises: [
-        {
-          title:       "Personal Intro Card",
-          description: "Create variables for your name, age, city, and favorite subject. Use template literals to print a formatted introduction like: 'Hi! I am Arjun, 16 years old from Delhi. My favorite subject is Mathematics.'",
-          difficulty:  "Easy",
-          hint:        "Use const for all variables since none of them change. Use a template literal for the output.",
-        },
-        {
-          title:       "BMI Calculator",
-          description: "Declare variables for weight (in kg) and height (in metres). Calculate BMI = weight / (height * height). Use console.log to print: 'Your BMI is X.XX' (round to 2 decimal places using .toFixed(2)).",
-          difficulty:  "Easy",
-          hint:        "BMI = weight / (height ** 2). Use .toFixed(2) to format the decimal.",
-        },
-      ],
-      nextDay: { id: "day-02", title: "Control Flow — if/else and Loops" },
-    },
+# Chained comparisons — unique Python feature
+x = 15
+if 10 < x < 20:     # Equivalent to: x > 10 and x < 20
+    print(f"{x} is between 10 and 20")` },
+      { type: "note",    text: "⚠️ Common Error: if age = 18: will give a SyntaxError. Assignment (=) is not allowed inside if conditions. Always use == for comparison." },
+    ],
+    practice: [
+      { question: "Write a BMI calculator — take weight (kg) and height (m) as input. Calculate BMI = weight/height². Classify: <18.5 Underweight, 18.5–24.9 Normal, 25–29.9 Overweight, >=30 Obese.", hint: "BMI = weight / (height ** 2)" },
+      { question: "Write a program to check if a year is a leap year. A year is a leap year if it is divisible by 4 AND (not divisible by 100 OR divisible by 400).", hint: "Use modulus operator %: year % 4 == 0" },
+      { question: "Take 3 numbers as input. Print the largest number WITHOUT using any built-in functions (no max(), no sorted()).", hint: "Use if/elif/else with comparison operators." },
+    ],
+    prevDay: 1,
+    nextDay:  3,
   },
 };
 
-/* ─── Get Lesson Content ─────────────────────────────────────────────────── */
-function getLessonContent(language: string, day: string) {
-  const langData = DAILY_LESSONS[language];
-  if (langData?.[day]) return langData[day];
-
-  // Generic fallback for any day/language not in local data
-  const dayNum  = parseInt(day.replace("day-", "") || "1");
-  const langCap = language.charAt(0).toUpperCase() + language.slice(1);
-  const prevDayNum = dayNum - 1;
-  const nextDayNum = dayNum + 1;
-
-  return {
-    dayNumber:    dayNum,
-    title:        `${langCap} — Day ${dayNum}`,
-    objective:    `Continue building your ${langCap} skills with today's structured lesson.`,
-    timeEstimate: "45–60 min",
-    theory: [
-      {
-        heading:     "Today's Core Concept",
-        content:     `Master today's key ${langCap} concept with examples and practice exercises.`,
-        codeExample: `// Day ${dayNum} ${langCap} example\n// Add your code here`,
-      },
-    ],
-    keyPoints:    ["Study the theory section", "Run all code examples", "Complete the exercises", "Review before moving to next day"],
-    exercises: [
-      {
-        title:       "Practice Exercise",
-        description: "Apply today's concepts with a hands-on coding exercise.",
-        difficulty:  "Easy" as const,
-        hint:        "Review the theory examples above before attempting.",
-      },
-    ],
-    prevDay: dayNum > 1 ? { id: `day-${String(prevDayNum).padStart(2, "0")}`, title: `Day ${prevDayNum}` } : undefined,
-    nextDay: { id: `day-${String(nextDayNum).padStart(2, "0")}`, title: `Day ${nextDayNum}` },
-  };
+/* ─── Static Params ──────────────────────────────────────────────────────── */
+export async function generateStaticParams() {
+  /* Generate routes for Python Days 1–45 only (other languages on demand) */
+  const params = [];
+  for (let day = 1; day <= 45; day++) {
+    params.push({ language: "python", day: `day-${day}` });
+  }
+  for (let day = 1; day <= 45; day++) {
+    params.push({ language: "javascript", day: `day-${day}` });
+  }
+  return params;
 }
 
-/* ─── generateMetadata ───────────────────────────────────────────────────── */
+/* ─── Dynamic Metadata ───────────────────────────────────────────────────── */
 export async function generateMetadata({
   params,
-}: {
-  params: Promise<{ language: string; day: string }>;
-}): Promise<Metadata> {
+}: { params: Promise<{ language: string; day: string }> }): Promise<Metadata> {
   const { language, day } = await params;
-  const data    = getLessonContent(language, day);
-  const langCap = language.charAt(0).toUpperCase() + language.slice(1);
+  const lang   = LANGUAGE_META[language];
+  const lesson = LESSONS[`${language}-${day}`];
+  if (!lang) return { title: "Not Found" };
 
   return {
-    title:       `${langCap} Day ${data.dayNumber} — ${data.title} | LearnVeda`,
-    description: data.objective,
-    keywords:    [`Learn ${langCap}`, `${langCap} tutorial day ${data.dayNumber}`, `${langCap} beginner`],
+    title: `${lang.emoji} ${lang.name} ${day.charAt(0).toUpperCase() + day.slice(1)}: ${lesson?.title || "Lesson"} — LearnVeda`,
+    description: lesson?.objectives?.join(". ") ?? `Learn ${lang.name} day by day on LearnVeda.`,
   };
 }
 
-/* ─── Difficulty Color ───────────────────────────────────────────────────── */
-const DIFFICULTY_COLORS = {
-  Easy:   "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-  Medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  Hard:   "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-};
-
-/* ─── Day Page Component ─────────────────────────────────────────────────── */
-export default async function DayLessonPage({
+/* ─── Page Component ─────────────────────────────────────────────────────── */
+export default async function ProgrammingDayPage({
   params,
-}: {
-  params: Promise<{ language: string; day: string }>;
-}) {
-  const { language, day } = await params;   // Await params
-  const data    = getLessonContent(language, day);
-  const langCap = language.charAt(0).toUpperCase() + language.slice(1);
+}: { params: Promise<{ language: string; day: string }> }) {
+  const { language, day } = await params;
+
+  const lang   = LANGUAGE_META[language]; // Language metadata
+  if (!lang) notFound(); // Unknown language
+
+  /* Parse day number from "day-1" → 1 */
+  const dayNumber = parseInt(day.replace("day-", ""), 10);
+  if (isNaN(dayNumber) || dayNumber < 1 || dayNumber > lang.totalDays) notFound();
+
+  const lessonKey = `${language}-day-${dayNumber}`; // Look up lesson
+  const lesson    = LESSONS[lessonKey];              // Get lesson content
+
+  /* Generic lesson template when specific content not yet written */
+  const genericLesson: DayLesson = {
+    title:      `Day ${dayNumber} — ${lang.name} Learning Track`,
+    objectives: [`Continue building your ${lang.name} skills`, "Practice coding problems", "Apply concepts from previous days"],
+    duration:   "2–3 hours",
+    sections:   [
+      { type: "p", text: `Day ${dayNumber} content for ${lang.name} is being finalized by our curriculum team. Check back soon!` },
+      { type: "note", text: `💡 While you wait, revisit Day ${Math.max(1, dayNumber - 1)} content to solidify your understanding.` },
+    ],
+    practice: [
+      { question: `Write a ${lang.name} program using concepts from the past ${dayNumber - 1} days.`, hint: "Practice makes permanent!" },
+    ],
+    prevDay: dayNumber > 1 ? dayNumber - 1 : undefined,
+    nextDay: dayNumber < lang.totalDays ? dayNumber + 1 : undefined,
+  };
+
+  const currentLesson = lesson ?? genericLesson; // Use specific or generic lesson
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Top progress bar ─────────────────────────────────────────────── */}
-      <div className="h-1 bg-muted">
-        <div className="h-full bg-primary" style={{ width: `${Math.min((data.dayNumber / 45) * 100, 100)}%` }} />
-      </div>
-
-      {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
-      <div className="border-b">
-        <div className="container px-4 py-3">
-          <nav className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Link href="/programming"               className="hover:text-foreground transition-colors">Programming</Link>
-            <ChevronRight className="h-3 w-3" />
-            <Link href={`/programming/${language}`} className="hover:text-foreground capitalize transition-colors">{langCap}</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground">Day {data.dayNumber}</span>
+      {/* Header */}
+      <div className="border-b border-border/40 bg-muted/30">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4 flex-wrap" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link href="/programming" className="hover:text-foreground transition-colors">Programming</Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link href={`/programming/${language}`} className="hover:text-foreground transition-colors capitalize">{lang.name}</Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">Day {dayNumber}</span>
           </nav>
+
+          {/* Heading */}
+          <div className="flex items-start gap-4">
+            <div className="text-3xl">{lang.emoji}</div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="secondary">{lang.name}</Badge>
+                <Badge variant="outline" className="text-xs">Day {dayNumber}/{lang.totalDays}</Badge>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />{currentLesson.duration}
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold leading-tight">{currentLesson.title}</h1>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-4">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={`h-full bg-${lang.color}-500 rounded-full`}
+                style={{ width: `${(dayNumber / lang.totalDays) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {dayNumber}/{lang.totalDays} days ({Math.round((dayNumber / lang.totalDays) * 100)}% complete)
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <div className="container px-4 py-8 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Main content */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        {/* Learning objectives */}
+        <section className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-6">
+          <h2 className="font-semibold mb-3 flex items-center gap-2">
+            <Target className="h-5 w-5 text-brand-500" />
+            Today&apos;s Learning Objectives
+          </h2>
+          <ul className="space-y-2">
+            {currentLesson.objectives.map((obj, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                {obj}
+              </li>
+            ))}
+          </ul>
+        </section>
 
-          {/* ─── Left — Main Lesson Content ───────────────────────────── */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* Day header */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="text-xs">
-                  <Code2 className="h-3 w-3 mr-1" />
-                  Day {data.dayNumber}
-                </Badge>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {data.timeEstimate}
-                </div>
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-bold mb-3">{data.title}</h1>
-
-              {/* Objective */}
-              <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-xs font-semibold text-primary mb-1">Today's Objective</div>
-                  <p className="text-sm text-muted-foreground">{data.objective}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Theory sections with code examples */}
-            {data.theory.map((section, i) => (
-              <div key={i} className="space-y-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
-                    {i + 1}
-                  </span>
-                  {section.heading}
-                </h2>
-                <p className="text-muted-foreground leading-relaxed pl-8">{section.content}</p>
-
-                {/* Code example */}
-                {section.codeExample && (
-                  <div className="pl-8">
-                    <div className="rounded-xl border bg-zinc-950 dark:bg-zinc-900 overflow-hidden">
-                      {/* Code block header */}
-                      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-2.5 w-2.5 rounded-full bg-red-500"   />
-                          <div className="h-2.5 w-2.5 rounded-full bg-yellow-500"/>
-                          <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                        </div>
-                        <span className="text-[10px] text-white/40">{langCap} — example</span>
+        {/* Lesson content */}
+        <section className="space-y-5">
+          {currentLesson.sections.map((section, i) => {
+            switch (section.type) {
+              case "heading":
+                return (
+                  <h2 key={i} className="text-xl font-bold mt-6 mb-2 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-brand-500" />
+                    {section.text}
+                  </h2>
+                );
+              case "p":
+                return <p key={i} className="text-muted-foreground leading-relaxed">{section.text}</p>;
+              case "ul":
+                return (
+                  <ul key={i} className="space-y-2">
+                    {section.items?.map((item, j) => (
+                      <li key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="text-brand-500 mt-0.5">•</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                );
+              case "code":
+                return (
+                  <div key={i} className="rounded-xl border border-border/40 overflow-hidden">
+                    {/* Code header */}
+                    <div className="flex items-center justify-between bg-muted/60 px-4 py-2.5 border-b border-border/40">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs font-mono text-muted-foreground capitalize">{section.lang}</span>
                       </div>
-                      {/* Code content */}
-                      <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
-                        <code>{section.codeExample}</code>
-                      </pre>
+                      <div className="flex items-center gap-1.5">
+                        {["bg-red-400", "bg-yellow-400", "bg-green-400"].map((c, idx) => (
+                          <span key={idx} className={`h-2.5 w-2.5 rounded-full ${c}`} />
+                        ))}
+                      </div>
                     </div>
-
-                    {/* Run in Compiler CTA */}
-                    <div className="mt-2 flex items-center gap-2">
-                      <Button asChild variant="outline" size="sm" className="text-xs">
-                        <Link href={`/compiler?lang=${language}&code=${encodeURIComponent(section.codeExample)}`}>
-                          <Play className="h-3 w-3 mr-1 text-green-500" />
-                          Run in Compiler
-                        </Link>
-                      </Button>
-                    </div>
+                    {/* Code content */}
+                    <pre className="bg-gray-950 p-4 overflow-x-auto text-sm text-green-400 font-mono leading-relaxed">
+                      <code>{section.code}</code>
+                    </pre>
                   </div>
-                )}
+                );
+              case "note":
+                return (
+                  <div key={i} className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 flex gap-3">
+                    <Lightbulb className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                    <p className="text-sm text-muted-foreground">{section.text}</p>
+                  </div>
+                );
+              case "exercise":
+                return (
+                  <div key={i} className="rounded-xl border border-green-500/20 bg-green-500/5 p-5">
+                    <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                      <Code2 className="h-4 w-4 text-green-500" />
+                      Mini Exercise
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{section.text}</p>
+                  </div>
+                );
+              default: return null;
+            }
+          })}
+        </section>
+
+        {/* Practice problems */}
+        <section>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-500" />
+            Practice Problems
+          </h2>
+          <div className="space-y-4">
+            {currentLesson.practice.map((prob, i) => (
+              <div key={i} className="rounded-xl border border-border/40 bg-card p-5">
+                <div className="flex items-start gap-3">
+                  <span className="shrink-0 font-mono text-xs text-brand-500 bg-brand-500/10 rounded px-2 py-1">
+                    P{i + 1}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-3">{prob.question}</p>
+                    <details className="group">
+                      <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                        <Lightbulb className="h-3.5 w-3.5" /> Hint
+                      </summary>
+                      <p className="mt-2 text-xs text-muted-foreground bg-muted/40 rounded-lg p-3">{prob.hint}</p>
+                    </details>
+                    {prob.solution && (
+                      <details className="mt-2 group">
+                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Solution
+                        </summary>
+                        <pre className="mt-2 text-xs font-mono bg-gray-950 text-green-400 rounded-lg p-3 overflow-x-auto">
+                          {prob.solution}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
-
-            {/* ── Exercises ────────────────────────────────────────────── */}
-            <div>
-              <h2 className="text-lg font-semibold mb-4">
-                Practice Exercises
-              </h2>
-              <div className="space-y-4">
-                {data.exercises.map((ex, i) => (
-                  <div key={i} className="rounded-xl border bg-card p-5">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h3 className="font-medium text-sm">
-                        Exercise {i + 1} — {ex.title}
-                      </h3>
-                      <Badge className={`text-[9px] py-0 shrink-0 ${DIFFICULTY_COLORS[ex.difficulty]}`}>
-                        {ex.difficulty}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line mb-3">{ex.description}</p>
-                    {ex.hint && (
-                      <div className="flex items-start gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 p-3 text-xs">
-                        <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground"><strong className="text-amber-600 dark:text-amber-400">Hint:</strong> {ex.hint}</span>
-                      </div>
-                    )}
-                    <div className="mt-3">
-                      <Button asChild variant="outline" size="sm" className="text-xs">
-                        <Link href={`/compiler?lang=${language}`}>
-                          <Code2 className="h-3 w-3 mr-1" />
-                          Solve in Compiler
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
+        </section>
 
-          {/* ─── Right Sidebar ────────────────────────────────────────── */}
-          <div className="space-y-4">
-            {/* Progress */}
-            <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold text-sm mb-3">Day Progress</h3>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full w-0 bg-primary rounded-full" />
-                </div>
-                <span className="text-xs text-muted-foreground">0%</span>
-              </div>
-              <Button className="w-full" size="sm">
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                Mark Day Complete
-              </Button>
-              <p className="text-[10px] text-muted-foreground text-center mt-2">
-                +50 XP earned upon completion
-              </p>
-            </div>
-
-            {/* Key Points */}
-            <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
-                Key Takeaways
-              </h3>
-              <ul className="space-y-2">
-                {data.keyPoints.map((point, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <span className="h-4 w-4 rounded-full bg-primary/10 text-primary text-[9px] flex items-center justify-center font-bold shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Quick resources */}
-            <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold text-sm mb-3">Resources</h3>
-              <div className="space-y-2">
-                {[
-                  { label: "Online Compiler",  href: `/compiler?lang=${language}`, icon: Code2    },
-                  { label: "Documentation",    href: "#",                           icon: BookOpen },
-                  { label: "Practice MCQs",    href: "/practice",                  icon: BookOpen },
-                ].map((r) => {
-                  const RIcon = r.icon;
-                  return (
-                    <Link
-                      key={r.label}
-                      href={r.href}
-                      className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <RIcon className="h-3.5 w-3.5" />
-                      {r.label}
-                      <ArrowRight className="h-3 w-3 ml-auto" />
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Chapter Navigation ────────────────────────────────────────── */}
-        <div className="mt-10 flex items-center justify-between gap-4 border-t pt-6">
-          {data.prevDay ? (
-            <Link
-              href={`/programming/${language}/${data.prevDay.id}`}
-              className="group flex items-center gap-2 rounded-xl border bg-card px-4 py-3 hover:shadow-md transition-all"
-            >
-              <ChevronLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-              <div className="text-left">
-                <div className="text-[10px] text-muted-foreground">Previous</div>
-                <div className="text-sm font-medium">{data.prevDay.title}</div>
-              </div>
-            </Link>
+        {/* Navigation */}
+        <div className="flex items-center justify-between pt-4 border-t border-border/30">
+          {currentLesson.prevDay ? (
+            <Button asChild variant="outline" className="gap-1.5">
+              <Link href={`/programming/${language}/day-${currentLesson.prevDay}`}>
+                <ChevronLeft className="h-4 w-4" /> Day {currentLesson.prevDay}
+              </Link>
+            </Button>
           ) : <div />}
 
-          {data.nextDay ? (
-            <Link
-              href={`/programming/${language}/${data.nextDay.id}`}
-              className="group flex items-center gap-2 rounded-xl border bg-card px-4 py-3 hover:shadow-md transition-all text-right ml-auto"
-            >
-              <div>
-                <div className="text-[10px] text-muted-foreground">Next Day</div>
-                <div className="text-sm font-medium">{data.nextDay.title}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+          <Button asChild variant="outline" className="gap-1.5">
+            <Link href={`/programming/${language}`}>
+              <Play className="h-4 w-4" /> All Days
             </Link>
-          ) : <div />}
+          </Button>
+
+          {currentLesson.nextDay ? (
+            <Button asChild className="gap-1.5">
+              <Link href={`/programming/${language}/day-${currentLesson.nextDay}`}>
+                Day {currentLesson.nextDay} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Badge variant="outline" className="border-green-500/50 text-green-600 px-4 py-2">
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Track Complete!
+            </Badge>
+          )}
         </div>
       </div>
     </div>

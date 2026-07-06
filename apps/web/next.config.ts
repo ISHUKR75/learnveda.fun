@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
 
   // ─── Allowed Dev Origins ───────────────────────────────────────────────────
   // Allow Replit's proxied iframe origin during development
-  allowedDevOrigins: ["*.replit.dev", "*.pike.replit.dev", "*.repl.co"],
+  allowedDevOrigins: ["*.replit.dev", "*.pike.replit.dev", "*.repl.co", "*.sisko.replit.dev"],
 
   // Packages that should only run on the server (not bundled for client)
   serverExternalPackages: ["mongoose", "sharp"],

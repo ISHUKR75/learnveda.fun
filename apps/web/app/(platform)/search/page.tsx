@@ -1,187 +1,429 @@
 /**
  * @file app/(platform)/search/page.tsx
- * @description Global search page — search chapters, subjects, languages, and community
- * Route: /search
- * Accepts: ?q=searchTerm query parameter
- * Returns: Categorized results across the entire LearnVeda platform
+ * @description Universal Search page for LearnVeda
+ * Route: /search?q=...
+ *
+ * Searches across:
+ *   - Chapters (Class 9–12, Engineering, Programming)
+ *   - Community posts and questions
+ *   - Simulations
+ *   - Events
+ *   - Blog articles
+ *
+ * Uses client-side search with Fuse.js for instant results (no server roundtrip).
+ * For production MongoDB full-text search, results are fetched from /api/search.
  */
 
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client"; // Client component — uses URL search params and interactive filtering
+
+/* ─── Imports ─────────────────────────────────────────────────────────────── */
+import { useState, useEffect, useCallback } from "react"; // React hooks
+import { useSearchParams, useRouter }        from "next/navigation"; // URL params
+import Link                                  from "next/link"; // Navigation
 import {
-  Search, BookOpen, Code2, FlaskConical, Star, ArrowRight,
-  Globe, Users, Clock, ChevronRight,
-} from "lucide-react";
-import { Badge }  from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+  Search, BookOpen, FlaskConical, Code2, Users,
+  Calendar, FileText, Loader2, ChevronRight,
+  Filter, X, Clock,
+} from "lucide-react"; // Icons
+import { Badge }  from "@/components/ui/badge";   // Badge component
+import { Button } from "@/components/ui/button";  // Button component
 
-/* ─── Page Metadata ──────────────────────────────────────────────────────── */
-export const metadata: Metadata = {
-  title:  "Search — LearnVeda",
-  description: "Search across all subjects, chapters, programming tracks, and community on LearnVeda.",
-};
+/* ─── Result Type ─────────────────────────────────────────────────────────── */
+/** A single search result from any content type */
+interface SearchResult {
+  id:          string;  // Unique identifier
+  type:        "chapter" | "post" | "simulation" | "event" | "article" | "programming"; // Content type
+  title:       string;  // Display title
+  excerpt:     string;  // Short description or excerpt
+  href:        string;  // Navigation URL
+  badge:       string;  // Category label (e.g., "Class 9 · Mathematics")
+  tags?:       string[]; // Optional keyword tags
+  relevance?:  number;   // Search relevance score (0–1)
+}
 
-/* ─── Search Results Data ────────────────────────────────────────────────── */
-// Sample search results — in production, this hits the Elasticsearch/MongoDB search API
-// These are pre-populated for popular searches
-const POPULAR_SEARCHES = [
-  "Newton's Laws",
-  "Polynomials",
-  "Python basics",
-  "Pythagoras theorem",
-  "French Revolution",
-  "Mole concept",
-  "DSA arrays",
-  "JavaScript promises",
+/* ─── Filter Types ────────────────────────────────────────────────────────── */
+type FilterType = "all" | "chapter" | "simulation" | "post" | "event" | "programming";
+
+/* ─── Demo Search Results ────────────────────────────────────────────────── */
+// In production, these come from /api/search → MongoDB full-text search
+// This static data is used when API is unavailable (demo mode)
+const DEMO_RESULTS: SearchResult[] = [
+  {
+    id:      "r-001",
+    type:    "chapter",
+    title:   "Polynomials — Class 9 Mathematics",
+    excerpt: "Polynomials in one variable, zeroes of polynomials, remainder theorem, factor theorem, and algebraic identities.",
+    href:    "/learn/class-9/mathematics/chapter-02",
+    badge:   "Class 9 · Mathematics",
+    tags:    ["Polynomials", "Remainder Theorem", "Factor Theorem", "Algebra"],
+  },
+  {
+    id:      "r-002",
+    type:    "simulation",
+    title:   "Force & Motion Simulator",
+    excerpt: "Interactive physics simulation — apply forces, observe Newton's Second Law, friction, and kinetic energy in real time.",
+    href:    "/simulations/physics/force-motion",
+    badge:   "Physics Simulation · Class 9",
+    tags:    ["Newton's Laws", "Force", "Motion", "Friction"],
+  },
+  {
+    id:      "r-003",
+    type:    "chapter",
+    title:   "Gravitation — Class 9 Science",
+    excerpt: "Universal law of gravitation, gravitational constant G, acceleration due to gravity g, mass vs weight, Kepler's laws.",
+    href:    "/learn/class-9/science/chapter-10",
+    badge:   "Class 9 · Science",
+    tags:    ["Gravitation", "G", "g", "Kepler", "Weight"],
+  },
+  {
+    id:      "r-004",
+    type:    "programming",
+    title:   "Python — Day 1: Introduction & Setup",
+    excerpt: "What is Python, install Python and VS Code, write your first Hello World program, understand variables and data types.",
+    href:    "/programming/python/day-1",
+    badge:   "Python · Day 1 · Beginner",
+    tags:    ["Python", "Variables", "Hello World", "Setup"],
+  },
+  {
+    id:      "r-005",
+    type:    "chapter",
+    title:   "Chemical Reactions & Equations — Class 10",
+    excerpt: "Writing and balancing chemical equations, types of reactions (combination, decomposition, displacement, redox).",
+    href:    "/learn/class-10/science/chapter-01",
+    badge:   "Class 10 · Science",
+    tags:    ["Chemical Reactions", "Equations", "Balancing", "Redox"],
+  },
+  {
+    id:      "r-006",
+    type:    "post",
+    title:   "How to score 95+ in Class 10 Maths?",
+    excerpt: "A complete strategy guide from a Class 10 topper — topics to prioritize, common mistakes, last-week revision plan.",
+    href:    "/community/posts/class-10-maths-strategy",
+    badge:   "Community Post",
+    tags:    ["Class 10", "Mathematics", "Board Exam", "Strategy"],
+  },
+  {
+    id:      "r-007",
+    type:    "simulation",
+    title:   "Sorting Algorithm Visualizer",
+    excerpt: "Watch Bubble Sort, Merge Sort, Quick Sort, and Insertion Sort animated step by step with complexity comparison.",
+    href:    "/simulations/dsa/sorting-visualizer",
+    badge:   "DSA Simulation · Engineering",
+    tags:    ["Sorting", "Bubble Sort", "Merge Sort", "Quick Sort", "Algorithm"],
+  },
+  {
+    id:      "r-008",
+    type:    "chapter",
+    title:   "Triangles — Class 9 Mathematics",
+    excerpt: "Congruence of triangles, criteria (SAS, ASA, SSS, AAS, RHS), properties, and inequality in triangles.",
+    href:    "/learn/class-9/mathematics/chapter-07",
+    badge:   "Class 9 · Mathematics",
+    tags:    ["Triangles", "Congruence", "SAS", "ASA", "SSS"],
+  },
+  {
+    id:      "r-009",
+    type:    "chapter",
+    title:   "DSA — Day 1: Arrays & Big-O Notation",
+    excerpt: "Introduction to arrays, time complexity, Big-O notation, O(n), O(log n), O(n²) explained with examples.",
+    href:    "/core-cs/dsa/day-1",
+    badge:   "DSA · Engineering",
+    tags:    ["Arrays", "Big-O", "Time Complexity", "DSA"],
+  },
+  {
+    id:      "r-010",
+    type:    "event",
+    title:   "Math Battle Royale — June 2026",
+    excerpt: "Compete in a live math competition against 650+ students. Topics: Algebra, Calculus, Probability.",
+    href:    "/events/math-battle-2026",
+    badge:   "Live Event · Math",
+    tags:    ["Math", "Competition", "Battle", "Algebra", "Calculus"],
+  },
 ];
 
-const SAMPLE_RESULTS = {
-  chapters: [
-    { title:"Polynomials",               subtitle:"Class 9 · Mathematics · Chapter 2",               href:"/learn/class-9/mathematics/chapter-02", type:"Chapter" },
-    { title:"Motion",                    subtitle:"Class 9 · Science · Chapter 7",                    href:"/learn/class-9/science/chapter-07",      type:"Chapter" },
-    { title:"Triangles",                 subtitle:"Class 9 · Mathematics · Chapter 7",               href:"/learn/class-9/mathematics/chapter-07",  type:"Chapter" },
-    { title:"Force and Laws of Motion",  subtitle:"Class 9 · Science · Chapter 8 (⚡ Simulation)",   href:"/learn/class-9/science/chapter-08",      type:"Chapter" },
-  ],
-  programming: [
-    { title:"Python Day 1 — Setup & Hello World", subtitle:"Python 45-Day Track · Beginner",          href:"/programming/python/day-01",     type:"Lesson" },
-    { title:"JavaScript Variables & Types",       subtitle:"JavaScript 30-Day Track · Beginner",      href:"/programming/javascript/day-01", type:"Lesson" },
-    { title:"Java OOP — Classes & Objects",       subtitle:"Java 45-Day Track · Intermediate",        href:"/programming/java/day-10",       type:"Lesson" },
-  ],
-  subjects: [
-    { title:"Mathematics",    subtitle:"Class 9 · CBSE · 15 chapters",   href:"/learn/class-9/mathematics",  type:"Subject"  },
-    { title:"Science",        subtitle:"Class 9 · CBSE · 14 chapters",   href:"/learn/class-9/science",      type:"Subject"  },
-    { title:"Python",         subtitle:"Programming Track · 45 days",    href:"/programming/python",         type:"Track"    },
-  ],
+/* ─── Result type icon mapping ───────────────────────────────────────────── */
+const TYPE_ICONS: Record<FilterType | "all", React.ComponentType<{ className?: string }>> = {
+  all:         Search,
+  chapter:     BookOpen,
+  simulation:  FlaskConical,
+  post:        Users,
+  event:       Calendar,
+  article:     FileText,
+  programming: Code2,
 };
 
-/* ─── Search Page Component ──────────────────────────────────────────────── */
-export default function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  // Note: searchParams is async in Next.js 15 — but for static render we use fallback
-  const query = ""; // Will be populated when user searches (client-side in production)
+/* ─── Filter Labels ──────────────────────────────────────────────────────── */
+const FILTER_LABELS: Record<FilterType, string> = {
+  all:         "All",
+  chapter:     "Chapters",
+  simulation:  "Simulations",
+  post:        "Community",
+  event:       "Events",
+  programming: "Programming",
+};
 
+/* ─── Page Component ─────────────────────────────────────────────────────── */
+export default function SearchPage() {
+  const searchParams = useSearchParams(); // Access URL ?q= parameter
+  const router       = useRouter();       // Navigate programmatically
+
+  /* ── State ───────────────────────────────────────────────────────────── */
+  const [query,     setQuery]     = useState(searchParams.get("q") || ""); // Search query
+  const [filter,    setFilter]    = useState<FilterType>("all");             // Active filter tab
+  const [results,   setResults]   = useState<SearchResult[]>([]);            // Search results
+  const [isLoading, setIsLoading] = useState(false);                         // Loading state
+  const [searched,  setSearched]  = useState(false);                         // Has search been run?
+
+  /* ── Recent searches ──────────────────────────────────────────────────── */
+  const recentSearches = ["Polynomials", "Newton's Laws", "Python tutorial", "DSA arrays", "Class 10 trigonometry"];
+
+  /* ── Search function ─────────────────────────────────────────────────── */
+  const performSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+
+    setIsLoading(true); // Show loader
+
+    try {
+      /* Try API search first */
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}&limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data.results || []); // Use API results
+      } else {
+        throw new Error("API unavailable");
+      }
+    } catch {
+      /* Fall back to client-side demo search */
+      const qLower = q.toLowerCase();
+      const filtered = DEMO_RESULTS.filter(
+        (r) =>
+          r.title.toLowerCase().includes(qLower) ||
+          r.excerpt.toLowerCase().includes(qLower) ||
+          r.tags?.some((t) => t.toLowerCase().includes(qLower))
+      );
+      setResults(filtered);
+    } finally {
+      setIsLoading(false);
+      setSearched(true);
+    }
+  }, []);
+
+  /* ── Run search when query changes ───────────────────────────────────── */
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) {
+      setQuery(q);
+      performSearch(q);
+    }
+  }, [searchParams, performSearch]);
+
+  /* ── Handle form submit ──────────────────────────────────────────────── */
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`); // Update URL
+    performSearch(query.trim()); // Run search
+  };
+
+  /* ── Filter results by type ──────────────────────────────────────────── */
+  const filteredResults = filter === "all"
+    ? results
+    : results.filter((r) => r.type === filter);
+
+  /* ── Count results by type for filter tabs ───────────────────────────── */
+  const countByType = (type: FilterType): number =>
+    type === "all" ? results.length : results.filter((r) => r.type === type).length;
+
+  /* ── Result type color ───────────────────────────────────────────────── */
+  const typeColor = (type: SearchResult["type"]): string => {
+    switch (type) {
+      case "chapter":     return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "simulation":  return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+      case "post":        return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "event":       return "bg-orange-500/10 text-orange-600 border-orange-500/20";
+      case "programming": return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      default:            return "bg-muted text-muted-foreground";
+    }
+  };
+
+  /* ── Render ──────────────────────────────────────────────────────────── */
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Search Header ─────────────────────────────────────────────────── */}
-      <div className="border-b bg-gradient-to-br from-primary/5 to-background">
-        <div className="container px-4 py-10">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
-            Search LearnVeda
-          </h1>
+      {/* ── Search header ───────────────────────────────────────────── */}
+      <div className="border-b border-border/40 bg-muted/30">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          <h1 className="text-2xl font-bold mb-6">Search LearnVeda</h1>
 
-          {/* Search input */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search chapters, subjects, topics, programming..."
-              className="w-full rounded-2xl border bg-background pl-12 pr-4 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
-              autoFocus
-            />
-            <Button className="absolute right-2 top-1/2 -translate-y-1/2" size="sm">
+          {/* Search form */}
+          <form onSubmit={handleSearch} className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search chapters, simulations, community, events…"
+                className="w-full rounded-xl border border-border/60 bg-background pl-10 pr-10 py-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
+                autoFocus
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => { setQuery(""); setResults([]); setSearched(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Button type="submit" disabled={isLoading} className="gap-1.5">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Search
             </Button>
-          </div>
+          </form>
 
-          {/* Popular searches */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            <span className="text-xs text-muted-foreground">Popular:</span>
-            {POPULAR_SEARCHES.map((s) => (
-              <Link
-                key={s}
-                href={`/search?q=${encodeURIComponent(s)}`}
-                className="text-xs px-3 py-1 rounded-full border bg-card hover:bg-muted transition-colors"
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
+          {/* Recent searches (shown when no query) */}
+          {!query && (
+            <div className="mt-4">
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Recent searches
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { setQuery(s); performSearch(s); router.push(`/search?q=${encodeURIComponent(s)}`); }}
+                    className="text-sm text-muted-foreground hover:text-foreground border border-border/40 rounded-full px-3 py-1 hover:border-border/80 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Browse by Category ────────────────────────────────────────────── */}
-      <div className="container px-4 py-8">
-        <h2 className="text-lg font-semibold mb-4">Browse by Category</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-          {[
-            { label: "CBSE Class 9-12",   icon: BookOpen, href: "/learn",         color: "text-blue-600"   },
-            { label: "Programming",        icon: Code2,    href: "/programming",   color: "text-green-600"  },
-            { label: "Simulations",        icon: FlaskConical, href: "/simulations",color: "text-purple-600" },
-            { label: "Community Q&A",      icon: Users,    href: "/community",     color: "text-orange-600" },
-          ].map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <Link
-                key={cat.label}
-                href={cat.href}
-                className="group rounded-2xl border bg-card hover:shadow-md transition-all p-4 flex flex-col items-center gap-2 text-center"
-              >
-                <Icon className={`h-6 w-6 ${cat.color}`} />
-                <span className="text-sm font-medium">{cat.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+      {/* ── Results area ─────────────────────────────────────────────── */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        {/* Filter tabs (shown when there are results) */}
+        {results.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            {(["all", "chapter", "simulation", "programming", "post", "event"] as FilterType[]).map((f) => {
+              const count = countByType(f);
+              if (count === 0 && f !== "all") return null; // Hide empty filters
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm border transition-all ${
+                    filter === f
+                      ? "bg-brand-500 text-white border-brand-500"
+                      : "border-border/40 text-muted-foreground hover:border-border/80 hover:text-foreground"
+                  }`}
+                >
+                  {FILTER_LABELS[f]}
+                  <span className={`rounded-full px-1.5 text-xs ${filter === f ? "bg-white/20" : "bg-muted"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {/* ── Sample Results (shown when no query) ──────────────────────── */}
-        <h2 className="text-lg font-semibold mb-4">Recommended Content</h2>
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Searching…</span>
+          </div>
+        )}
 
-        {/* Chapters */}
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-              <BookOpen className="h-4 w-4" /> Chapters
-            </h3>
-            <Link href="/learn" className="text-xs text-primary hover:underline">View all</Link>
+        {/* Results list */}
+        {!isLoading && filteredResults.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground mb-4">
+              {filteredResults.length} result{filteredResults.length !== 1 ? "s" : ""} for{" "}
+              <strong>&ldquo;{query}&rdquo;</strong>
+            </p>
+            {filteredResults.map((result) => {
+              const Icon = TYPE_ICONS[result.type as FilterType] ?? Search;
+              return (
+                <Link
+                  key={result.id}
+                  href={result.href}
+                  className="block rounded-xl border border-border/40 bg-card p-5 hover:border-border/80 hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Type icon */}
+                    <div className={`p-2 rounded-lg border ${typeColor(result.type)} shrink-0 mt-0.5`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {/* Title */}
+                      <h3 className="font-semibold text-sm group-hover:text-brand-500 transition-colors">
+                        {result.title}
+                      </h3>
+                      {/* Badge */}
+                      <p className="text-xs text-muted-foreground mt-0.5">{result.badge}</p>
+                      {/* Excerpt */}
+                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                        {result.excerpt}
+                      </p>
+                      {/* Tags */}
+                      {result.tags && result.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {result.tags.slice(0, 4).map((tag) => (
+                            <span key={tag} className="text-xs bg-muted/60 rounded px-1.5 py-0.5 text-muted-foreground">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-          <div className="space-y-2">
-            {SAMPLE_RESULTS.chapters.map((r) => (
-              <Link
-                key={r.title}
-                href={r.href}
-                className="group flex items-center gap-4 rounded-xl border bg-card p-3 hover:shadow-sm transition-all"
-              >
-                <BookOpen className="h-4 w-4 text-blue-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium group-hover:text-primary transition-colors">{r.title}</div>
-                  <div className="text-xs text-muted-foreground">{r.subtitle}</div>
-                </div>
-                <Badge variant="outline" className="text-[10px] shrink-0">{r.type}</Badge>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-              </Link>
-            ))}
-          </div>
-        </section>
+        )}
 
-        {/* Programming lessons */}
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-              <Code2 className="h-4 w-4" /> Programming Lessons
-            </h3>
-            <Link href="/programming" className="text-xs text-primary hover:underline">View all</Link>
+        {/* No results */}
+        {!isLoading && searched && filteredResults.length === 0 && (
+          <div className="text-center py-16">
+            <Search className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">No results found</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              We couldn&apos;t find anything for &ldquo;<strong>{query}</strong>&rdquo;. Try different keywords.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {["Polynomials", "Newton's Laws", "Python", "DSA"].map((s) => (
+                <Button
+                  key={s}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setQuery(s); performSearch(s); router.push(`/search?q=${encodeURIComponent(s)}`); }}
+                >
+                  Try &ldquo;{s}&rdquo;
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-2">
-            {SAMPLE_RESULTS.programming.map((r) => (
-              <Link
-                key={r.title}
-                href={r.href}
-                className="group flex items-center gap-4 rounded-xl border bg-card p-3 hover:shadow-sm transition-all"
-              >
-                <Code2 className="h-4 w-4 text-green-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium group-hover:text-primary transition-colors">{r.title}</div>
-                  <div className="text-xs text-muted-foreground">{r.subtitle}</div>
-                </div>
-                <Badge variant="outline" className="text-[10px] shrink-0">{r.type}</Badge>
-                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-              </Link>
-            ))}
+        )}
+
+        {/* Empty state (no query entered) */}
+        {!query && !searched && (
+          <div className="text-center py-16">
+            <Search className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">Type a query above to search chapters, simulations, and more.</p>
           </div>
-        </section>
+        )}
       </div>
     </div>
   );
