@@ -15,10 +15,13 @@ import {
 } from "lucide-react";
 import { Badge }  from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getChapterDetail, getChapterList } from "@/lib/services/content-service";
 
 /* ─── Chapter Content Data ───────────────────────────────────────────────── */
-// Chapter content with theory, key points, formulas, and example questions
-// In production this data comes from MongoDB via the course-service API
+// Chapter content with theory, key points, formulas, and example questions.
+// `getResolvedChapterContent()` below prefers the live content-service
+// (MongoDB when configured, same static shape otherwise) and falls back to
+// this in-file data only when a chapter hasn't been migrated yet.
 const CHAPTER_CONTENT: Record<string, Record<string, {
   title:       string;
   objective:   string;
@@ -238,6 +241,40 @@ function getChapterContent(subject: string, chapter: string) {
   };
 }
 
+/**
+ * Resolves full chapter content for the page, preferring the live
+ * content-service (MongoDB when configured, static fallback otherwise) and
+ * only using the legacy in-file CHAPTER_CONTENT/generic fallback when the
+ * subject hasn't been migrated to the shared content service yet.
+ * Also resolves prev/next chapter titles via the subject's chapter list.
+ */
+async function getResolvedChapterContent(subject: string, chapter: string) {
+  const serviceDetail = await getChapterDetail("class-9", subject, chapter);
+
+  if (serviceDetail) {
+    const chapterList = await getChapterList("class-9", subject);
+    const titleById = new Map(chapterList.map((c) => [c.chapterId, c.title]));
+    return {
+      title:       serviceDetail.title,
+      objective:   serviceDetail.objective,
+      theoryPoints: serviceDetail.theoryPoints,
+      keyFormulas:  serviceDetail.keyFormulas,
+      keyPoints:    serviceDetail.keyPoints,
+      hasSimulation: serviceDetail.hasSimulation,
+      simulationDesc: serviceDetail.simulationDescription,
+      sampleQuestions: serviceDetail.sampleQuestions,
+      prevChapter: serviceDetail.prevChapterId
+        ? { id: serviceDetail.prevChapterId, title: titleById.get(serviceDetail.prevChapterId) ?? "Previous Chapter" }
+        : undefined,
+      nextChapter: serviceDetail.nextChapterId
+        ? { id: serviceDetail.nextChapterId, title: titleById.get(serviceDetail.nextChapterId) ?? "Next Chapter" }
+        : undefined,
+    };
+  }
+
+  return getChapterContent(subject, chapter);
+}
+
 /* ─── generateMetadata — per chapter SEO ────────────────────────────────── */
 export async function generateMetadata({
   params,
@@ -245,7 +282,7 @@ export async function generateMetadata({
   params: Promise<{ subject: string; chapter: string }>;
 }): Promise<Metadata> {
   const { subject, chapter } = await params;
-  const data = getChapterContent(subject, chapter);
+  const data = await getResolvedChapterContent(subject, chapter);
 
   return {
     title:       `${data.title} — Class 9 ${subject.replace(/-/g," ")} | LearnVeda`,
@@ -261,7 +298,7 @@ export default async function Class9ChapterPage({
   params: Promise<{ subject: string; chapter: string }>;
 }) {
   const { subject, chapter } = await params;
-  const data = getChapterContent(subject, chapter);
+  const data = await getResolvedChapterContent(subject, chapter);
 
   const subjectLabel = subject.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   const chapterNum   = parseInt(chapter.replace("chapter-", "") || "1");

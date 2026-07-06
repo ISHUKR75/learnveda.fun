@@ -20,7 +20,11 @@ export { Quiz }            from "./Quiz";
 export { Battle }          from "./Battle";
 export { Achievement, ACHIEVEMENT_CATALOG } from "./Achievement";
 
+// ── Curriculum / content models ───────────────────────────────────────────
+export { Chapter }         from "./Chapter";
+
 // ── Type exports ─────────────────────────────────────────────────────────
 export type { IQuiz }        from "./Quiz";
 export type { IBattle }      from "./Battle";
 export type { IAchievement, AchievementId } from "./Achievement";
+export type { IChapter, ITheoryPoint, IKeyFormula, ISampleQuestion } from "./Chapter";

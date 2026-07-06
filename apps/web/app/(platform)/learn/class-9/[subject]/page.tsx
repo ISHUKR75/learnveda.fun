@@ -13,10 +13,15 @@ import {
 } from "lucide-react";
 import { Badge }  from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getChapterList } from "@/lib/services/content-service";
 
 /* ─── Static Subject Data ────────────────────────────────────────────────── */
-// Complete chapter list for every Class 9 subject
-// In production, this would be fetched from MongoDB
+// Complete chapter list for every Class 9 subject.
+// This static data doubles as the demo-mode fallback: `getChapterList()`
+// (backed by MongoDB when configured) is merged on top of it below, so
+// subjects that have been migrated to the database (currently Class 9
+// Mathematics) show live duration/quiz/simulation flags from real chapter
+// documents, while the topic tags stay sourced from this file.
 const SUBJECT_DATA: Record<string, {
   name:        string;
   description: string;
@@ -193,8 +198,23 @@ export default async function Class9SubjectPage({
   params: Promise<{ subject: string }>;
 }) {
   const { subject } = await params;                  // Await params
-  const data       = getSubjectData(subject);        // Get subject data
-  const colors     = COLOR_MAP[data.color] ?? COLOR_MAP.indigo; // Get color classes
+  const baseData   = getSubjectData(subject);        // Static/fallback subject data
+  const colors     = COLOR_MAP[baseData.color] ?? COLOR_MAP.indigo; // Get color classes
+
+  // Overlay live chapter data (from MongoDB when configured, else the same
+  // static content used as fallback) so duration/quiz/simulation flags stay
+  // accurate as content moves into the database subject-by-subject.
+  const liveChapters = await getChapterList("class-9", subject);
+  const liveById = new Map(liveChapters.map((c) => [c.chapterId, c]));
+  const data = {
+    ...baseData,
+    chapters: baseData.chapters.map((chapter) => {
+      const live = liveById.get(chapter.id);
+      return live
+        ? { ...chapter, duration: live.durationLabel, hasQuiz: live.hasQuiz, hasSimulation: live.hasSimulation }
+        : chapter;
+    }),
+  };
 
   return (
     <div className="min-h-screen bg-background">
