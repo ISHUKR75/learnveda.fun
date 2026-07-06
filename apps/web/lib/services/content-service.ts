@@ -15,12 +15,40 @@ import {
   CLASS_9_MATHEMATICS_CHAPTERS,
   type ContentChapter,
 } from "@/lib/content/class9-mathematics";
+import { CLASS_9_SCIENCE_CHAPTERS } from "@/lib/content/class9-science";
+import { CLASS_9_SOCIAL_SCIENCE_CHAPTERS } from "@/lib/content/class9-social-science";
+import { CLASS_9_ENGLISH_CHAPTERS } from "@/lib/content/class9-english";
+import { CLASS_9_HINDI_CHAPTERS } from "@/lib/content/class9-hindi";
+import { CLASS_10_MATHEMATICS_CHAPTERS } from "@/lib/content/class10-mathematics";
+import { CLASS_10_SCIENCE_CHAPTERS } from "@/lib/content/class10-science";
+import { CLASS_10_PHYSICS_CHAPTERS } from "@/lib/content/class10-physics";
+import { CLASS_10_CHEMISTRY_CHAPTERS } from "@/lib/content/class10-chemistry";
+import { CLASS_10_BIOLOGY_CHAPTERS } from "@/lib/content/class10-biology";
+import { CLASS_10_SOCIAL_SCIENCE_CHAPTERS } from "@/lib/content/class10-social-science";
+import { CLASS_10_ENGLISH_CHAPTERS } from "@/lib/content/class10-english";
+import { CLASS_10_HINDI_CHAPTERS } from "@/lib/content/class10-hindi";
+import { CLASS_10_COMPUTER_SCIENCE_CHAPTERS } from "@/lib/content/class10-computer-science";
+import { CLASS_10_SANSKRIT_CHAPTERS } from "@/lib/content/class10-sanskrit";
 
 /* ─── Static Content Registry ────────────────────────────────────────────── */
 // Maps "classLevel:subject" to its bundled static chapter array. New subjects
 // register themselves here as their content files are authored.
 const STATIC_CONTENT: Record<string, ContentChapter[]> = {
-  "class-9:mathematics": CLASS_9_MATHEMATICS_CHAPTERS,
+  "class-9:mathematics":       CLASS_9_MATHEMATICS_CHAPTERS,
+  "class-9:science":           CLASS_9_SCIENCE_CHAPTERS,
+  "class-9:social-science":    CLASS_9_SOCIAL_SCIENCE_CHAPTERS,
+  "class-9:english":           CLASS_9_ENGLISH_CHAPTERS,
+  "class-9:hindi":             CLASS_9_HINDI_CHAPTERS,
+  "class-10:mathematics":      CLASS_10_MATHEMATICS_CHAPTERS,
+  "class-10:science":          CLASS_10_SCIENCE_CHAPTERS,
+  "class-10:physics":          CLASS_10_PHYSICS_CHAPTERS,
+  "class-10:chemistry":        CLASS_10_CHEMISTRY_CHAPTERS,
+  "class-10:biology":          CLASS_10_BIOLOGY_CHAPTERS,
+  "class-10:social-science":   CLASS_10_SOCIAL_SCIENCE_CHAPTERS,
+  "class-10:english":          CLASS_10_ENGLISH_CHAPTERS,
+  "class-10:hindi":            CLASS_10_HINDI_CHAPTERS,
+  "class-10:computer-science": CLASS_10_COMPUTER_SCIENCE_CHAPTERS,
+  "class-10:sanskrit":         CLASS_10_SANSKRIT_CHAPTERS,
 };
 
 /* ─── Shared normalized shape returned to callers ────────────────────────── */

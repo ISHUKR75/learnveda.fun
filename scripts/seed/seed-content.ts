@@ -14,6 +14,20 @@
 import mongoose from "mongoose";
 import { Chapter } from "../../apps/web/lib/mongodb/models/Chapter";
 import { CLASS_9_MATHEMATICS_CHAPTERS } from "../../apps/web/lib/content/class9-mathematics";
+import { CLASS_9_SCIENCE_CHAPTERS } from "../../apps/web/lib/content/class9-science";
+import { CLASS_9_SOCIAL_SCIENCE_CHAPTERS } from "../../apps/web/lib/content/class9-social-science";
+import { CLASS_9_ENGLISH_CHAPTERS } from "../../apps/web/lib/content/class9-english";
+import { CLASS_9_HINDI_CHAPTERS } from "../../apps/web/lib/content/class9-hindi";
+import { CLASS_10_MATHEMATICS_CHAPTERS } from "../../apps/web/lib/content/class10-mathematics";
+import { CLASS_10_SCIENCE_CHAPTERS } from "../../apps/web/lib/content/class10-science";
+import { CLASS_10_PHYSICS_CHAPTERS } from "../../apps/web/lib/content/class10-physics";
+import { CLASS_10_CHEMISTRY_CHAPTERS } from "../../apps/web/lib/content/class10-chemistry";
+import { CLASS_10_BIOLOGY_CHAPTERS } from "../../apps/web/lib/content/class10-biology";
+import { CLASS_10_SOCIAL_SCIENCE_CHAPTERS } from "../../apps/web/lib/content/class10-social-science";
+import { CLASS_10_ENGLISH_CHAPTERS } from "../../apps/web/lib/content/class10-english";
+import { CLASS_10_HINDI_CHAPTERS } from "../../apps/web/lib/content/class10-hindi";
+import { CLASS_10_COMPUTER_SCIENCE_CHAPTERS } from "../../apps/web/lib/content/class10-computer-science";
+import { CLASS_10_SANSKRIT_CHAPTERS } from "../../apps/web/lib/content/class10-sanskrit";
 
 /* ─── Seed Registry ──────────────────────────────────────────────────────── */
 // Each entry describes which static content array maps to which
@@ -24,12 +38,21 @@ const SEED_SETS: {
   subject:    string;
   chapters:   typeof CLASS_9_MATHEMATICS_CHAPTERS;
 }[] = [
-  {
-    courseType: "class",
-    classLevel: "class-9",
-    subject:    "mathematics",
-    chapters:   CLASS_9_MATHEMATICS_CHAPTERS,
-  },
+  { courseType: "class", classLevel: "class-9",  subject: "mathematics",       chapters: CLASS_9_MATHEMATICS_CHAPTERS },
+  { courseType: "class", classLevel: "class-9",  subject: "science",           chapters: CLASS_9_SCIENCE_CHAPTERS },
+  { courseType: "class", classLevel: "class-9",  subject: "social-science",    chapters: CLASS_9_SOCIAL_SCIENCE_CHAPTERS },
+  { courseType: "class", classLevel: "class-9",  subject: "english",           chapters: CLASS_9_ENGLISH_CHAPTERS },
+  { courseType: "class", classLevel: "class-9",  subject: "hindi",             chapters: CLASS_9_HINDI_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "mathematics",       chapters: CLASS_10_MATHEMATICS_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "science",           chapters: CLASS_10_SCIENCE_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "physics",           chapters: CLASS_10_PHYSICS_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "chemistry",         chapters: CLASS_10_CHEMISTRY_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "biology",           chapters: CLASS_10_BIOLOGY_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "social-science",    chapters: CLASS_10_SOCIAL_SCIENCE_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "english",           chapters: CLASS_10_ENGLISH_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "hindi",             chapters: CLASS_10_HINDI_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "computer-science",  chapters: CLASS_10_COMPUTER_SCIENCE_CHAPTERS },
+  { courseType: "class", classLevel: "class-10", subject: "sanskrit",          chapters: CLASS_10_SANSKRIT_CHAPTERS },
 ];
 
 async function main() {
