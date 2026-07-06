@@ -1,238 +1,349 @@
 /**
  * @file features/dashboard/components/DashboardOverview.tsx
- * @description Main dashboard overview component for LearnVeda
- * Shows greeting, quick stats, recent activity, progress rings, and recommended content
- * This is the first page a logged-in student sees
+ * @description Main student dashboard overview for LearnVeda
+ *
+ * Shows:
+ *  - Personalized welcome with XP level bar
+ *  - Today's study streak
+ *  - Progress summary (chapters completed, XP earned)
+ *  - Quick-access study cards
+ *  - Recent activity feed
+ *  - Achievement badges
+ *  - Recommended next chapters
+ *
+ * Works in both Clerk-auth mode and demo mode (userId="" for demo)
  */
 
-"use client"; // Client component — uses hooks and interactivity
+"use client"; // Client component — uses state, effects, and browser APIs
 
-import React, { useState } from "react";          // React + state
-import { motion } from "framer-motion";            // Entry animations
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import {
-  BookOpen, Zap, Trophy, Flame, Target, Clock,
-  TrendingUp, Star, Play, ChevronRight, Bell,
-  Calendar, Award, BarChart3,
-} from "lucide-react";                             // Icons
-import Link from "next/link";                     // Navigation
-import { Button } from "@/components/ui/button"; // Button component
-import { Badge }  from "@/components/ui/badge";  // Badge component
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Card components
+  BookOpen, Flame, Star, Zap, Trophy, Clock,
+  TrendingUp, Target, ChevronRight, Calendar,
+  Code2, Brain, BarChart3, Users, Sparkles,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge"; // Status badge component
 
-/* ─── Props Interface ────────────────────────────────────────────────────── */
+/* ─── Props ──────────────────────────────────────────────────────────────── */
 interface DashboardOverviewProps {
-  userId:   string; // Clerk user ID for API calls
-  userName: string; // Display name for personalized greeting
+  userId:   string; // Clerk user ID (empty string in demo mode)
+  userName: string; // User's first name for greeting
 }
 
-/* ─── Mock Dashboard Data (replace with real API calls in production) ──────── */
-const mockStats = {
-  xp:              2450,       // Total XP earned
-  level:           12,         // Current level
-  xpToNext:        350,        // XP needed for next level
-  streak:          7,          // Current daily streak (days)
-  longestStreak:   21,         // All-time longest streak
-  chaptersCompleted: 34,       // Total chapters finished
-  practiceScore:   87,         // Average practice score %
-  rank:            "#342",     // Global leaderboard rank
-  battlesWon:      18,         // Live battles won
-  certificatesEarned: 2,       // Certificates earned
+/* ─── Demo Progress Data ─────────────────────────────────────────────────── */
+// Used when no real user data is available — shows a realistic dashboard state
+const DEMO_STATS = {
+  xp:            1250,     // Total XP earned
+  level:         5,        // Current level
+  levelMaxXP:    1500,     // XP needed for level 6
+  streak:        7,        // Current daily streak
+  chaptersTotal: 14,       // Total chapters completed
+  quizScore:     82,       // Average quiz score (%)
+  battleWins:    3,        // Live battle wins this week
 };
 
+/* ─── Quick-action Study Cards ───────────────────────────────────────────── */
+const STUDY_SHORTCUTS = [
+  { href: "/learn/class-9",      icon: BookOpen, label: "Class 9",     color: "bg-blue-500/10 text-blue-500"   },
+  { href: "/learn/class-10",     icon: BookOpen, label: "Class 10",    color: "bg-cyan-500/10 text-cyan-500"   },
+  { href: "/programming/python", icon: Code2,    label: "Python",      color: "bg-green-500/10 text-green-500" },
+  { href: "/core-cs/dsa",        icon: Brain,    label: "DSA",         color: "bg-purple-500/10 text-purple-500" },
+  { href: "/live-battles",       icon: Zap,      label: "Live Battle", color: "bg-red-500/10 text-red-500"     },
+  { href: "/ai-tutor",           icon: Sparkles, label: "AI Tutor",    color: "bg-brand-500/10 text-brand-500" },
+];
+
+/* ─── Recommended Chapters ───────────────────────────────────────────────── */
+const RECOMMENDATIONS = [
+  { title: "Chapter 3: Polynomials",          subject: "Class 9 Mathematics", xp: 50,  href: "/learn/class-9/mathematics/chapter-03" },
+  { title: "Newton's Laws of Motion",          subject: "Class 9 Science",     xp: 60,  href: "/learn/class-9/science/chapter-09"     },
+  { title: "Day 5: Functions in Python",       subject: "Python",              xp: 40,  href: "/programming/python/day-05"            },
+  { title: "Binary Search Tree Operations",    subject: "DSA",                 xp: 80,  href: "/core-cs/dsa"                          },
+];
+
 /* ─── Recent Activity ────────────────────────────────────────────────────── */
-const recentActivity = [
-  { type: "chapter", label: "Newton's Laws — Physics",     time: "2 hours ago",   xp: +30  },
-  { type: "battle",  label: "Won 1v1 DSA battle",          time: "5 hours ago",   xp: +50  },
-  { type: "quiz",    label: "Class 10 Math Quiz — 92%",    time: "Yesterday",     xp: +20  },
-  { type: "chapter", label: "Python Day 12 — OOP Basics",  time: "2 days ago",    xp: +25  },
+const RECENT_ACTIVITY = [
+  { text: "Completed Chapter 2: Polynomials", time: "2 hours ago", type: "chapter", xp: 50  },
+  { text: "Won a Live Battle in Mathematics", time: "Yesterday",   type: "battle",  xp: 100 },
+  { text: "Earned 'Week Warrior' badge",       time: "3 days ago", type: "badge",   xp: 0   },
+  { text: "Completed Python Day 4",            time: "4 days ago", type: "chapter", xp: 40  },
 ];
 
-/* ─── Recommended Content ────────────────────────────────────────────────── */
-const recommended = [
-  { title: "Class 11 Physics — Ch. 7 Gravitation",   type: "Chapter",   href: "/learn/class-11/physics/ch-7", emoji: "🌍" },
-  { title: "Python Day 13 — File Handling",           type: "Programming", href: "/learn/programming/python/day-13", emoji: "🐍" },
-  { title: "DSA — Binary Trees Deep Dive",            type: "Core CS",   href: "/learn/core-cs/dsa/binary-trees", emoji: "🌳" },
-  { title: "Practice — Class 11 Math",                type: "Practice",  href: "/practice/class-11/math", emoji: "📐" },
-];
+/* ─── DashboardOverview Component ────────────────────────────────────────── */
+export function DashboardOverview({ userName }: DashboardOverviewProps) {
+  const stats = DEMO_STATS; // In production, replace with API call using userId
+  const [activeTab, setActiveTab] = useState<"progress" | "activity" | "achievements">("progress");
 
-/* ─── Dashboard Overview Component ───────────────────────────────────────── */
-export function DashboardOverview({ userId, userName }: DashboardOverviewProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "progress" | "activity">("overview");
-
-  // XP progress percentage toward next level
-  const xpProgress = Math.round((mockStats.xp % 500) / 500 * 100);
+  // XP progress percentage within current level
+  const xpProgress = Math.round((stats.xp / stats.levelMaxXP) * 100);
 
   return (
-    <div className="container px-4 md:px-6 py-8 space-y-8">
-
-      {/* ── Welcome Header ──────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-      >
-        <div>
-          <p className="text-muted-foreground text-sm">Welcome back,</p>
-          <h1 className="text-2xl md:text-3xl font-extrabold">
-            {userName} 👋
-          </h1>
-          <div className="flex items-center gap-3 mt-1">
-            <Badge variant="gradient" className="text-xs">
-              Level {mockStats.level}
-            </Badge>
-            <span className="flex items-center gap-1 text-orange-500 font-semibold text-sm">
-              <Flame className="h-4 w-4" />
-              {mockStats.streak} day streak
-            </span>
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/live-battles">
-              <Zap className="h-4 w-4" />
-              Battle Now
-            </Link>
-          </Button>
-          <Button variant="gradient" size="sm" asChild>
-            <Link href="/explore">
-              <Play className="h-4 w-4" />
-              Continue Learning
-            </Link>
-          </Button>
-        </div>
-      </motion.div>
-
-      {/* ── Quick Stats Grid ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Total XP",        value: mockStats.xp.toLocaleString(), icon: <Star    className="h-5 w-5" />, color: "text-yellow-500 bg-yellow-500/10", suffix: "XP" },
-          { label: "Streak",          value: mockStats.streak,              icon: <Flame   className="h-5 w-5" />, color: "text-orange-500 bg-orange-500/10", suffix: "days" },
-          { label: "Chapters Done",   value: mockStats.chaptersCompleted,   icon: <BookOpen className="h-5 w-5" />, color: "text-blue-500 bg-blue-500/10",   suffix: "" },
-          { label: "Global Rank",     value: mockStats.rank,                icon: <Trophy  className="h-5 w-5" />, color: "text-purple-500 bg-purple-500/10", suffix: "" },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.07 }}
-          >
-            <Card className="text-center p-4">
-              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${stat.color} mx-auto mb-2`}>
-                {stat.icon}
-              </div>
-              <p className="text-2xl font-extrabold">{stat.value}{stat.suffix && <span className="text-sm text-muted-foreground ml-1">{stat.suffix}</span>}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* ── XP Progress Bar ──────────────────────────────────────────── */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
-                <TrendingUp className="h-4 w-4" />
-              </div>
+    <div className="min-h-screen bg-background">
+      <div className="container px-4 md:px-6 py-8">
+        {/* ── Welcome Header ──────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0.01, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Welcome back, {userName}! 👋
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                You&apos;re on a <strong className="text-orange-500">{stats.streak}-day streak</strong>! Keep it up!
+              </p>
+            </div>
+            {/* Streak badge */}
+            <div className="flex items-center gap-2 rounded-2xl border bg-orange-500/10 px-4 py-2.5">
+              <Flame className="h-5 w-5 text-orange-500" />
               <div>
-                <p className="text-sm font-semibold">Level {mockStats.level} → Level {mockStats.level + 1}</p>
-                <p className="text-xs text-muted-foreground">{mockStats.xpToNext} XP to next level</p>
+                <p className="text-xs text-muted-foreground">Current Streak</p>
+                <p className="font-bold text-orange-500 text-lg leading-none">{stats.streak} days 🔥</p>
               </div>
             </div>
-            <span className="text-sm font-bold text-brand-500">{xpProgress}%</span>
           </div>
-          {/* Progress bar */}
-          <div className="h-3 rounded-full bg-muted overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${xpProgress}%` }}
-              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-              className="h-full rounded-full bg-gradient-to-r from-brand-500 to-purple-500"
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* ── Main Content Grid ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* ── Recommended Learning (2 cols) ─────────────────────────── */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Target className="h-4 w-4 text-brand-500" />
-              Continue Where You Left Off
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recommended.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 hover:bg-muted/60 hover:border-brand-500/30 transition-all group"
-              >
-                <span className="text-2xl">{item.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate group-hover:text-brand-500 transition-colors">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{item.type}</p>
+          {/* XP Progress bar */}
+          <div className="mt-6 rounded-2xl border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-brand-500/10">
+                  <Star className="h-4 w-4 text-brand-500" />
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* ── Recent Activity (1 col) ────────────────────────────────── */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-brand-500" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentActivity.map((activity, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <div className="h-2 w-2 rounded-full bg-brand-500 mt-1.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{activity.label}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-                <span className="text-xs font-bold text-green-500 whitespace-nowrap">{activity.xp > 0 ? "+" : ""}{activity.xp} XP</span>
+                <span className="font-semibold text-foreground">Level {stats.level}</span>
+                <Badge variant="secondary" className="text-xs">{stats.xp} XP</Badge>
               </div>
-            ))}
+              <span className="text-sm text-muted-foreground">
+                {stats.levelMaxXP - stats.xp} XP to Level {stats.level + 1}
+              </span>
+            </div>
+            {/* XP progress bar */}
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${xpProgress}%` }}
+                transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-brand-500 to-purple-500 rounded-full"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5 text-right">{xpProgress}%</p>
+          </div>
+        </motion.div>
 
-            {/* View all link */}
-            <Link href="/dashboard/history" className="flex items-center gap-1 text-xs text-brand-500 hover:underline mt-2">
-              View all activity <ChevronRight className="h-3 w-3" />
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+        {/* ── Stats Grid ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { icon: BookOpen,    label: "Chapters Done", value: stats.chaptersTotal, color: "text-blue-500 bg-blue-500/10"   },
+            { icon: TrendingUp,  label: "Quiz Average",  value: `${stats.quizScore}%`, color: "text-green-500 bg-green-500/10" },
+            { icon: Trophy,      label: "Battles Won",   value: stats.battleWins,   color: "text-yellow-500 bg-yellow-500/10" },
+            { icon: Zap,         label: "Total XP",      value: stats.xp,           color: "text-brand-500 bg-brand-500/10"  },
+          ].map((stat) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="rounded-2xl border bg-card p-4 shadow-sm"
+            >
+              <div className={`inline-flex p-2 rounded-lg ${stat.color} mb-3`}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
 
-      {/* ── Quick Navigation Links ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "My Progress",   href: "/dashboard/progress",     icon: <BarChart3  className="h-5 w-5" />, color: "text-blue-500"   },
-          { label: "Certificates",  href: "/dashboard/certificates",  icon: <Award      className="h-5 w-5" />, color: "text-yellow-500" },
-          { label: "Calendar",      href: "/dashboard/calendar",      icon: <Calendar   className="h-5 w-5" />, color: "text-green-500"  },
-          { label: "Notifications", href: "/dashboard/notifications", icon: <Bell       className="h-5 w-5" />, color: "text-purple-500" },
-        ].map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className="flex flex-col items-center gap-2 rounded-xl border bg-card p-4 text-center hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <div className={item.color}>{item.icon}</div>
-            <span className="text-xs font-medium">{item.label}</span>
-          </Link>
-        ))}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* ── Study shortcuts ─────────────────────────────────────────── */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick access */}
+            <div className="rounded-2xl border bg-card p-6 shadow-sm">
+              <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5 text-brand-500" />
+                Study Now
+              </h2>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {STUDY_SHORTCUTS.map((s) => (
+                  <Link
+                    key={s.href}
+                    href={s.href}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl ${s.color.split(" ").slice(0,1)} hover:opacity-80 transition-opacity text-center border`}
+                  >
+                    <s.icon className={`h-6 w-6 ${s.color.split(" ").slice(1)}`} />
+                    <span className="text-xs font-medium text-foreground">{s.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommended chapters */}
+            <div className="rounded-2xl border bg-card p-6 shadow-sm">
+              <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-brand-500" />
+                Continue Learning
+              </h2>
+              <div className="space-y-3">
+                {RECOMMENDATIONS.map((rec) => (
+                  <Link
+                    key={rec.href}
+                    href={rec.href}
+                    className="flex items-center justify-between p-4 rounded-xl border hover:border-brand-500/50 hover:bg-brand-500/5 transition-colors group"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground group-hover:text-brand-500 transition-colors">
+                        {rec.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{rec.subject}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">+{rec.xp} XP</Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 transition-colors" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Right sidebar ─────────────────────────────────────────────── */}
+          <div className="space-y-6">
+            {/* Tab switcher */}
+            <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+              {/* Tabs */}
+              <div className="flex border-b">
+                {(["progress", "activity", "achievements"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-3 text-xs font-medium capitalize transition-colors ${
+                      activeTab === tab
+                        ? "text-brand-500 border-b-2 border-brand-500 bg-brand-500/5"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              <div className="p-4">
+                {activeTab === "activity" && (
+                  <div className="space-y-3">
+                    {RECENT_ACTIVITY.map((item, i) => (
+                      <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
+                        <div className={`p-1.5 rounded-lg mt-0.5 ${
+                          item.type === "battle" ? "bg-red-500/10 text-red-500" :
+                          item.type === "badge"  ? "bg-yellow-500/10 text-yellow-500" :
+                          "bg-brand-500/10 text-brand-500"
+                        }`}>
+                          {item.type === "battle" ? <Zap className="h-3.5 w-3.5" /> :
+                           item.type === "badge"  ? <Trophy className="h-3.5 w-3.5" /> :
+                           <BookOpen className="h-3.5 w-3.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground leading-tight">{item.text}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {item.time}
+                            {item.xp > 0 && <span className="text-brand-500 ml-1">+{item.xp} XP</span>}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab === "progress" && (
+                  <div className="space-y-4">
+                    {[
+                      { label: "Mathematics",  progress: 65, color: "bg-blue-500"   },
+                      { label: "Physics",       progress: 42, color: "bg-green-500"  },
+                      { label: "Python",        progress: 28, color: "bg-yellow-500" },
+                      { label: "DSA",           progress: 15, color: "bg-purple-500" },
+                    ].map((item) => (
+                      <div key={item.label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-foreground font-medium">{item.label}</span>
+                          <span className="text-muted-foreground">{item.progress}%</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full ${item.color} rounded-full`} style={{ width: `${item.progress}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab === "achievements" && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { emoji: "🔥", label: "7 Day Streak"  },
+                      { emoji: "⚔️", label: "Battle Win"   },
+                      { emoji: "📚", label: "10 Chapters"   },
+                      { emoji: "🏆", label: "Top 100"       },
+                      { emoji: "⚡", label: "Speed Learner" },
+                      { emoji: "🎯", label: "Perfect Score" },
+                    ].map((badge) => (
+                      <div key={badge.label} className="flex flex-col items-center gap-1.5 p-2 rounded-xl border bg-muted/30 text-center">
+                        <span className="text-2xl">{badge.emoji}</span>
+                        <span className="text-xs text-muted-foreground leading-tight">{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Calendar stub */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-brand-500" />
+                Study Calendar
+              </h3>
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: 28 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-6 w-full rounded ${
+                      i < 7  ? "bg-brand-500 opacity-80" :          // Last week — studied
+                      i < 14 ? "bg-brand-500/40" :                  // Week before
+                      i < 17 ? "bg-brand-500/20" :                  // Partial
+                      "bg-muted"                                     // No activity
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">Last 4 weeks</p>
+            </div>
+
+            {/* Dashboard links */}
+            <div className="rounded-2xl border bg-card p-4 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-3">Dashboard</h3>
+              {[
+                { href: "/dashboard/progress",      icon: BarChart3, label: "My Progress"   },
+                { href: "/dashboard/achievements",   icon: Trophy,    label: "Achievements"  },
+                { href: "/dashboard/certificates",   icon: Star,      label: "Certificates"  },
+                { href: "/dashboard/analytics",      icon: TrendingUp,label: "Analytics"     },
+                { href: "/dashboard/settings",       icon: Users,     label: "Settings"      },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                  <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

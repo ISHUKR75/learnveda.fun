@@ -1,47 +1,49 @@
 ---
 name: LearnVeda Setup Notes
-description: Key setup facts for the LearnVeda monorepo on Replit — build quirks, demo mode, key patterns
+description: Build quirks, demo mode pattern, middleware auth, admin access pattern, compiler backend, Docker config, CI/CD.
 ---
 
-# LearnVeda Setup Notes
-
-## Build / Workflow Quirks
-
-**Why:** Running `npm run build` inside `apps/web/` deletes the `.next/` dev directory — the dev server then 500s on all routes until the "Start application" workflow is restarted. Never run build + expect dev to still work.
-
-**Rule:** After any `npm run build`, always restart the "Start application" workflow before testing routes.
-
 ## Demo Mode Pattern
+All external services fail gracefully when not configured:
+- Clerk absent → demo mode (unauthenticated, show banner)
+- Redis absent → in-memory MemoryCacheClient fallback
+- OpenAI absent → pre-written demo AI responses
+- Resend absent → log to console instead of sending
+- Judge0/Piston absent → simulated compiler output
 
-All external services (Clerk, MongoDB, OpenAI, Stripe, Redis) have explicit key detection guards:
-```ts
-const hasRealClerkKeys = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-  && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("placeholder")
-  && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
-```
-When keys are absent, every component/route falls back to demo behavior (mock data, pass-through auth) instead of crashing.
+## Admin Access Pattern (FAIL CLOSED)
+- `ADMIN_USER_IDS` env var = comma-separated Clerk user IDs with admin access
+- **If unset, ALL requests to admin APIs are denied (403)** — not open
+- Admin layout at `app/(platform)/admin/layout.tsx` adds a server-side role check before rendering
+- Middleware adds `/admin` to protected routes (auth required)
+- Defense in depth: middleware → layout → individual API routes all check independently
 
-## Middleware Auth Pattern
+## Compiler Backend
+- `/api/compiler` POST route — tries Judge0 (JUDGE0_API_KEY), then Piston (PISTON_API_URL), then demo
+- Monaco Editor installed: `@monaco-editor/react` (confirmed in package.json)
+- `output: 'standalone'` in next.config.ts gated on `NEXT_OUTPUT=standalone` env var (prevents breaking dev)
 
-**Rule:** Auth enforcement in `apps/web/middleware.ts` is conditional on `hasRealClerkKeys`. In demo mode, protected routes pass through with `X-LearnVeda-Demo: 1` header. In Clerk mode, unauthenticated requests are redirected to `/sign-in?redirect_url=...` with fail-closed error handling.
+## Docker Configuration
+- Production Dockerfile: `docker/Dockerfile` — multi-stage, requires `NEXT_OUTPUT=standalone` at build time
+- Dev Dockerfile: `docker/Dockerfile.dev` — lightweight, bind-mounts source for hot-reload
+- `docker/docker-compose.yml` = base (production standalone build)
+- `docker/docker-compose.dev.yml` = override for dev (uses Dockerfile.dev + npm run dev)
+- `docker/mongo-init.js` — creates all MongoDB collections + indexes on first container start
+- `docker/redis.conf` — custom Redis config (256MB maxmemory, allkeys-lru, AOF persistence)
 
-## Webhook Security Pattern
+## i18n (11 Languages)
+- All 11 translation files created: en, hi, bn, te, mr, ta, gu, kn, ml, pa, or
+- LanguageSwitcher component wired into navbar (hidden md:block — visible on tablet+)
+- Locale stored in `learnveda-locale` cookie; triggers page reload on change
 
-Both Clerk and Stripe webhook routes (`apps/web/app/api/webhooks/*/route.ts`) follow fail-closed security:
-- When the respective webhook secret is configured → signature MUST verify or request is rejected (401)
-- When secret is absent (demo mode) → accept with warning log only
-- Raw body must be read as `.text()` BEFORE any JSON parsing for signature verification to work
+## GitHub Actions CI/CD
+- `.github/workflows/ci.yml` — lint + type-check + build + security audit
+- `.github/workflows/deploy.yml` — Vercel deployment on push to main
+- CI uses placeholder env vars for build-time; real values come from GitHub Secrets
 
-## AI Rate Limiting
+## Middleware Auth
+- PROTECTED_PREFIXES includes /admin (auth required)
+- Clerk keys checked at module load; demo mode = all routes open
+- Security headers applied on every non-static response
 
-`/api/ai` uses in-memory rate limiting (20 req/hour per userId). In production, replace with Redis sliding window via `apps/web/lib/redis.ts`.
-
-## Framer Motion Screenshot Issue
-
-**Why:** Framer Motion `initial={{ opacity: 0 }}` causes near-blank screenshots when the screenshot tool captures mid-animation.
-
-**Rule:** Use `opacity: 0.01` (not `0`) as the initial value for any above-the-fold hero/heading animations. This makes the page visually readable in SSR screenshots while still animating in for real users.
-
-## pnpm vs npm
-
-`apps/web/package-lock.json` exists → use `npm` in the workflow, not `pnpm`, for `apps/web`. The rest of the monorepo uses pnpm at the root level.
+**Why fail-closed admin:** Any authenticated user could otherwise blast 50K users with emails if ADMIN_USER_IDS isn't set. This was a critical security finding from code review.

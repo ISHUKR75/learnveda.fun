@@ -1,15 +1,11 @@
 /**
  * @file app/(legal)/layout.tsx
- * @description Layout wrapper for all legal pages (Privacy, Terms, Cookie Policy)
- * Applies a clean, readable layout suitable for legal documents
+ * @description Layout for legal pages (privacy-policy, terms-of-service)
+ *
+ * Thin wrapper — Navbar and Footer are included within each page
+ * so this layout can remain minimal.
  */
 
-import React from "react";
-
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen flex-col">
-      {children}
-    </div>
-  );
+  return <>{children}</>; // Navbar and Footer are in individual page files
 }

@@ -1,0 +1,38 @@
+# =============================================================================
+# docker/docker-compose.dev.yml
+# LearnVeda — DEVELOPMENT override for docker-compose.yml
+#
+# Use: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+#
+# Overrides the base docker-compose.yml to use hot-reload dev server instead
+# of the production standalone build. Removes the bind-mount conflict.
+#
+# Changes from base:
+#  - web service uses `npm run dev` instead of `node server.js`
+#  - web service uses a lightweight dev Dockerfile (FROM node:20-alpine, no build stage)
+#  - Adds mongo-express admin UI on port 8081
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # Override web service for development hot-reload
+  web:
+    # Use dev-specific build (no multi-stage, just deps + source)
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev  # Lightweight dev image
+    command: npm run dev                 # Hot-reload dev server instead of production node server.js
+    environment:
+      - NODE_ENV=development             # Override to development
+      - PORT=3000
+      - MONGODB_URI=mongodb://learnveda:${MONGODB_PASSWORD:-devpassword}@mongodb:27017/learnveda?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-placeholder}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-placeholder}
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production}
+    volumes:
+      # Mount source for hot-reload — dev only; NOT used in production
+      - ../apps/web:/app:cached
+      - /app/node_modules   # Exclude node_modules from bind-mount
+      - /app/.next          # Exclude .next from bind-mount

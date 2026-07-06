@@ -1,456 +1,339 @@
 /**
  * @file app/(platform)/core-cs/[slug]/page.tsx
- * @description Core CS topic deep-dive page — focused guides for DSA, OS, DBMS, CN, etc.
- * Route: /core-cs/[slug]  (e.g. /core-cs/binary-search, /core-cs/dynamic-programming)
- * Shows: Theory, time/space complexity, code in multiple languages, common interview Q&A
+ * @description Dynamic Core CS subject page
+ * Route: /core-cs/[slug] — e.g. /core-cs/dsa, /core-cs/os
+ *
+ * Shows structured topic list for each Core CS subject with:
+ *  - Topic cards (difficulty, XP, estimated time)
+ *  - Progress tracking (Demo: random %, real: from MongoDB)
+ *  - Quick access to AI Tutor for this subject
+ *  - Related simulations
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { notFound }      from "next/navigation";
+import Link              from "next/link";
 import {
-  Code2, ChevronRight, Clock, Target, Star, BookOpen,
-  Zap, ArrowRight, CheckCircle2, Lightbulb,
+  ChevronRight, Brain, Server, Database, Network,
+  Layers, Globe2, Code2, Trophy, GitBranch, Play,
+  BookOpen, CheckCircle2, Clock, Star, Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
-/* ─── Core CS Topic Data ─────────────────────────────────────────────────── */
-// Deep-dive topic articles — in production fetched from MongoDB topic-content collection
-const CORE_CS_TOPICS: Record<string, {
-  title:        string;
-  category:     string;
-  difficulty:   "Beginner" | "Intermediate" | "Advanced";
-  readTime:     string;
-  tags:         string[];
-  intro:        string;
-  sections:     { heading: string; content: string; codeExample?: string; language?: string }[];
-  complexity:   { time: string; space: string; notation: string; desc: string }[];
-  interviewQA:  { q: string; a: string }[];
-  relatedTopics:{ slug: string; title: string }[];
-  practiceLinks:{ title: string; href: string; difficulty: string }[];
-}> = {
-  "binary-search": {
-    title:      "Binary Search",
-    category:   "Searching Algorithms",
-    difficulty: "Beginner",
-    readTime:   "8 min read",
-    tags:       ["Algorithms", "Searching", "Array", "O(log n)", "FAANG"],
-    intro:
-      "Binary search is an efficient algorithm for finding an element in a sorted array. " +
-      "It works by repeatedly halving the search space — eliminating half the remaining elements " +
-      "with each comparison. Time complexity: O(log n) — far superior to linear search O(n) for large arrays.",
-    sections: [
-      {
-        heading: "How Binary Search Works",
-        content:
-          "Binary search requires the array to be sorted. It maintains two pointers — low and high — " +
-          "representing the current search range. In each step:\n" +
-          "1. Find the middle element: mid = (low + high) // 2\n" +
-          "2. If target == arr[mid], return mid\n" +
-          "3. If target < arr[mid], search the left half (high = mid - 1)\n" +
-          "4. If target > arr[mid], search the right half (low = mid + 1)\n" +
-          "5. If low > high, the element is not in the array (return -1)",
-        codeExample:
-`# Python — Iterative Binary Search
-def binary_search(arr, target):
-    low, high = 0, len(arr) - 1
+/* ─── Subject Data ───────────────────────────────────────────────────────── */
+type Topic = {
+  id:         string;
+  title:      string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  xp:         number;    // XP earned on completion
+  minutes:    number;    // Estimated study time
+};
 
-    while low <= high:
-        mid = (low + high) // 2    # Avoid integer overflow
+type SubjectConfig = {
+  slug:       string;
+  title:      string;
+  icon:       React.ComponentType<{ className?: string }>;
+  color:      string;    // Tailwind bg+text class
+  tagline:    string;
+  description: string;
+  topics:     Topic[];
+};
 
-        if arr[mid] == target:
-            return mid             # Found — return index
-        elif arr[mid] < target:
-            low = mid + 1          # Search right half
-        else:
-            high = mid - 1         # Search left half
-
-    return -1                      # Not found
-
-# Example
-arr = [1, 3, 5, 7, 9, 11, 13, 15]
-print(binary_search(arr, 7))    # Output: 3 (index of 7)
-print(binary_search(arr, 6))    # Output: -1 (not found)`,
-        language: "python",
-      },
-      {
-        heading: "Recursive Variant",
-        content: "Binary search can also be implemented recursively. The recursive version uses the call stack instead of explicit low/high variables, but is otherwise identical in logic.",
-        codeExample:
-`# Python — Recursive Binary Search
-def binary_search_recursive(arr, target, low, high):
-    if low > high:
-        return -1                  # Base case: not found
-
-    mid = (low + high) // 2
-
-    if arr[mid] == target:
-        return mid
-    elif arr[mid] < target:
-        return binary_search_recursive(arr, target, mid + 1, high)
-    else:
-        return binary_search_recursive(arr, target, low, mid - 1)
-
-arr = [2, 4, 6, 8, 10, 12]
-result = binary_search_recursive(arr, 8, 0, len(arr) - 1)
-print(result)  # Output: 3`,
-        language: "python",
-      },
-      {
-        heading: "JavaScript Implementation",
-        content: "Same algorithm in JavaScript — the most common language for web developer interviews at companies like Google, Meta, and Amazon.",
-        codeExample:
-`// JavaScript — Binary Search
-function binarySearch(arr, target) {
-  let low = 0, high = arr.length - 1;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2); // Integer division
-
-    if (arr[mid] === target) return mid;       // Found
-    if (arr[mid] < target) low = mid + 1;      // Search right
-    else high = mid - 1;                       // Search left
-  }
-
-  return -1; // Not found
-}
-
-const arr = [1, 3, 5, 7, 9, 11, 13];
-console.log(binarySearch(arr, 7));   // 3
-console.log(binarySearch(arr, 4));   // -1`,
-        language: "javascript",
-      },
-    ],
-    complexity: [
-      { time:"O(log n)", space:"O(1)",      notation:"Iterative",  desc:"Halves the search space each iteration" },
-      { time:"O(log n)", space:"O(log n)",  notation:"Recursive",  desc:"Call stack depth equals log n"          },
-      { time:"O(n)",     space:"O(1)",      notation:"Worst (Linear)", desc:"Linear search for comparison"       },
-    ],
-    interviewQA: [
-      {
-        q: "Why does binary search require a sorted array?",
-        a: "Binary search works by eliminating half the search space based on whether the target is greater or smaller than the middle element. This comparison only makes sense if elements are in a known order. On an unsorted array, you cannot determine which half contains the target.",
-      },
-      {
-        q: "What is the potential integer overflow issue in mid = (low + high) / 2?",
-        a: "If low and high are both large integers (e.g., near INT_MAX), their sum can overflow. The safe alternative is: mid = low + (high - low) / 2 — this never overflows since (high - low) is always ≤ high.",
-      },
-      {
-        q: "When would you prefer linear search over binary search?",
-        a: "When the array is unsorted and sorting it first would be too expensive, when the array is very small (overhead of binary search isn't worth it), or when searching a linked list (binary search on a linked list requires O(n) to reach the middle).",
-      },
-      {
-        q: "Can binary search be applied to non-array data structures?",
-        a: "Yes — binary search can be applied to any monotonic function. For example: finding a square root, minimizing/maximizing a value, or searching in a rotated sorted array.",
-      },
-    ],
-    relatedTopics: [
-      { slug:"linear-search",      title:"Linear Search"       },
-      { slug:"two-pointers",       title:"Two Pointers"        },
-      { slug:"divide-and-conquer", title:"Divide and Conquer"  },
-      { slug:"sorting-algorithms", title:"Sorting Algorithms"  },
-    ],
-    practiceLinks: [
-      { title:"Search in Sorted Array",         href:"/practice", difficulty:"Easy"   },
-      { title:"First and Last Position",        href:"/practice", difficulty:"Medium" },
-      { title:"Search in Rotated Sorted Array", href:"/practice", difficulty:"Medium" },
-      { title:"Median of Two Sorted Arrays",    href:"/practice", difficulty:"Hard"   },
+const SUBJECTS: Record<string, SubjectConfig> = {
+  dsa: {
+    slug: "dsa",
+    title: "Data Structures & Algorithms",
+    icon: Brain,
+    color: "bg-purple-500/10 text-purple-500",
+    tagline: "The foundation of software engineering interviews",
+    description: "Master every data structure and algorithm needed for FAANG-level interviews. From arrays and strings to dynamic programming and graphs — fully covered with 500+ problems.",
+    topics: [
+      { id: "arrays",         title: "Arrays & Strings",           difficulty: "Beginner",     xp: 60,  minutes: 45  },
+      { id: "linked-list",    title: "Linked Lists",               difficulty: "Beginner",     xp: 60,  minutes: 40  },
+      { id: "stacks-queues",  title: "Stacks & Queues",            difficulty: "Beginner",     xp: 50,  minutes: 35  },
+      { id: "trees",          title: "Binary Trees & BST",         difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "heaps",          title: "Heaps & Priority Queues",    difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "hashing",        title: "Hashing & Hash Maps",        difficulty: "Intermediate", xp: 70,  minutes: 45  },
+      { id: "graphs",         title: "Graphs: BFS, DFS, Dijkstra", difficulty: "Advanced",     xp: 100, minutes: 90  },
+      { id: "sorting",        title: "Sorting Algorithms",         difficulty: "Intermediate", xp: 60,  minutes: 50  },
+      { id: "binary-search",  title: "Binary Search",              difficulty: "Intermediate", xp: 70,  minutes: 40  },
+      { id: "recursion",      title: "Recursion & Backtracking",   difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "dp",             title: "Dynamic Programming",        difficulty: "Advanced",     xp: 120, minutes: 120 },
+      { id: "greedy",         title: "Greedy Algorithms",          difficulty: "Advanced",     xp: 90,  minutes: 70  },
+      { id: "sliding-window", title: "Sliding Window & Two Pointers", difficulty: "Intermediate", xp: 70, minutes: 50 },
+      { id: "trie",           title: "Tries & Segment Trees",      difficulty: "Advanced",     xp: 100, minutes: 80  },
+      { id: "bit-manipulation",title: "Bit Manipulation",          difficulty: "Intermediate", xp: 60,  minutes: 40  },
     ],
   },
-
-  "dynamic-programming": {
-    title:      "Dynamic Programming",
-    category:   "Algorithm Paradigm",
-    difficulty: "Advanced",
-    readTime:   "15 min read",
-    tags:       ["DP", "Memoization", "Tabulation", "FAANG", "Hard"],
-    intro:
-      "Dynamic Programming (DP) is a technique that solves complex problems by breaking them into " +
-      "overlapping sub-problems and storing results to avoid redundant computation. " +
-      "DP is used in ~40% of FAANG interview problems.",
-    sections: [
-      {
-        heading: "Two Approaches: Top-Down vs Bottom-Up",
-        content:
-          "Top-Down (Memoization): Start with the original problem, recursively solve sub-problems, " +
-          "and cache (memoize) results. Uses recursion + a hash map.\n\n" +
-          "Bottom-Up (Tabulation): Start from the smallest sub-problems, fill a table iteratively " +
-          "until the original problem is solved. More memory efficient (no recursion overhead).",
-        codeExample:
-`# Classic DP Problem: Fibonacci
-# Naive recursive — O(2^n) — extremely slow
-def fib_naive(n):
-    if n <= 1: return n
-    return fib_naive(n-1) + fib_naive(n-2)
-
-# Top-Down DP (Memoization) — O(n)
-def fib_memo(n, memo={}):
-    if n in memo: return memo[n]          # Return cached result
-    if n <= 1: return n
-    memo[n] = fib_memo(n-1, memo) + fib_memo(n-2, memo)
-    return memo[n]
-
-# Bottom-Up DP (Tabulation) — O(n) time, O(1) space
-def fib_tab(n):
-    if n <= 1: return n
-    a, b = 0, 1
-    for _ in range(2, n+1):
-        a, b = b, a + b           # Only store last 2 values
-    return b
-
-print(fib_tab(10))   # 55
-print(fib_tab(50))   # 12586269025`,
-        language: "python",
-      },
+  os: {
+    slug: "os",
+    title: "Operating Systems",
+    icon: Server,
+    color: "bg-blue-500/10 text-blue-500",
+    tagline: "How computers really work — under the hood",
+    description: "Deep dive into process management, memory management, file systems, CPU scheduling, deadlock handling, and concurrency. Essential for systems programming and interviews.",
+    topics: [
+      { id: "intro",           title: "Introduction to OS",               difficulty: "Beginner",     xp: 40,  minutes: 30  },
+      { id: "processes",       title: "Processes & Threads",              difficulty: "Beginner",     xp: 50,  minutes: 40  },
+      { id: "cpu-scheduling",  title: "CPU Scheduling Algorithms",        difficulty: "Intermediate", xp: 70,  minutes: 55  },
+      { id: "synchronization", title: "Process Synchronization",          difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "deadlock",        title: "Deadlock Detection & Prevention",  difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "memory",          title: "Memory Management",                difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "virtual-memory",  title: "Virtual Memory & Paging",          difficulty: "Advanced",     xp: 90,  minutes: 70  },
+      { id: "file-systems",    title: "File Systems",                     difficulty: "Intermediate", xp: 70,  minutes: 55  },
+      { id: "io",              title: "I/O Management",                   difficulty: "Intermediate", xp: 60,  minutes: 45  },
     ],
-    complexity: [
-      { time:"O(n)",    space:"O(n)",  notation:"Memoization",   desc:"N unique sub-problems, each solved once" },
-      { time:"O(n)",    space:"O(1)",  notation:"Tabulation (optimized)", desc:"Space optimization for 1D DP" },
-      { time:"O(n²)",   space:"O(n²)", notation:"2D DP (LCS/LIS)", desc:"For 2-sequence problems" },
+  },
+  dbms: {
+    slug: "dbms",
+    title: "Database Management Systems",
+    icon: Database,
+    color: "bg-green-500/10 text-green-500",
+    tagline: "Master SQL, normalization, and database design",
+    description: "Relational databases, SQL mastery, normalization, transactions (ACID), indexing, query optimization, NoSQL databases, and database design patterns.",
+    topics: [
+      { id: "er-model",      title: "ER Model & Relational Model",   difficulty: "Beginner",     xp: 50,  minutes: 40  },
+      { id: "sql-basics",    title: "SQL: SELECT, INSERT, UPDATE",   difficulty: "Beginner",     xp: 50,  minutes: 45  },
+      { id: "joins",         title: "SQL Joins & Subqueries",        difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "normalization", title: "Normalization (1NF–BCNF)",      difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "transactions",  title: "Transactions & ACID Properties",difficulty: "Intermediate", xp: 80,  minutes: 55  },
+      { id: "indexing",      title: "Indexing & Query Optimization",  difficulty: "Advanced",     xp: 90,  minutes: 65  },
+      { id: "concurrency",   title: "Concurrency Control",           difficulty: "Advanced",     xp: 80,  minutes: 60  },
+      { id: "nosql",         title: "NoSQL Databases (MongoDB, Redis)",difficulty: "Intermediate",xp: 70,  minutes: 50  },
     ],
-    interviewQA: [
-      {
-        q: "How do you identify if a problem can be solved with DP?",
-        a: "Two key properties: (1) Optimal Substructure — optimal solution can be built from optimal solutions to sub-problems. (2) Overlapping Sub-problems — the same sub-problems are solved multiple times in a naive recursive approach.",
-      },
-      {
-        q: "What are common DP patterns?",
-        a: "1. 0/1 Knapsack, 2. Unbounded Knapsack, 3. Longest Common Subsequence (LCS), 4. Longest Increasing Subsequence (LIS), 5. Matrix Chain Multiplication, 6. Coin Change, 7. Edit Distance. Recognizing which pattern applies is the key skill.",
-      },
+  },
+  "computer-networks": {
+    slug: "computer-networks",
+    title: "Computer Networks",
+    icon: Network,
+    color: "bg-cyan-500/10 text-cyan-500",
+    tagline: "How data travels across the internet",
+    description: "OSI and TCP/IP models, HTTP/HTTPS, DNS, routing protocols, TCP vs UDP, IP addressing, subnetting, firewalls, and network security. Essential for backend and cloud engineering.",
+    topics: [
+      { id: "osi-model",    title: "OSI Model & Layers",            difficulty: "Beginner",     xp: 50,  minutes: 40  },
+      { id: "tcp-ip",       title: "TCP/IP Model",                  difficulty: "Beginner",     xp: 50,  minutes: 40  },
+      { id: "http",         title: "HTTP/HTTPS & REST",             difficulty: "Intermediate", xp: 60,  minutes: 45  },
+      { id: "dns",          title: "DNS & Domain Resolution",       difficulty: "Intermediate", xp: 60,  minutes: 40  },
+      { id: "tcp-udp",      title: "TCP vs UDP",                    difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "ip-subnetting",title: "IP Addressing & Subnetting",   difficulty: "Intermediate", xp: 70,  minutes: 55  },
+      { id: "routing",      title: "Routing Protocols (OSPF, BGP)", difficulty: "Advanced",     xp: 80,  minutes: 60  },
+      { id: "security",     title: "Network Security & Firewalls",  difficulty: "Advanced",     xp: 80,  minutes: 60  },
     ],
-    relatedTopics: [
-      { slug:"recursion",           title:"Recursion"          },
-      { slug:"greedy-algorithms",   title:"Greedy Algorithms"  },
-      { slug:"binary-search",       title:"Binary Search"      },
+  },
+  "system-design": {
+    slug: "system-design",
+    title: "System Design",
+    icon: Layers,
+    color: "bg-orange-500/10 text-orange-500",
+    tagline: "Design systems that scale to millions of users",
+    description: "Learn to design scalable, reliable, and maintainable systems. Covers load balancing, caching, databases, microservices, message queues, CDNs, and real-world system case studies.",
+    topics: [
+      { id: "fundamentals",    title: "System Design Fundamentals",        difficulty: "Beginner",     xp: 50,  minutes: 45  },
+      { id: "load-balancing",  title: "Load Balancing & Reverse Proxies",  difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "caching",         title: "Caching Strategies (Redis, CDN)",   difficulty: "Intermediate", xp: 80,  minutes: 55  },
+      { id: "databases-sd",    title: "Database Choices & Sharding",       difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "microservices",   title: "Microservices Architecture",        difficulty: "Advanced",     xp: 100, minutes: 75  },
+      { id: "message-queues",  title: "Message Queues (Kafka, RabbitMQ)",  difficulty: "Advanced",     xp: 90,  minutes: 65  },
+      { id: "api-design",      title: "API Design: REST & GraphQL",        difficulty: "Intermediate", xp: 70,  minutes: 50  },
+      { id: "case-studies",    title: "Case Studies: Twitter, YouTube, Uber", difficulty: "Advanced",  xp: 120, minutes: 90  },
     ],
-    practiceLinks: [
-      { title:"Climbing Stairs",     href:"/practice", difficulty:"Easy"   },
-      { title:"Coin Change",         href:"/practice", difficulty:"Medium" },
-      { title:"Longest Common Subsequence", href:"/practice", difficulty:"Medium" },
-      { title:"Edit Distance",       href:"/practice", difficulty:"Hard"   },
+  },
+  "web-development": {
+    slug: "web-development",
+    title: "Web Development",
+    icon: Globe2,
+    color: "bg-brand-500/10 text-brand-500",
+    tagline: "Build modern full-stack web applications",
+    description: "HTML, CSS, JavaScript, TypeScript, React, Node.js, databases, authentication, deployment. From fundamentals to full-stack. Build real projects every week.",
+    topics: [
+      { id: "html-css",    title: "HTML5 & CSS3 Fundamentals",    difficulty: "Beginner",     xp: 40,  minutes: 40  },
+      { id: "javascript",  title: "JavaScript ES6+ Deep Dive",    difficulty: "Intermediate", xp: 70,  minutes: 60  },
+      { id: "typescript",  title: "TypeScript for JavaScript Devs",difficulty: "Intermediate",xp: 70,  minutes: 55  },
+      { id: "react",       title: "React 19 & Next.js 15",        difficulty: "Intermediate", xp: 80,  minutes: 70  },
+      { id: "nodejs",      title: "Node.js & Express",             difficulty: "Intermediate", xp: 70,  minutes: 60  },
+      { id: "databases-wd",title: "SQL & NoSQL Databases",         difficulty: "Intermediate", xp: 70,  minutes: 55  },
+      { id: "auth",        title: "Authentication & Security",     difficulty: "Intermediate", xp: 80,  minutes: 60  },
+      { id: "deployment",  title: "CI/CD & Cloud Deployment",      difficulty: "Advanced",     xp: 90,  minutes: 65  },
+    ],
+  },
+  "competitive-programming": {
+    slug: "competitive-programming",
+    title: "Competitive Programming",
+    icon: Trophy,
+    color: "bg-red-500/10 text-red-500",
+    tagline: "Compete on Codeforces, LeetCode, and CodeChef",
+    description: "Structured competitive programming track covering all algorithm categories. From Div 3 to Div 1 level on Codeforces. Includes practice contests and editorial explanations.",
+    topics: [
+      { id: "basics",       title: "CP Basics & I/O Optimization",  difficulty: "Beginner",     xp: 40,  minutes: 30  },
+      { id: "math",         title: "Number Theory & Math",           difficulty: "Intermediate", xp: 70,  minutes: 55  },
+      { id: "sorting-cp",   title: "Sorting Techniques",             difficulty: "Beginner",     xp: 50,  minutes: 40  },
+      { id: "graphs-cp",    title: "Graph Algorithms in CP",         difficulty: "Advanced",     xp: 100, minutes: 90  },
+      { id: "dp-cp",        title: "DP in Competitive Programming",  difficulty: "Advanced",     xp: 120, minutes: 120 },
+      { id: "trees-cp",     title: "Trees & Advanced Structures",    difficulty: "Advanced",     xp: 100, minutes: 90  },
+      { id: "strings-cp",   title: "String Algorithms (KMP, Trie)",  difficulty: "Advanced",     xp: 90,  minutes: 75  },
+    ],
+  },
+  "interview-preparation": {
+    slug: "interview-preparation",
+    title: "Interview Preparation",
+    icon: Code2,
+    color: "bg-teal-500/10 text-teal-500",
+    tagline: "Land offers at FAANG and top Indian tech companies",
+    description: "Complete interview preparation roadmap. Covers DSA, system design, behavioral questions, HR rounds, resume building, and mock interview practice for top companies.",
+    topics: [
+      { id: "resume",       title: "Resume Building & ATS Optimization", difficulty: "Beginner",    xp: 30,  minutes: 30  },
+      { id: "dsa-interview",title: "DSA Problem Patterns (Top 75)",      difficulty: "Intermediate",xp: 80,  minutes: 70  },
+      { id: "sd-interview", title: "System Design Interview Guide",       difficulty: "Advanced",    xp: 100, minutes: 90  },
+      { id: "behavioral",   title: "Behavioral & HR Questions",           difficulty: "Beginner",    xp: 40,  minutes: 35  },
+      { id: "sql-interview",title: "SQL Interview Questions",             difficulty: "Intermediate",xp: 60,  minutes: 45  },
+      { id: "mock-interview",title: "Mock Interview Practice",            difficulty: "Intermediate",xp: 90,  minutes: 60  },
+    ],
+  },
+  git: {
+    slug: "git",
+    title: "Git & Version Control",
+    icon: GitBranch,
+    color: "bg-amber-500/10 text-amber-500",
+    tagline: "Essential for every software engineer",
+    description: "Git from zero to advanced. Covers commit, branch, merge, rebase, pull requests, GitHub workflow, CI/CD integration, and team collaboration best practices.",
+    topics: [
+      { id: "basics-git",  title: "Git Basics: init, commit, push",  difficulty: "Beginner",     xp: 30,  minutes: 25  },
+      { id: "branching",   title: "Branching & Merging",              difficulty: "Beginner",     xp: 40,  minutes: 30  },
+      { id: "rebase",      title: "Rebase & Cherry-Pick",             difficulty: "Intermediate", xp: 60,  minutes: 45  },
+      { id: "github",      title: "GitHub: PRs, Issues, Actions",     difficulty: "Intermediate", xp: 60,  minutes: 45  },
+      { id: "git-flow",    title: "Git Flow & Team Workflow",         difficulty: "Intermediate", xp: 60,  minutes: 40  },
+      { id: "advanced-git",title: "Advanced Git (stash, bisect, hooks)",difficulty: "Advanced",   xp: 70,  minutes: 50  },
     ],
   },
 };
 
-/* ─── Fallback for unknown slugs ─────────────────────────────────────────── */
-function getTopicData(slug: string) {
-  return CORE_CS_TOPICS[slug] ?? {
-    title:      slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-    category:   "Computer Science",
-    difficulty: "Intermediate" as const,
-    readTime:   "5 min read",
-    tags:       ["CS", "Algorithms"],
-    intro:      "Detailed topic guide coming soon. In the meantime, explore related topics below.",
-    sections:   [],
-    complexity: [],
-    interviewQA:[{ q:"How is this topic used in interviews?", a:"It appears in technical interviews at top tech companies. Mastering it gives you a competitive edge." }],
-    relatedTopics:[{ slug:"binary-search", title:"Binary Search" }],
-    practiceLinks:[{ title:"Practice Problems", href:"/practice", difficulty:"Mixed" }],
-  };
-}
-
-/* ─── generateMetadata ───────────────────────────────────────────────────── */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const data = getTopicData(slug);
-  return {
-    title:       `${data.title} — Core CS | LearnVeda`,
-    description: data.intro.slice(0, 150) + "...",
-    keywords:    data.tags,
-  };
-}
-
-/* ─── Difficulty Color ───────────────────────────────────────────────────── */
-const DIFF_COLOR = {
+/* ─── Difficulty badge colors ────────────────────────────────────────────── */
+const DIFF_COLOR: Record<string, string> = {
   Beginner:     "bg-green-500/10 text-green-600 border-green-500/20",
-  Intermediate: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  Intermediate: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
   Advanced:     "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
-/* ─── Core CS Topic Page ─────────────────────────────────────────────────── */
-export default async function CoreCSTopicPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+/* ─── Metadata ───────────────────────────────────────────────────────────── */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const data      = getTopicData(slug);
+  const subject = SUBJECTS[slug];
+  if (!subject) return { title: "Not Found" };
+  return {
+    title:       `${subject.title} — LearnVeda Core CS`,
+    description: subject.description,
+  };
+}
+
+/* ─── Generate static paths ──────────────────────────────────────────────── */
+export function generateStaticParams() {
+  return Object.keys(SUBJECTS).map((slug) => ({ slug }));
+}
+
+/* ─── Page Component ─────────────────────────────────────────────────────── */
+export default async function CoreCSSubjectPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const subject  = SUBJECTS[slug];
+
+  if (!subject) notFound(); // Return 404 for unknown slugs
+
+  const totalXP   = subject.topics.reduce((a, t) => a + t.xp, 0);
+  const totalMins = subject.topics.reduce((a, t) => a + t.minutes, 0);
+  const SubjectIcon = subject.icon;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
-      <div className="border-b">
-        <div className="container px-4 py-3">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/learn/engineering" className="hover:text-foreground transition-colors">Engineering</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <Link href="/programming/dsa" className="hover:text-foreground transition-colors">DSA</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground">{data.title}</span>
-          </nav>
+      <div className="container px-4 md:px-6 py-10">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+          <Link href="/core-cs/dsa" className="hover:text-foreground">Core CS</Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground font-medium">{subject.title}</span>
+        </nav>
+
+        {/* Header */}
+        <div className="flex items-start gap-4 mb-4">
+          <div className={`p-3 rounded-2xl ${subject.color} flex-shrink-0`}>
+            <SubjectIcon className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{subject.title}</h1>
+            <p className="text-brand-500 font-medium text-sm mt-0.5">{subject.tagline}</p>
+          </div>
         </div>
-      </div>
 
-      {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <div className="container px-4 py-8 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Description */}
+        <p className="text-muted-foreground leading-relaxed mb-8 max-w-3xl">{subject.description}</p>
 
-          {/* ─── Article Content ──────────────────────────────────────── */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Article header */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <Badge variant="outline" className="text-xs">{data.category}</Badge>
-                <Badge className={`text-xs ${DIFF_COLOR[data.difficulty]}`}>{data.difficulty}</Badge>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-4 mb-10 max-w-lg">
+          <div className="rounded-xl border bg-card p-3 text-center">
+            <BookOpen className="h-5 w-5 text-brand-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">{subject.topics.length}</p>
+            <p className="text-xs text-muted-foreground">Topics</p>
+          </div>
+          <div className="rounded-xl border bg-card p-3 text-center">
+            <Star className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">{totalXP}</p>
+            <p className="text-xs text-muted-foreground">Total XP</p>
+          </div>
+          <div className="rounded-xl border bg-card p-3 text-center">
+            <Clock className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">{Math.round(totalMins / 60)}h</p>
+            <p className="text-xs text-muted-foreground">Study Time</p>
+          </div>
+        </div>
+
+        {/* Topic list */}
+        <div className="space-y-3">
+          {subject.topics.map((topic, i) => (
+            <div
+              key={topic.id}
+              className="flex items-center gap-4 p-4 rounded-2xl border bg-card hover:shadow-sm hover:border-brand-500/30 transition-all cursor-pointer group"
+            >
+              {/* Topic number */}
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-muted-foreground">{i + 1}</span>
+              </div>
+
+              {/* Topic info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-foreground text-sm group-hover:text-brand-500 transition-colors">
+                    {topic.title}
+                  </h3>
+                  <Badge variant="outline" className={`text-xs ${DIFF_COLOR[topic.difficulty]}`}>
+                    {topic.difficulty}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Topic meta */}
+              <div className="flex items-center gap-4 flex-shrink-0 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3.5 w-3.5 text-brand-500" />
+                  +{topic.xp} XP
+                </span>
+                <span className="hidden sm:flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {data.readTime}
-                </div>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl font-bold mb-4">{data.title}</h1>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {data.tags.map((tag) => (
-                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{tag}</span>
-                ))}
-              </div>
-
-              {/* Intro */}
-              <p className="text-muted-foreground leading-relaxed">{data.intro}</p>
-            </div>
-
-            {/* Theory Sections */}
-            {data.sections.map((section, i) => (
-              <div key={i} className="space-y-3">
-                <h2 className="text-xl font-bold">{section.heading}</h2>
-                <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{section.content}</p>
-
-                {section.codeExample && (
-                  <div className="rounded-xl border bg-zinc-950 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-red-500"    />
-                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-                        <div className="h-2.5 w-2.5 rounded-full bg-green-500"  />
-                      </div>
-                      <Badge variant="outline" className="text-[10px] border-white/20 text-white/40">
-                        {section.language ?? "python"}
-                      </Badge>
-                    </div>
-                    <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
-                      <code>{section.codeExample}</code>
-                    </pre>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Complexity Table */}
-            {data.complexity.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold mb-4">Time & Space Complexity</h2>
-                <div className="rounded-xl border overflow-hidden">
-                  <div className="grid grid-cols-4 bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
-                    <span>Variant</span><span>Time</span><span>Space</span><span>Notes</span>
-                  </div>
-                  {data.complexity.map((c, i) => (
-                    <div key={i} className={`grid grid-cols-4 px-4 py-3 text-sm border-t ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
-                      <span className="font-medium">{c.notation}</span>
-                      <span className="font-mono text-primary">{c.time}</span>
-                      <span className="font-mono text-cyan-600 dark:text-cyan-400">{c.space}</span>
-                      <span className="text-muted-foreground text-xs">{c.desc}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Interview Q&A */}
-            {data.interviewQA.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-amber-500" />
-                  Interview Questions
-                </h2>
-                <div className="space-y-4">
-                  {data.interviewQA.map((qa, i) => (
-                    <div key={i} className="rounded-xl border bg-card p-5">
-                      <div className="font-semibold text-sm mb-2 flex items-start gap-2">
-                        <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold shrink-0 mt-0.5">Q</span>
-                        {qa.q}
-                      </div>
-                      <div className="text-sm text-muted-foreground pl-7">{qa.a}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ─── Sidebar ─────────────────────────────────────────────── */}
-          <div className="space-y-4">
-            {/* Practice problems */}
-            <div className="rounded-2xl border bg-card p-5 sticky top-4">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                Practice Problems
-              </h3>
-              <div className="space-y-2">
-                {data.practiceLinks.map((p) => (
-                  <Link
-                    key={p.title}
-                    href={p.href}
-                    className="group flex items-center gap-2 rounded-lg border bg-muted/20 hover:bg-muted/50 p-2.5 transition-colors"
-                  >
-                    <Code2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium line-clamp-1">{p.title}</div>
-                    </div>
-                    <Badge className={`text-[9px] py-0 shrink-0 ${
-                      p.difficulty === "Easy"   ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                      p.difficulty === "Medium" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                      p.difficulty === "Hard"   ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                                  "bg-muted text-muted-foreground"
-                    }`}>
-                      {p.difficulty}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="mt-4">
-                <Button asChild className="w-full" size="sm">
-                  <Link href="/practice">View All Problems</Link>
-                </Button>
+                  {topic.minutes} min
+                </span>
+                <Play className="h-4 w-4 text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
+          ))}
+        </div>
 
-            {/* Related topics */}
-            <div className="rounded-2xl border bg-card p-5">
-              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                Related Topics
-              </h3>
-              <div className="space-y-1">
-                {data.relatedTopics.map((t) => (
-                  <Link
-                    key={t.slug}
-                    href={`/core-cs/${t.slug}`}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors py-1"
-                  >
-                    <ArrowRight className="h-3 w-3" />
-                    {t.title}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* AI Tutor CTA */}
+        <div className="mt-10 flex flex-col sm:flex-row gap-4">
+          <Link href="/ai-tutor" className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 text-white font-semibold hover:bg-brand-600 transition-colors">
+            <Zap className="h-4 w-4" />
+            Ask AI Tutor about {subject.title}
+          </Link>
+          <Link href="/simulations" className="flex items-center gap-2 px-6 py-3 rounded-xl border bg-card font-semibold hover:border-brand-500/50 transition-colors">
+            <Play className="h-4 w-4" />
+            View Simulations
+          </Link>
         </div>
       </div>
     </div>

@@ -1,72 +1,46 @@
 /**
  * @file app/api/health/route.ts
- * @description Health check API endpoint for LearnVeda
- * Used by: monitoring systems, CI/CD, Kubernetes liveness probes, uptime bots
+ * @description Health-check endpoint for LearnVeda
  * Route: GET /api/health
- * Returns: Service status, version, uptime, and dependency health
- * Auth: Public — no authentication required
+ *
+ * Used by:
+ *  - Docker/Kubernetes liveness probes
+ *  - Uptime monitoring (UptimeRobot, Grafana)
+ *  - CI/CD smoke tests
+ *
+ * Returns: { status, version, uptime, timestamp, environment }
  */
 
 import { NextResponse } from "next/server"; // Next.js response helper
 
-/* ─── Server startup time ─────────────────────────────────────────────────── */
-const SERVER_START_TIME = Date.now(); // Record when server started for uptime calculation
+/* ─── Server Start Time ──────────────────────────────────────────────────── */
+// Captured at module load — used to calculate uptime in seconds
+const SERVER_START = Date.now();
 
-/* ─── Health Check Handler ────────────────────────────────────────────────── */
-/**
- * GET /api/health
- * Returns a JSON payload with service health information.
- * - status: "ok" | "degraded" | "down"
- * - uptime: seconds since server start
- * - timestamp: current ISO timestamp
- * - version: app version from package.json
- */
+/* ─── GET /api/health ────────────────────────────────────────────────────── */
 export async function GET() {
-  const now = Date.now(); // Current timestamp in milliseconds
+  const uptimeSeconds = Math.floor((Date.now() - SERVER_START) / 1000); // Seconds since start
 
-  // Check environment indicators for each dependency
-  const hasDb      = !!process.env.MONGODB_URI;     // MongoDB configured?
-  const hasRedis   = !!process.env.REDIS_URL;        // Redis configured?
-  const hasClerk   = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith("pk_"); // Clerk configured?
-  const hasAI      = !!process.env.OPENAI_API_KEY || !!process.env.GEMINI_API_KEY; // AI configured?
-
-  // Determine overall status
-  // "ok" = all critical services configured
-  // "degraded" = optional services missing but core works
-  // "demo" = running in demo mode (no external services)
-  const isFullyConfigured = hasDb && hasClerk;
-  const status = isFullyConfigured ? "ok" : hasDb ? "degraded" : "demo"; // "ok" | "degraded" | "demo"
-
-  /* ── Response Payload ────────────────────────────────────────────────── */
-  const healthData = {
-    status,                                                   // Overall service health
-    timestamp:   new Date().toISOString(),                    // Current server time (UTC)
-    uptime:      Math.round((now - SERVER_START_TIME) / 1000), // Uptime in seconds
-    version:     process.env.npm_package_version || "0.1.0",  // App version
-    environment: process.env.NODE_ENV || "development",       // Runtime environment
-
-    // Service dependency status (configured = true means env var is set)
+  const payload = {
+    status:      "ok",                                        // Overall health status
+    version:     process.env.npm_package_version ?? "0.1.0", // App version
+    environment: process.env.NODE_ENV ?? "development",       // Runtime environment
+    uptime:      uptimeSeconds,                               // Seconds since server started
+    timestamp:   new Date().toISOString(),                    // ISO 8601 timestamp
     services: {
-      database:     hasDb    ? "configured" : "not-configured", // MongoDB
-      cache:        hasRedis ? "configured" : "not-configured", // Redis
-      auth:         hasClerk ? "configured" : "demo-mode",      // Clerk
-      ai:           hasAI    ? "configured" : "not-configured", // OpenAI/Gemini
-    },
-
-    // Platform metadata
-    platform: {
-      name:    "LearnVeda",
-      region:  process.env.VERCEL_REGION || "local",             // Deployment region
-      runtime: "Node.js",
+      mongodb: !!process.env.MONGODB_URI   ? "configured" : "not_configured", // DB config status
+      redis:   !!process.env.REDIS_URL     ? "configured" : "not_configured", // Cache config
+      clerk:   !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+               && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("placeholder")
+               ? "configured" : "not_configured",                              // Auth config
     },
   };
 
-  /* ── HTTP Response ───────────────────────────────────────────────────── */
-  return NextResponse.json(healthData, {
-    status: 200, // always 200 for reachable service; use status field in body to indicate degraded/demo
+  return NextResponse.json(payload, {
+    status:  200,
     headers: {
-      "Cache-Control": "no-cache, no-store, must-revalidate", // Never cache health checks
-      "Content-Type":  "application/json",
+      "Cache-Control": "no-store, no-cache, must-revalidate", // Never cache health checks
+      "X-Health-Check": "learnveda",                           // Custom identifier header
     },
   });
 }

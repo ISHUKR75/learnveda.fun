@@ -1,222 +1,194 @@
 /**
  * @file app/(platform)/dashboard/progress/page.tsx
- * @description Detailed learning progress page — chapter-by-chapter completion tracking
+ * @description Detailed learning progress page
  * Route: /dashboard/progress
- * Shows: Subject progress, chapter completion, XP history, and completion percentages
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BookOpen, ChevronRight, CheckCircle2, Circle,
-  ArrowRight, Clock, TrendingUp, Target,
+  BookOpen, CheckCircle2, Circle, Clock, TrendingUp,
+  ChevronRight, Flame, Target, Calendar,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
-/* ─── Page Metadata ──────────────────────────────────────────────────────── */
 export const metadata: Metadata = {
-  title:  "Progress — Dashboard | LearnVeda",
-  description: "Track your chapter-by-chapter learning progress across all subjects.",
-  robots: { index: false, follow: false },
+  title:       "My Progress — LearnVeda",
+  description: "Track your chapter-wise progress across all subjects on LearnVeda.",
+  robots:      { index: false, follow: false },
 };
 
-/* ─── Progress Data ──────────────────────────────────────────────────────── */
-// Subject progress data — in production fetched from MongoDB user progress collection
-const SUBJECT_PROGRESS = [
+/* ─── Subject progress data ──────────────────────────────────────────────── */
+const SUBJECTS = [
   {
-    subject:     "Mathematics (Class 9)",
-    href:        "/learn/class-9/mathematics",
-    color:       "blue",
-    total:       15,
-    completed:   12,
-    inProgress:  1,
-    lastStudied: "2 hours ago",
-    chapters: [
-      { id: 1, title: "Number Systems",          completed: true  },
-      { id: 2, title: "Polynomials",              completed: true  },
-      { id: 3, title: "Coordinate Geometry",      completed: true  },
-      { id: 4, title: "Linear Equations",         completed: true  },
-      { id: 5, title: "Lines and Angles",         completed: true  },
-      { id: 6, title: "Triangles",                completed: true  },
-      { id: 7, title: "Quadrilaterals",           completed: true  },
-      { id: 8, title: "Circles",                  completed: true  },
-      { id: 9, title: "Heron's Formula",          completed: true  },
-      { id:10, title: "Surface Areas & Volumes",  completed: true  },
-      { id:11, title: "Statistics",               completed: true  },
-      { id:12, title: "Probability",              completed: true  },
-      { id:13, title: "Introduction to Euclid",   completed: false, inProgress: true  },
-      { id:14, title: "Areas of Parallelograms",  completed: false },
-      { id:15, title: "Constructions",            completed: false },
-    ],
+    name:     "Mathematics (Class 10)",
+    emoji:    "📐",
+    chapters: 14,
+    done:     10,
+    color:    "bg-blue-500",
+    href:     "/learn/class-10",
+    lastStudied: "Today",
   },
   {
-    subject:     "Science (Class 9)",
-    href:        "/learn/class-9/science",
-    color:       "green",
-    total:       14,
-    completed:   9,
-    inProgress:  0,
+    name:     "Physics (Class 10)",
+    emoji:    "⚛️",
+    chapters: 13,
+    done:     7,
+    color:    "bg-cyan-500",
+    href:     "/learn/class-10",
     lastStudied: "Yesterday",
-    chapters: [
-      { id: 1, title: "Matter in Our Surroundings",   completed: true  },
-      { id: 2, title: "Is Matter Around Us Pure?",    completed: true  },
-      { id: 3, title: "Atoms and Molecules",          completed: true  },
-      { id: 4, title: "Structure of the Atom",        completed: true  },
-      { id: 5, title: "The Fundamental Unit of Life", completed: true  },
-      { id: 6, title: "Tissues",                      completed: true  },
-      { id: 7, title: "Motion",                       completed: true  },
-      { id: 8, title: "Force and Laws of Motion",     completed: true  },
-      { id: 9, title: "Gravitation",                  completed: true  },
-      { id:10, title: "Work and Energy",              completed: false },
-      { id:11, title: "Sound",                        completed: false },
-      { id:12, title: "Natural Resources",            completed: false },
-      { id:13, title: "Improvement in Food Resources",completed: false },
-      { id:14, title: "Why Do We Fall Ill?",          completed: false },
-    ],
   },
   {
-    subject:     "Python Programming",
-    href:        "/programming/python",
-    color:       "cyan",
-    total:       45,
-    completed:   15,
-    inProgress:  1,
-    lastStudied: "3 hours ago",
-    chapters: Array.from({ length: 45 }, (_, i) => ({
-      id:       i + 1,
-      title:    `Day ${String(i + 1).padStart(2, "0")}`,
-      completed: i < 15,
-      inProgress: i === 15,
-    })),
+    name:     "Chemistry (Class 10)",
+    emoji:    "🧪",
+    chapters: 16,
+    done:     4,
+    color:    "bg-green-500",
+    href:     "/learn/class-10",
+    lastStudied: "3 days ago",
+  },
+  {
+    name:     "Python",
+    emoji:    "🐍",
+    chapters: 30,   // Days
+    done:     12,
+    color:    "bg-yellow-500",
+    href:     "/programming/python",
+    lastStudied: "Today",
+  },
+  {
+    name:     "DSA",
+    emoji:    "🌳",
+    chapters: 40,
+    done:     18,
+    color:    "bg-orange-500",
+    href:     "/core-cs/dsa",
+    lastStudied: "2 days ago",
   },
 ];
 
-/* ─── Progress Page Component ────────────────────────────────────────────── */
+/* ─── Weekly activity (Mon–Sun) ──────────────────────────────────────────── */
+const WEEKLY = [
+  { day: "Mon", minutes: 45 },
+  { day: "Tue", minutes: 90 },
+  { day: "Wed", minutes: 30 },
+  { day: "Thu", minutes: 75 },
+  { day: "Fri", minutes: 120 },
+  { day: "Sat", minutes: 60 },
+  { day: "Sun", minutes: 0  },
+];
+const MAX_MINUTES = Math.max(...WEEKLY.map((d) => d.minutes));
+
+/* ─── Progress circle helper ─────────────────────────────────────────────── */
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full ${color}`}
+        style={{ width: `${Math.round(value * 100)}%` }}
+      />
+    </div>
+  );
+}
+
 export default function ProgressPage() {
-  const totalCompleted = SUBJECT_PROGRESS.reduce((acc, s) => acc + s.completed, 0);
-  const totalChapters  = SUBJECT_PROGRESS.reduce((acc, s) => acc + s.total, 0);
-  const overallPct     = Math.round((totalCompleted / totalChapters) * 100);
+  const totalChapters = SUBJECTS.reduce((a, s) => a + s.chapters, 0);
+  const totalDone     = SUBJECTS.reduce((a, s) => a + s.done, 0);
+  const overallPct    = totalDone / totalChapters;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="border-b bg-gradient-to-br from-green-500/5 to-background">
-        <div className="container px-4 py-8">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground font-medium">Progress</span>
-          </nav>
-
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Learning Progress</h1>
-                <p className="text-sm text-muted-foreground">
-                  {totalCompleted} of {totalChapters} chapters completed · {overallPct}% overall
-                </p>
-              </div>
-            </div>
+      <div className="container px-4 md:px-6 py-10 max-w-5xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">My Learning Progress</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Across all enrolled subjects and languages
+            </p>
           </div>
-
-          {/* Overall progress bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>Overall completion</span>
-              <span>{overallPct}%</span>
-            </div>
-            <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all"
-                style={{ width: `${overallPct}%` }}
-              />
-            </div>
-          </div>
+          <Link href="/dashboard" className="text-sm text-brand-500 hover:underline flex items-center gap-1">
+            ← Back to Dashboard
+          </Link>
         </div>
-      </div>
 
-      {/* ── Subject Progress ──────────────────────────────────────────────── */}
-      <div className="container px-4 py-8 space-y-8">
-        {SUBJECT_PROGRESS.map((subject) => {
-          const pct = Math.round((subject.completed / subject.total) * 100);
+        {/* Overall stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {[
+            { icon: CheckCircle2, value: `${totalDone}/${totalChapters}`, label: "Chapters Complete", color: "text-green-500" },
+            { icon: TrendingUp,   value: `${Math.round(overallPct * 100)}%`, label: "Overall Progress", color: "text-brand-500" },
+            { icon: Flame,        value: "7",  label: "Day Streak",     color: "text-orange-500" },
+            { icon: Clock,        value: "48h",label: "Total Study Time", color: "text-blue-500"  },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border bg-card p-5 text-center shadow-sm">
+              <stat.icon className={`h-6 w-6 ${stat.color} mx-auto mb-2`} />
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
 
-          return (
-            <section key={subject.subject} className="rounded-2xl border bg-card overflow-hidden">
-              {/* Subject header */}
-              <div className={`border-b bg-${subject.color}-500/5 p-5`}>
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <div>
-                    <h2 className="font-bold text-lg">{subject.subject}</h2>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Last studied {subject.lastStudied}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-green-500" />
-                        {subject.completed}/{subject.total} chapters
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className={`text-xs ${
-                        pct === 100
-                          ? "bg-green-500/10 text-green-600 border-green-500/20"
-                          : "bg-primary/10 text-primary border-primary/20"
-                      }`}
-                    >
-                      {pct}% complete
-                    </Badge>
-                    <Button asChild size="sm" variant="outline" className="text-xs h-7">
-                      <Link href={subject.href}>
-                        Continue <ArrowRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full bg-${subject.color}-500 rounded-full transition-all`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Chapter pills — compact grid */}
-              <div className="p-4">
-                <div className="flex flex-wrap gap-2">
-                  {subject.chapters.map((ch) => (
+        {/* Weekly activity */}
+        <div className="rounded-2xl border bg-card p-6 shadow-sm mb-8">
+          <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-brand-500" />
+            This Week
+          </h2>
+          <div className="flex items-end gap-2 h-28">
+            {WEEKLY.map((d) => {
+              const heightPct = MAX_MINUTES > 0 ? d.minutes / MAX_MINUTES : 0;
+              return (
+                <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full bg-muted rounded-sm overflow-hidden" style={{ height: "80px" }}>
                     <div
-                      key={ch.id}
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border transition-all ${
-                        ch.completed
-                          ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300"
-                          : "inProgress" in ch && ch.inProgress
-                          ? "bg-primary/10 border-primary/20 text-primary"
-                          : "bg-muted border-border text-muted-foreground"
-                      }`}
-                    >
-                      {ch.completed ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <Circle className="h-3 w-3" />
-                      )}
-                      <span className="hidden sm:inline">{ch.title}</span>
-                      <span className="sm:hidden">{ch.id}</span>
-                    </div>
-                  ))}
+                      className="w-full bg-brand-500 rounded-sm transition-all"
+                      style={{
+                        height:    `${Math.round(heightPct * 80)}px`,
+                        marginTop: `${80 - Math.round(heightPct * 80)}px`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground">{d.day}</span>
                 </div>
-              </div>
-            </section>
-          );
-        })}
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Total this week: {WEEKLY.reduce((a,d)=>a+d.minutes,0)} minutes</p>
+        </div>
+
+        {/* Subject breakdown */}
+        <div className="space-y-4">
+          <h2 className="font-bold text-foreground">Subject Breakdown</h2>
+          {SUBJECTS.map((subject) => {
+            const pct = subject.done / subject.chapters;
+            return (
+              <Link
+                key={subject.name}
+                href={subject.href}
+                className="group block rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all hover:border-brand-500/30"
+              >
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{subject.emoji}</span>
+                    <div>
+                      <h3 className="font-semibold text-foreground text-sm group-hover:text-brand-500 transition-colors">
+                        {subject.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Last studied: {subject.lastStudied}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-foreground text-sm">{Math.round(pct * 100)}%</p>
+                    <p className="text-xs text-muted-foreground">{subject.done}/{subject.chapters}</p>
+                  </div>
+                </div>
+                <ProgressBar value={pct} color={subject.color} />
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

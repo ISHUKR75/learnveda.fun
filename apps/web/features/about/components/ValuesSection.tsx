@@ -1,58 +1,92 @@
 /**
  * @file features/about/components/ValuesSection.tsx
  * @description Core values section for the About page
- * Eight values that guide how LearnVeda operates and builds
+ *
+ * Displays LearnVeda's 6 core values in a responsive grid.
+ * Each value has an icon, title, and descriptive paragraph.
  */
 
-"use client"; // Client component for animations
+"use client"; // Framer Motion entry animations require client rendering
 
-import React from "react";                       // React core
-import { motion } from "framer-motion";          // Animations
-import { Shield, Heart, Users, Zap, Globe, BookOpen, Award, Lightbulb } from "lucide-react"; // Icons
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  Scale, Lightbulb, HeartHandshake, Zap,
+  ShieldCheck, Globe2,
+} from "lucide-react"; // Icons for each value
 
 /* ─── Values Data ────────────────────────────────────────────────────────── */
-const values = [
-  { icon: <Shield    className="h-5 w-5" />, bg: "bg-blue-500/10",   text: "text-blue-500",   title: "Student Safety First",  desc: "Zero ads, zero distractions, full parental controls, and a strictly moderated community." },
-  { icon: <Heart     className="h-5 w-5" />, bg: "bg-red-500/10",    text: "text-red-500",    title: "Education as a Right",  desc: "Quality education should not be a privilege. Our free plan gives every student access to world-class content." },
-  { icon: <Users     className="h-5 w-5" />, bg: "bg-green-500/10",  text: "text-green-500",  title: "Community-Driven",      desc: "We build with and for students. Every feature is shaped by real feedback from learners across India." },
-  { icon: <Zap       className="h-5 w-5" />, bg: "bg-yellow-500/10", text: "text-yellow-500", title: "Continuous Improvement", desc: "We ship updates weekly. The platform gets better every day based on student outcomes and usage data." },
-  { icon: <Globe     className="h-5 w-5" />, bg: "bg-purple-500/10", text: "text-purple-500", title: "India-First, World-Class",desc: "Built specifically for Indian curricula but with global quality standards — CBSE, IIT-JEE, GATE ready." },
-  { icon: <BookOpen  className="h-5 w-5" />, bg: "bg-cyan-500/10",   text: "text-cyan-500",   title: "Curriculum Accuracy",   desc: "Every piece of content is reviewed by subject matter experts and aligned to official NCERT and university syllabi." },
-  { icon: <Award     className="h-5 w-5" />, bg: "bg-orange-500/10", text: "text-orange-500", title: "Achievement & Growth",   desc: "Learning should feel rewarding. XP, streaks, badges, and leaderboards make progress visible and motivating." },
-  { icon: <Lightbulb className="h-5 w-5" />, bg: "bg-pink-500/10",   text: "text-pink-500",   title: "Deep Understanding",    desc: "We do not teach for exams alone. Simulations, visualizations, and AI tutoring build genuine conceptual clarity." },
+const VALUES = [
+  {
+    icon:  Scale,
+    title: "Equity First",
+    color: "bg-blue-500/10 text-blue-500",
+    desc:  "Every feature we build is designed to close the educational gap between well-resourced and under-resourced students.",
+  },
+  {
+    icon:  Lightbulb,
+    title: "Quality of Learning",
+    color: "bg-yellow-500/10 text-yellow-500",
+    desc:  "We obsess over clarity and correctness. Every simulation is scientifically accurate. Every chapter is reviewed by subject matter experts.",
+  },
+  {
+    icon:  HeartHandshake,
+    title: "Student First",
+    color: "bg-rose-500/10 text-rose-500",
+    desc:  "Every product decision is made by asking: does this help the student learn better? Not: does this generate more revenue?",
+  },
+  {
+    icon:  Zap,
+    title: "Speed to Value",
+    color: "bg-orange-500/10 text-orange-500",
+    desc:  "Students shouldn't wait months to benefit. We ship fast, iterate faster, and always improve based on real usage data.",
+  },
+  {
+    icon:  ShieldCheck,
+    title: "Safe & Honest",
+    color: "bg-green-500/10 text-green-500",
+    desc:  "No ads. No manipulative design patterns. No dark UX. We earn trust by being transparent and honest with every user.",
+  },
+  {
+    icon:  Globe2,
+    title: "Open Knowledge",
+    color: "bg-brand-500/10 text-brand-500",
+    desc:  "Knowledge is a public good. Our free tier ensures that cost is never a barrier to quality education on LearnVeda.",
+  },
 ];
 
-/* ─── Values Section Component ───────────────────────────────────────────── */
+/* ─── ValuesSection Component ────────────────────────────────────────────── */
 export function ValuesSection() {
   return (
-    <section className="py-20 md:py-28 bg-muted/20">
+    <section className="py-20 bg-muted/30">
       <div className="container px-4 md:px-6">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-            What We Stand For
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Eight principles that guide every decision we make at LearnVeda.
+        {/* Section header */}
+        <div className="text-center mb-14">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">Core Values</h2>
+          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
+            These six values guide every decision we make — from content quality to product design.
           </p>
         </div>
 
-        {/* Values grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {values.map((v, i) => (
+        {/* Values grid — 2 columns on mobile, 3 on desktop */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {VALUES.map((val, i) => (
             <motion.div
-              key={v.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="rounded-xl border bg-background p-5"
+              key={val.title}
+              initial={{ opacity: 0, y: 20 }}      // Start invisible slightly below
+              whileInView={{ opacity: 1, y: 0 }}   // Animate into view
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ delay: i * 0.08, duration: 0.45 }}
+              className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${v.bg} ${v.text} mb-3`}>
-                {v.icon}
+              {/* Value icon */}
+              <div className={`inline-flex p-3 rounded-xl mb-4 ${val.color}`}>
+                <val.icon className="h-6 w-6" />
               </div>
-              <h3 className="font-semibold mb-1.5">{v.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{v.desc}</p>
+              {/* Value title */}
+              <h3 className="font-semibold text-foreground mb-2">{val.title}</h3>
+              {/* Value description */}
+              <p className="text-sm text-muted-foreground leading-relaxed">{val.desc}</p>
             </motion.div>
           ))}
         </div>

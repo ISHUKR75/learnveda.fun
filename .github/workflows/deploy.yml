@@ -1,0 +1,91 @@
+# =============================================================================
+# .github/workflows/deploy.yml
+# LearnVeda — Continuous Deployment Pipeline
+#
+# Triggers:
+#  - Every push to the main branch (after CI passes)
+#
+# Deployment targets:
+#  - PRIMARY: Vercel (via Vercel CLI + token)
+#  - FUTURE:  Cloudflare Pages / AWS / GCP
+#
+# Secrets required:
+#  - VERCEL_TOKEN         — Vercel personal access token
+#  - VERCEL_ORG_ID        — Vercel organization ID
+#  - VERCEL_PROJECT_ID    — Vercel project ID
+#  - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+#  - CLERK_SECRET_KEY
+#  - MONGODB_URI
+#  - REDIS_URL
+#  - OPENAI_API_KEY
+#  - RESEND_API_KEY
+# =============================================================================
+
+name: LearnVeda Deploy
+
+on:
+  push:
+    branches:
+      - main # Only deploy from main branch
+
+# Prevent simultaneous deployments
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # Never cancel an in-progress deployment
+
+jobs:
+
+  # ===========================================================================
+  # Job 1: Deploy to Vercel
+  # ===========================================================================
+  deploy-vercel:
+    name: 🚀 Deploy to Vercel
+    runs-on: ubuntu-latest
+    environment: production # Uses GitHub Environments for approval gates
+
+    steps:
+      # Step 1: Check out code
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      # Step 3: Install Vercel CLI globally
+      - name: 📦 Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      # Step 4: Pull Vercel project config
+      - name: ⬇️ Pull Vercel environment
+        working-directory: apps/web
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Step 5: Build the project with Vercel
+      - name: 🔨 Build with Vercel
+        working-directory: apps/web
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Step 6: Deploy the built output
+      - name: 🚀 Deploy to Vercel Production
+        working-directory: apps/web
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Step 7: Post deployment URL to GitHub
+      - name: 📣 Announce deployment
+        run: |
+          echo "✅ LearnVeda deployed to production!"
+          echo "🌐 URL: https://learnveda.in"

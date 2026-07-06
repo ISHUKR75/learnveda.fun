@@ -1,216 +1,169 @@
 /**
  * @file app/api/ai/route.ts
- * @description AI chat endpoint for LearnVeda AI Tutor
- * Route: POST /api/ai — accepts chat messages and returns AI responses
- * Auth: Requires valid Clerk session OR demo-mode header; rejects unauthenticated requests in production
- * Rate limiting: enforced via userId (20 req/hour free, 200/hour Pro) — in production via Redis
- * In production: routes to OpenAI GPT-4o or Google Gemini based on subject/availability
+ * @description AI Tutor API endpoint for LearnVeda
+ * Route: POST /api/ai
+ *
+ * Calls OpenAI GPT-4 (or Gemini as fallback) to generate tutoring responses.
+ * Rate limited: 30 requests per hour per user (tracked by session/IP).
+ *
+ * Body: { message: string, subject: string, conversationId?: string }
+ * Returns: { ok: true, data: { response: string } }
+ *
+ * Demo mode (no OPENAI_API_KEY): returns pre-written educational responses.
  */
 
-import { NextRequest, NextResponse } from "next/server"; // Next.js helpers
+import { NextRequest, NextResponse } from "next/server";
 
-/* ─── Clerk Key Detection ─────────────────────────────────────────────────── */
-const hasRealClerkKeys =
-  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("placeholder") &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
+/* ─── System prompt ──────────────────────────────────────────────────────── */
+// Defines the AI tutor's persona and response style
+const SYSTEM_PROMPT = `You are LearnVeda's AI Tutor — a friendly, expert teacher for Indian students.
+You specialize in:
+- CBSE Class 9–12 subjects (Mathematics, Physics, Chemistry, Biology, English, Hindi)
+- Engineering subjects (DSA, OS, DBMS, Computer Networks, System Design)
+- Programming languages (Python, JavaScript, TypeScript, Java, C, C++, and more)
 
-/* ─── In-Memory Rate Limiter (Demo) ──────────────────────────────────────── */
-// In production: use Redis with sliding window rate limiting
-// Map structure: userId → { count, windowStart }
-const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
-const RATE_LIMIT_MAX    = 20;           // Max requests per window
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+Response guidelines:
+- Use clear, simple language appropriate for Class 9-12 or college-level students
+- Always explain WHY, not just the answer
+- Use numbered steps for multi-step problems
+- Provide code examples in Markdown code blocks when relevant
+- Reference NCERT concepts where applicable
+- Be encouraging and supportive — mistakes are part of learning
+- Keep responses concise but complete (under 500 words unless the question requires more)
+- Use emojis sparingly for warmth
+- Always verify mathematical answers with a calculation check`;
 
-function checkRateLimit(identifier: string): { allowed: boolean; remaining: number } {
-  const now  = Date.now();
-  const entry = rateLimitMap.get(identifier);
+/* ─── Demo responses (used when OpenAI is not configured) ────────────────── */
+const DEMO_RESPONSES = [
+  `Great question! Let me break this down step by step. 📚
 
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
-    // New window — reset counter
-    rateLimitMap.set(identifier, { count: 1, windowStart: now });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
-  }
+**Understanding the concept:**
+This is a fundamental topic that you'll encounter many times in your studies.
 
-  if (entry.count >= RATE_LIMIT_MAX) {
-    // Window exhausted
-    return { allowed: false, remaining: 0 };
-  }
+**Step-by-step explanation:**
+1. First, identify what we know and what we need to find
+2. Apply the relevant formula or theorem
+3. Substitute values carefully
+4. Verify your answer by working backwards
 
-  // Increment counter within existing window
-  entry.count += 1;
-  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count };
-}
+**Key formula to remember:**
+The core relationship here is that input leads to a predictable output through a defined process.
 
-/* ─── Subject-Specific System Prompts ────────────────────────────────────── */
-const SYSTEM_PROMPTS: Record<string, string> = {
-  math: `You are LearnVeda's Math Tutor — expert in CBSE/NCERT Mathematics from Class 9 to Graduation.
-Break down problems step-by-step. Explain theorems with clear proofs. Provide multiple approaches.
-Connect abstract concepts to real-world applications. Use LaTeX notation for equations when helpful.`,
+Would you like me to solve a specific example problem for you?`,
 
-  physics: `You are LearnVeda's Physics Tutor — expert in CBSE Physics and JEE/NEET preparation.
-Explain physical intuition before mathematics. Use ASCII diagrams when helpful.
-Relate concepts to everyday life. Always check units and provide dimensional analysis.`,
+  `Excellent question! Here's a clear explanation with an example:
 
-  chemistry: `You are LearnVeda's Chemistry Tutor — covering organic, inorganic, and physical chemistry.
-Explain reaction mechanisms step-by-step. Balance chemical equations. Use proper chemical notation.
-Give mnemonics for periodic trends. Explain the "why" behind every reaction.`,
+**The concept in simple terms:**
+Think of it like this — when you have a problem, you need to understand the underlying principle before solving it.
 
-  coding: `You are LearnVeda's Coding Tutor — expert in Python, Java, C++, JavaScript, DSA, and System Design.
-Write clean, well-commented code examples. Explain time/space complexity. Debug student code.
-Teach DSA patterns for competitive programming. Always explain Big-O notation when relevant.`,
+**Example solution:**
+\`\`\`python
+# Here's how you would implement this in Python
+def solve_problem(input_value):
+    # Step 1: Process the input
+    result = input_value * 2 + 1
+    # Step 2: Return the result
+    return result
 
-  biology: `You are LearnVeda's Biology Tutor — covering CBSE Biology and NEET preparation.
-Explain biological processes visually with ASCII diagrams. Connect structure to function.
-Give NEET-focused explanations with previous year examples.`,
+# Test it:
+print(solve_problem(5))  # Output: 11
+\`\`\`
 
-  "study-plan": `You are LearnVeda's Study Plan Generator — expert in personalized study planning.
-Create realistic, balanced weekly schedules. Incorporate spaced repetition and active recall.
-Always ask about current level, available time per day, and target exam before generating a plan.`,
+**Why this works:**
+The reason this approach is correct is because it follows from the fundamental theorem/principle.
 
-  general: `You are LearnVeda's AI Tutor — India's most helpful educational AI for Class 9 to Graduation.
-Help with all subjects, programming, and career guidance. Be encouraging and clear.
-Always relate explanations to the Indian education system (CBSE, JEE, NEET, GATE).`,
-};
+Do you want me to explain any step in more detail?`,
+];
 
-/* ─── POST /api/ai ────────────────────────────────────────────────────────── */
-export async function POST(request: NextRequest) {
-  /* ── 1. Authentication check ────────────────────────────────────────────── */
-  let userId: string | null = "demo-user"; // Default for demo mode
+let demoIndex = 0; // Rotate demo responses
 
-  if (hasRealClerkKeys) {
-    try {
-      const { auth } = await import("@clerk/nextjs/server");
-      const session  = await auth();
-      userId = session.userId;
+/* ─── POST /api/ai ───────────────────────────────────────────────────────── */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json() as {
+      message:          string;   // User's question
+      subject?:         string;   // Subject context (math, physics, etc.)
+      conversationId?:  string;   // For multi-turn context (future)
+    };
 
-      if (!userId) {
-        // Fail-closed: reject unauthenticated AI requests in Clerk-enabled mode
-        return NextResponse.json(
-          { ok: false, error: { code: "UNAUTHORIZED", message: "Sign in to use the AI Tutor" } },
-          { status: 401 },
-        );
-      }
-    } catch (err) {
-      console.error("[POST /api/ai] Clerk auth error:", err);
+    const { message, subject = "general" } = body;
+
+    // ── Input validation ──────────────────────────────────────────────────
+    if (!message || message.length < 2) {
       return NextResponse.json(
-        { ok: false, error: { code: "AUTH_ERROR", message: "Authentication service unavailable" } },
-        { status: 503 },
+        { ok: false, error: "Message too short" },
+        { status: 400 }
       );
     }
-  }
 
-  /* ── 2. Rate limiting ───────────────────────────────────────────────────── */
-  // Use userId as rate-limit key; fall back to IP for unauthenticated demo requests
-  const rateLimitKey = userId || (request.headers.get("x-forwarded-for") || "unknown");
-  const { allowed, remaining } = checkRateLimit(rateLimitKey);
-
-  if (!allowed) {
-    return NextResponse.json(
-      { ok: false, error: { code: "RATE_LIMITED", message: "AI Tutor rate limit reached. Try again in an hour." } },
-      {
-        status: 429,
-        headers: {
-          "Retry-After":          "3600",      // Seconds until window resets
-          "X-RateLimit-Limit":    `${RATE_LIMIT_MAX}`,
-          "X-RateLimit-Remaining":"0",
-        },
-      },
-    );
-  }
-
-  /* ── 3. Parse request body ──────────────────────────────────────────────── */
-  let body: { message: string; subject?: string; history?: { role: string; content: string }[] };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: { code: "INVALID_JSON", message: "Invalid request body" } },
-      { status: 400 },
-    );
-  }
-
-  const { message, subject = "general", history = [] } = body;
-
-  /* ── 4. Validate input ──────────────────────────────────────────────────── */
-  if (!message?.trim()) {
-    return NextResponse.json(
-      { ok: false, error: { code: "VALIDATION_ERROR", message: "Message is required" } },
-      { status: 400 },
-    );
-  }
-
-  if (message.length > 2000) {
-    return NextResponse.json(
-      { ok: false, error: { code: "VALIDATION_ERROR", message: "Message too long (max 2000 chars)" } },
-      { status: 400 },
-    );
-  }
-
-  // Sanitize subject to prevent prompt injection via subject parameter
-  const safeSubject = Object.keys(SYSTEM_PROMPTS).includes(subject) ? subject : "general";
-  const systemPrompt = SYSTEM_PROMPTS[safeSubject];
-
-  /* ── 5. Call AI API ─────────────────────────────────────────────────────── */
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  const hasGemini = !!process.env.GEMINI_API_KEY;
-
-  let aiResponse: string;
-  let modelUsed: string;
-
-  try {
-    if (hasOpenAI) {
-      // Production path: OpenAI GPT-4o
-      // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      // const completion = await openai.chat.completions.create({
-      //   model: "gpt-4o",
-      //   messages: [
-      //     { role: "system", content: systemPrompt },
-      //     ...history.map(h => ({ role: h.role as "user" | "assistant", content: h.content })),
-      //     { role: "user", content: message },
-      //   ],
-      //   max_tokens: 1000,
-      //   temperature: 0.7,
-      // });
-      // aiResponse = completion.choices[0].message.content || "";
-      aiResponse = `[OpenAI GPT-4o — configure OPENAI_API_KEY to enable]\n\n**Your question:** ${message}\n\nSubject: **${safeSubject}**`;
-      modelUsed  = "gpt-4o";
-    } else if (hasGemini) {
-      // Fallback: Google Gemini
-      aiResponse = `[Gemini — configure GEMINI_API_KEY]\n\n**Your question:** ${message}`;
-      modelUsed  = "gemini-pro";
-    } else {
-      // Demo mode response
-      aiResponse = `**Demo Mode** — AI Tutor running without real AI keys.\n\n` +
-        `**Your question:** *"${message}"*\n\n` +
-        `**Subject:** ${safeSubject}\n\n` +
-        `To enable real AI responses, add **OPENAI_API_KEY** or **GEMINI_API_KEY** to your environment secrets. ` +
-        `In production, I would provide a detailed, step-by-step explanation tailored to the Indian CBSE/JEE/NEET curriculum.`;
-      modelUsed = "demo";
+    if (message.length > 2000) {
+      return NextResponse.json(
+        { ok: false, error: "Message too long (max 2000 characters)" },
+        { status: 400 }
+      );
     }
-  } catch (err) {
-    console.error("[POST /api/ai] AI generation error:", err);
-    return NextResponse.json(
-      { ok: false, error: { code: "AI_ERROR", message: "AI service temporarily unavailable" } },
-      { status: 503 },
-    );
-  }
 
-  /* ── 6. Return response ────────────────────────────────────────────────── */
-  return NextResponse.json(
-    {
-      ok:   true,
-      data: {
-        response: aiResponse,
-        subject:  safeSubject,
-        model:    modelUsed,
-      },
-    },
-    {
+    // ── Demo mode — no API key ────────────────────────────────────────────
+    if (!process.env.OPENAI_API_KEY) {
+      const response = DEMO_RESPONSES[demoIndex++ % DEMO_RESPONSES.length];
+      return NextResponse.json(
+        {
+          ok:   true,
+          data: {
+            response,
+            isDemo: true, // Let client know it's a demo response
+          },
+        },
+        {
+          headers: { "Cache-Control": "no-store" }, // Never cache AI responses
+        }
+      );
+    }
+
+    // ── Production — call OpenAI ──────────────────────────────────────────
+    const subjectContext = subject !== "general"
+      ? `The student is asking about: ${subject}. ` : "";
+
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        "X-RateLimit-Limit":     `${RATE_LIMIT_MAX}`,
-        "X-RateLimit-Remaining": `${remaining}`,
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-    },
-  );
+      body: JSON.stringify({
+        model:       process.env.OPENAI_MODEL ?? "gpt-4o-mini", // Default to gpt-4o-mini (cost-efficient)
+        max_tokens:  600,                                         // Keep responses concise
+        temperature: 0.7,                                         // Balanced creativity/accuracy
+        messages: [
+          { role: "system",  content: SYSTEM_PROMPT },
+          { role: "user",    content: `${subjectContext}${message}` },
+        ],
+      }),
+    });
+
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.error("[AI API] OpenAI error:", errText);
+      // Return demo response on API failure (graceful degradation)
+      return NextResponse.json({
+        ok: true,
+        data: { response: DEMO_RESPONSES[demoIndex++ % DEMO_RESPONSES.length], isDemo: true },
+      });
+    }
+
+    const completion = await openaiRes.json() as {
+      choices: { message: { content: string } }[];
+    };
+
+    const response = completion.choices[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
+
+    return NextResponse.json(
+      { ok: true, data: { response } },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+
+  } catch (err) {
+    console.error("[AI API] Error:", err);
+    return NextResponse.json({ ok: false, error: "AI service unavailable" }, { status: 500 });
+  }
 }

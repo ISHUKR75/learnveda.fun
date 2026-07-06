@@ -1,214 +1,205 @@
 /**
  * @file features/pricing/components/PricingCards.tsx
- * @description Pricing cards for the full Pricing page
- * Shows Free, Pro, and Team plans with all features listed
+ * @description Pricing plan cards for the Pricing page
+ *
+ * Three plans:
+ *  1. Free  — forever free, selected chapters
+ *  2. Pro   — full access, AI tutor, all simulations
+ *  3. School — team licenses for schools and coaching institutes
+ *
+ * The monthly/yearly toggle adjusts Pro pricing.
  */
 
-"use client";
+"use client"; // Client component — billing state and interactions
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, X, Sparkles, Zap, Users } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, XCircle, Sparkles, Building2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge }  from "@/components/ui/badge";
 
-/* ─── Plan Configuration ─────────────────────────────────────────────────── */
-const plans = [
-  {
-    name:        "Free",
-    monthlyPrice: 0,
-    yearlyPrice:  0,
-    description: "Perfect for getting started",
-    icon:        <Zap className="h-5 w-5" />,
-    color:       "text-blue-500",
-    bg:          "bg-blue-500/10",
-    featured:    false,
-    cta:         "Start for Free",
-    href:        "/sign-up",
-    features: [
-      "Class 9–12 CBSE core content",
-      "30+ interactive simulations",
-      "3 programming day-plans",
-      "10 practice tests per month",
-      "Community access & Q&A",
-      "Basic progress dashboard",
-      "AI Tutor (10 queries/day)",
-      "Live Battles (3 per day)",
-      "Mobile responsive access",
-    ],
-    notIncluded: [
-      "All 140+ simulations",
-      "All 14 programming languages",
-      "Unlimited AI Tutor",
-      "Offline mode & downloads",
-      "Full Engineering content",
-      "Priority support",
-      "Parent dashboard",
-      "Certificates",
-    ],
-  },
-  {
-    name:        "Pro",
-    monthlyPrice: 299,
-    yearlyPrice:  209,
-    description: "For serious learners",
-    icon:        <Sparkles className="h-5 w-5" />,
-    color:       "text-brand-500",
-    bg:          "bg-brand-500/10",
-    featured:    true,
-    cta:         "Start Pro — 7 Days Free",
-    href:        "/sign-up?plan=pro",
-    features: [
-      "Everything in Free",
-      "All 140+ simulations",
-      "All 14 programming day-plans",
-      "Unlimited AI Tutor queries",
-      "Unlimited practice tests",
-      "Unlimited Live Battles",
-      "Full Engineering content (9 branches)",
-      "Offline mode & PDF downloads",
-      "Certificates of completion",
-      "Parent dashboard & reports",
-      "Priority email support",
-      "Ad-free experience",
-      "Early access to new features",
-    ],
-    notIncluded: [],
-  },
-  {
-    name:        "Team / School",
-    monthlyPrice: null, // Custom pricing
-    yearlyPrice:  null,
-    description: "For schools & coaching institutes",
-    icon:        <Users className="h-5 w-5" />,
-    color:       "text-green-500",
-    bg:          "bg-green-500/10",
-    featured:    false,
-    cta:         "Contact Us",
-    href:        "/contact",
-    features: [
-      "Everything in Pro",
-      "Bulk student licenses",
-      "Teacher dashboard & analytics",
-      "Custom branding options",
-      "Bulk assessment creation",
-      "Student progress reports",
-      "Dedicated account manager",
-      "API access",
-      "SLA & uptime guarantee",
-      "Custom content integration",
-    ],
-    notIncluded: [],
-  },
-];
+/* ─── Plan Feature Item ──────────────────────────────────────────────────── */
+function Feature({ included, text }: { included: boolean; text: string }) {
+  return (
+    <li className="flex items-start gap-2.5 text-sm">
+      {included ? (
+        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+      ) : (
+        <XCircle className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+      )}
+      <span className={included ? "text-foreground" : "text-muted-foreground/60 line-through"}>
+        {text}
+      </span>
+    </li>
+  );
+}
 
-/* ─── Pricing Cards Component ─────────────────────────────────────────────── */
+/* ─── PricingCards Component ─────────────────────────────────────────────── */
 export function PricingCards() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
+  // Pro plan prices
+  const proPrice = billing === "yearly" ? 299 : 499; // ₹/month (yearly is cheaper)
+
   return (
-    <section className="py-16">
+    <section className="py-16 bg-background">
       <div className="container px-4 md:px-6">
-        {/* Billing toggle */}
+        {/* Billing toggle (duplicate here for the cards section) */}
         <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-background p-1">
-            {(["monthly", "yearly"] as const).map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setBilling(opt)}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition-all capitalize ${
-                  billing === opt ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {opt}
-                {opt === "yearly" && <span className="ml-2 text-xs text-green-500 font-bold">−30%</span>}
-              </button>
-            ))}
+          <div className="inline-flex items-center gap-1 rounded-full border bg-muted p-1">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                billing === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >Monthly</button>
+            <button
+              onClick={() => setBilling("yearly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                billing === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              Yearly
+              <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full">-40%</span>
+            </button>
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className={`relative flex flex-col rounded-2xl border p-7 ${
-                plan.featured
-                  ? "border-brand-500 shadow-2xl shadow-brand-500/10 bg-gradient-to-b from-brand-500/5 to-transparent"
-                  : "bg-card"
-              }`}
-            >
-              {/* Popular badge */}
-              {plan.featured && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge variant="gradient" className="px-5 py-1.5 text-sm font-semibold">
-                    <Sparkles className="h-3 w-3 mr-1" /> Most Popular
-                  </Badge>
-                </div>
+        {/* Cards grid */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* ── Free Plan ──────────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="rounded-2xl border bg-card p-7 shadow-sm flex flex-col"
+          >
+            <div className="mb-6">
+              <div className="p-2.5 rounded-xl bg-muted inline-flex mb-4">
+                <Zap className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground">Free</h3>
+              <p className="text-muted-foreground text-sm mt-1">Perfect for getting started</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-foreground">₹0</span>
+                <span className="text-muted-foreground text-sm ml-1">/ forever</span>
+              </div>
+            </div>
+
+            <ul className="space-y-2.5 flex-1 mb-8">
+              <Feature included text="Class 9–12 selected chapters (3 per subject)" />
+              <Feature included text="5 interactive simulations" />
+              <Feature included text="Community forum access" />
+              <Feature included text="10 live battles per month" />
+              <Feature included text="Code compiler (5 languages)" />
+              <Feature included={false} text="Full AI Tutor" />
+              <Feature included={false} text="All 140+ simulations" />
+              <Feature included={false} text="Unlimited battles" />
+              <Feature included={false} text="Mock tests & PYQs" />
+              <Feature included={false} text="Certificates" />
+            </ul>
+
+            <Link href="/sign-up" className="w-full">
+              <Button variant="outline" className="w-full">Get Started Free</Button>
+            </Link>
+          </motion.div>
+
+          {/* ── Pro Plan (highlighted) ─────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="rounded-2xl border-2 border-brand-500 bg-card p-7 shadow-lg flex flex-col relative"
+          >
+            {/* Popular badge */}
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+              <Badge className="bg-brand-500 text-white px-4">Most Popular</Badge>
+            </div>
+
+            <div className="mb-6">
+              <div className="p-2.5 rounded-xl bg-brand-500/10 inline-flex mb-4">
+                <Sparkles className="h-5 w-5 text-brand-500" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground">Pro</h3>
+              <p className="text-muted-foreground text-sm mt-1">Full platform access</p>
+              <div className="mt-4 flex items-end gap-2">
+                <span className="text-4xl font-bold text-foreground">₹{proPrice}</span>
+                <span className="text-muted-foreground text-sm mb-1">/ month</span>
+              </div>
+              {billing === "yearly" && (
+                <p className="text-xs text-green-500 mt-1">
+                  Billed annually (₹{proPrice * 12}/year — save ₹{(499 - proPrice) * 12})
+                </p>
               )}
+            </div>
 
-              {/* Plan header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${plan.bg} ${plan.color}`}>
-                  {plan.icon}
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground">{plan.description}</p>
-                </div>
-              </div>
+            <ul className="space-y-2.5 flex-1 mb-8">
+              <Feature included text="Everything in Free" />
+              <Feature included text="All CBSE Class 9–12 chapters" />
+              <Feature included text="All 140+ interactive simulations" />
+              <Feature included text="Full AI Tutor (GPT-4 powered)" />
+              <Feature included text="Unlimited live battles" />
+              <Feature included text="All mock tests & PYQs" />
+              <Feature included text="Engineering curriculum" />
+              <Feature included text="Code compiler (16 languages)" />
+              <Feature included text="Completion certificates" />
+              <Feature included text="Priority support" />
+            </ul>
 
-              {/* Price */}
-              <div className="mb-6">
-                {plan.monthlyPrice !== null ? (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold">
-                      ₹{billing === "yearly" ? plan.yearlyPrice : plan.monthlyPrice}
-                    </span>
-                    <span className="text-muted-foreground text-sm">/month</span>
-                  </div>
-                ) : (
-                  <div className="text-2xl font-bold">Custom Pricing</div>
-                )}
-                {billing === "yearly" && plan.yearlyPrice && (
-                  <p className="text-xs text-green-500 mt-1">
-                    Billed ₹{plan.yearlyPrice * 12}/year · Save ₹{(plan.monthlyPrice! - plan.yearlyPrice) * 12}
-                  </p>
-                )}
-              </div>
-
-              {/* CTA */}
-              <Button
-                variant={plan.featured ? "gradient" : "outline"}
-                size="lg"
-                className="w-full mb-6"
-                asChild
-              >
-                <Link href={plan.href}>{plan.cta}</Link>
+            <Link href="/sign-up" className="w-full">
+              <Button className="w-full gap-2">
+                <Sparkles className="h-4 w-4" />
+                Get Pro — ₹{proPrice}/mo
               </Button>
+            </Link>
+          </motion.div>
 
-              {/* Included features */}
-              <div className="flex-1 space-y-2.5">
-                {plan.features.map((f) => (
-                  <div key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="h-4 w-4 flex-shrink-0 text-green-500 mt-0.5" />
-                    <span>{f}</span>
-                  </div>
-                ))}
-                {plan.notIncluded.map((f) => (
-                  <div key={f} className="flex items-start gap-2 text-sm opacity-40">
-                    <X className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </div>
-                ))}
+          {/* ── School Plan ───────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="rounded-2xl border bg-card p-7 shadow-sm flex flex-col"
+          >
+            <div className="mb-6">
+              <div className="p-2.5 rounded-xl bg-orange-500/10 inline-flex mb-4">
+                <Building2 className="h-5 w-5 text-orange-500" />
               </div>
-            </motion.div>
-          ))}
+              <h3 className="text-xl font-bold text-foreground">School</h3>
+              <p className="text-muted-foreground text-sm mt-1">For institutions & coaching centres</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-foreground">Custom</span>
+              </div>
+              <p className="text-muted-foreground text-sm mt-1">Contact us for pricing</p>
+            </div>
+
+            <ul className="space-y-2.5 flex-1 mb-8">
+              <Feature included text="Everything in Pro" />
+              <Feature included text="Bulk student licenses" />
+              <Feature included text="Teacher dashboard" />
+              <Feature included text="Class progress analytics" />
+              <Feature included text="Custom assignment creation" />
+              <Feature included text="White-label option" />
+              <Feature included text="Dedicated account manager" />
+              <Feature included text="SLA & uptime guarantee" />
+              <Feature included text="On-site training" />
+              <Feature included text="Custom integrations" />
+            </ul>
+
+            <a href="mailto:schools@learnveda.in" className="w-full">
+              <Button variant="outline" className="w-full gap-2">
+                <Building2 className="h-4 w-4" />
+                Contact Sales
+              </Button>
+            </a>
+          </motion.div>
         </div>
+
+        {/* Trust footer */}
+        <p className="text-center text-sm text-muted-foreground mt-8">
+          💳 No credit card required for Free plan · Cancel Pro anytime · 7-day money-back guarantee
+        </p>
       </div>
     </section>
   );

@@ -1,162 +1,161 @@
 /**
  * @file app/(platform)/dashboard/achievements/page.tsx
- * @description Student achievements and badges page
+ * @description Achievements & badges page
  * Route: /dashboard/achievements
- * Shows all earned and locked achievements, badges, and milestones
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Trophy, ChevronRight, Star, Flame, Zap,
-  BookOpen, Target, Award, Lock, CheckCircle2,
-} from "lucide-react";
+import { Trophy, Lock, CheckCircle2, Star, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-/* ─── Page Metadata ──────────────────────────────────────────────────────── */
 export const metadata: Metadata = {
-  title:  "Achievements — Dashboard | LearnVeda",
-  description: "Your achievements, badges, and milestones on LearnVeda.",
-  robots: { index: false, follow: false },
+  title:       "Achievements — LearnVeda",
+  description: "View all your earned badges and upcoming achievements on LearnVeda.",
+  robots:      { index: false, follow: false },
 };
 
-/* ─── Achievement Data ───────────────────────────────────────────────────── */
-// All achievements with earned status — in production fetched from MongoDB
+/* ─── Achievement data ───────────────────────────────────────────────────── */
 const ACHIEVEMENTS = [
-  // ── Streak Achievements
-  { id: "streak-3",    emoji: "🔥",  name: "On Fire",         desc: "3-day study streak",         xp: 50,  earned: true,  category: "Streaks"      },
-  { id: "streak-7",    emoji: "🔥",  name: "Week Warrior",    desc: "7-day study streak",         xp: 100, earned: true,  category: "Streaks"      },
-  { id: "streak-30",   emoji: "🔥",  name: "Month Master",    desc: "30-day study streak",        xp: 500, earned: false, category: "Streaks"      },
-  { id: "streak-100",  emoji: "🏅",  name: "Centurion",       desc: "100-day study streak",       xp: 2000,earned: false, category: "Streaks"      },
-  // ── Learning Achievements
-  { id: "first-lesson",emoji: "📚",  name: "First Step",      desc: "Complete your first chapter",xp: 10,  earned: true,  category: "Learning"     },
-  { id: "chapters-10", emoji: "📖",  name: "Bookworm",        desc: "Complete 10 chapters",       xp: 100, earned: true,  category: "Learning"     },
-  { id: "chapters-50", emoji: "🎓",  name: "Scholar",         desc: "Complete 50 chapters",       xp: 300, earned: false, category: "Learning"     },
-  { id: "chapters-100",emoji: "🏛️", name: "Grand Scholar",   desc: "Complete 100 chapters",      xp: 1000,earned: false, category: "Learning"     },
-  // ── Battle Achievements
-  { id: "first-battle",emoji: "⚔️",  name: "First Battle",    desc: "Win your first live battle", xp: 50,  earned: true,  category: "Battles"      },
-  { id: "battles-10",  emoji: "🏆",  name: "Gladiator",       desc: "Win 10 live battles",        xp: 200, earned: false, category: "Battles"      },
-  { id: "battles-50",  emoji: "👑",  name: "Champion",        desc: "Win 50 live battles",        xp: 1000,earned: false, category: "Battles"      },
-  // ── XP Milestones
-  { id: "xp-1000",     emoji: "⭐",  name: "Rising Star",     desc: "Earn 1,000 XP",             xp: 100, earned: true,  category: "XP"           },
-  { id: "xp-5000",     emoji: "💫",  name: "Star Player",     desc: "Earn 5,000 XP",             xp: 300, earned: false, category: "XP"           },
-  { id: "xp-25000",    emoji: "✨",  name: "Legend",          desc: "Earn 25,000 XP",            xp: 2000,earned: false, category: "XP"           },
-  // ── Special
-  { id: "first-sim",   emoji: "⚡",  name: "Lab Rat",         desc: "Complete a physics simulation",xp:30, earned: true,  category: "Special"      },
-  { id: "perfect-quiz",emoji: "💯",  name: "Perfect Score",   desc: "Get 100% on any quiz",       xp: 200, earned: false, category: "Special"      },
-  { id: "community",   emoji: "🤝",  name: "Community Star",  desc: "Post 5 answers in community",xp: 100, earned: false, category: "Special"      },
+  {
+    id: "first_login",     emoji: "🎉", title: "Welcome!",
+    desc: "Joined LearnVeda",           category: "Milestones",
+    earned: true,          earnedOn: "June 1, 2025",
+  },
+  {
+    id: "streak_7",        emoji: "🔥", title: "Hot Streak",
+    desc: "7-day learning streak",      category: "Streaks",
+    earned: true,          earnedOn: "June 8, 2025",
+  },
+  {
+    id: "first_chapter",   emoji: "📖", title: "First Step",
+    desc: "Complete your first chapter", category: "Learning",
+    earned: true,          earnedOn: "June 1, 2025",
+  },
+  {
+    id: "battle_first",    emoji: "⚔️", title: "First Blood",
+    desc: "Win your first live battle",  category: "Battles",
+    earned: true,          earnedOn: "June 5, 2025",
+  },
+  {
+    id: "quiz_perfect",    emoji: "💯", title: "Perfect Score",
+    desc: "Score 100% on a quiz",        category: "Quizzes",
+    earned: true,          earnedOn: "June 10, 2025",
+  },
+  {
+    id: "streak_30",       emoji: "🌟", title: "Unstoppable",
+    desc: "30-day learning streak",      category: "Streaks",
+    earned: false,
+  },
+  {
+    id: "top_leaderboard", emoji: "🏆", title: "Top 10",
+    desc: "Reach top 10 on leaderboard", category: "Competitive",
+    earned: false,
+  },
+  {
+    id: "battle_10",       emoji: "🛡️", title: "Battle Veteran",
+    desc: "Win 10 live battles",         category: "Battles",
+    earned: false,
+  },
+  {
+    id: "course_complete", emoji: "🎓", title: "Course Master",
+    desc: "Complete an entire course",   category: "Learning",
+    earned: false,
+  },
+  {
+    id: "helper",          emoji: "🤝", title: "Community Helper",
+    desc: "Get 10 upvotes on community posts", category: "Community",
+    earned: false,
+  },
+  {
+    id: "streak_100",      emoji: "💎", title: "Diamond Streak",
+    desc: "100-day learning streak",     category: "Streaks",
+    earned: false,
+  },
+  {
+    id: "all_subjects",    emoji: "🌐", title: "Polymath",
+    desc: "Study 5 different subjects",  category: "Milestones",
+    earned: false,
+  },
 ];
 
-// Group achievements by category
-const categories = [...new Set(ACHIEVEMENTS.map((a) => a.category))];
-const earnedCount = ACHIEVEMENTS.filter((a) => a.earned).length;
+const CATEGORIES = ["All", "Milestones", "Streaks", "Learning", "Battles", "Quizzes", "Competitive", "Community"];
 
-/* ─── Achievements Page Component ───────────────────────────────────────── */
+/* ─── Page Component ─────────────────────────────────────────────────────── */
 export default function AchievementsPage() {
+  const earned = ACHIEVEMENTS.filter((a) => a.earned).length;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="border-b bg-gradient-to-br from-amber-500/5 to-background">
-        <div className="container px-4 py-8">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground font-medium">Achievements</span>
-          </nav>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Achievements</h1>
-                <p className="text-sm text-muted-foreground">
-                  {earnedCount} of {ACHIEVEMENTS.length} earned
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className="text-2xl font-bold text-amber-500">{Math.round((earnedCount / ACHIEVEMENTS.length) * 100)}%</div>
-              <div className="text-xs text-muted-foreground">Completion</div>
-            </div>
+      <div className="container px-4 md:px-6 py-10 max-w-5xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Achievements</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {earned} of {ACHIEVEMENTS.length} badges earned
+            </p>
           </div>
-
-          {/* Progress bar */}
-          <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
-              style={{ width: `${(earnedCount / ACHIEVEMENTS.length) * 100}%` }}
-            />
-          </div>
+          <Link href="/dashboard" className="text-sm text-brand-500 hover:underline">
+            ← Back to Dashboard
+          </Link>
         </div>
-      </div>
 
-      {/* ── Achievements by Category ──────────────────────────────────────── */}
-      <div className="container px-4 py-8 space-y-8">
-        {categories.map((category) => {
-          const catAchievements = ACHIEVEMENTS.filter((a) => a.category === category);
-          const catEarned       = catAchievements.filter((a) => a.earned).length;
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-10 max-w-lg">
+          {[
+            { icon: Trophy,        value: earned,                    label: "Earned"    },
+            { icon: Lock,          value: ACHIEVEMENTS.length-earned, label: "Locked"  },
+            { icon: Star,          value: earned * 100,              label: "Badge XP"  },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border bg-card p-4 text-center shadow-sm">
+              <stat.icon className="h-5 w-5 text-brand-500 mx-auto mb-1.5" />
+              <p className="text-xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
 
-          return (
-            <section key={category}>
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-lg font-semibold">{category}</h2>
-                <Badge variant="outline" className="text-xs">
-                  {catEarned}/{catAchievements.length} earned
-                </Badge>
+        {/* Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {ACHIEVEMENTS.map((achievement) => (
+            <div
+              key={achievement.id}
+              className={`rounded-2xl border p-5 text-center shadow-sm transition-all ${
+                achievement.earned
+                  ? "bg-card hover:shadow-md"
+                  : "bg-muted/30 opacity-60"
+              }`}
+            >
+              {/* Emoji */}
+              <div className="relative inline-block mb-3">
+                <span className={`text-4xl block ${!achievement.earned ? "grayscale" : ""}`}>
+                  {achievement.emoji}
+                </span>
+                {achievement.earned && (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 absolute -bottom-1 -right-1 bg-background rounded-full" />
+                )}
+                {!achievement.earned && (
+                  <Lock className="h-4 w-4 text-muted-foreground absolute -bottom-1 -right-1 bg-background rounded-full" />
+                )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {catAchievements.map((achievement) => (
-                  <div
-                    key={achievement.id}
-                    className={`relative rounded-2xl border p-4 text-center transition-all ${
-                      achievement.earned
-                        ? "bg-card shadow-sm hover:shadow-md"
-                        : "bg-muted/30 opacity-60"
-                    }`}
-                  >
-                    {/* Lock overlay for unearned */}
-                    {!achievement.earned && (
-                      <div className="absolute top-2 right-2">
-                        <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      </div>
-                    )}
+              {/* Title */}
+              <h3 className="font-bold text-foreground text-sm">{achievement.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1 leading-snug">{achievement.desc}</p>
 
-                    {/* Earned checkmark */}
-                    {achievement.earned && (
-                      <div className="absolute top-2 right-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                      </div>
-                    )}
-
-                    {/* Achievement emoji */}
-                    <div className={`text-3xl mb-2 ${achievement.earned ? "" : "grayscale"}`}>
-                      {achievement.emoji}
-                    </div>
-
-                    {/* Name + description */}
-                    <div className="font-semibold text-sm mb-1">{achievement.name}</div>
-                    <div className="text-[11px] text-muted-foreground mb-2">{achievement.desc}</div>
-
-                    {/* XP reward */}
-                    <Badge
-                      className={`text-[10px] ${achievement.earned
-                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                        : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      <Star className="h-2.5 w-2.5 mr-0.5" />
-                      +{achievement.xp} XP
-                    </Badge>
-                  </div>
-                ))}
+              {/* Badge */}
+              <div className="mt-3">
+                <Badge variant="secondary" className="text-xs">{achievement.category}</Badge>
               </div>
-            </section>
-          );
-        })}
+
+              {/* Earned date */}
+              {achievement.earned && achievement.earnedOn && (
+                <p className="text-xs text-muted-foreground mt-2">{achievement.earnedOn}</p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

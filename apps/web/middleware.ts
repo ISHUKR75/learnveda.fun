@@ -28,7 +28,14 @@ const PROTECTED_PREFIXES = [
   "/semester",
   "/core-cs",
   "/community/chat",
+  "/admin", // Admin routes — require auth; server-side admin role check is in each API + layout
 ];
+
+/* ─── Admin-only routes ────────────────────────────────────────────────────── */
+// These require both authentication AND admin role.
+// API routes enforce admin role server-side. This middleware enforces authentication only.
+// Pages under /admin also require role check via their layout (defense in depth).
+const ADMIN_PREFIXES = ["/admin"];
 
 /* ─── Auth Check ──────────────────────────────────────────────────────────── */
 function isProtectedRoute(pathname: string): boolean {

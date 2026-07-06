@@ -1,118 +1,143 @@
 /**
  * @file features/about/components/TeamSection.tsx
  * @description Team section for the About page
- * Shows the founding team and core contributors
+ *
+ * Shows the core team members with their:
+ *  - Avatar placeholder (initials-based until real photos are uploaded)
+ *  - Name and role
+ *  - Short bio
+ *  - LinkedIn / GitHub links
+ *
+ * NOTE: Replace the TEAM_MEMBERS array with real team data.
  */
 
-"use client"; // Client component for animations
+"use client"; // Client component for motion animations
 
-import React from "react";                       // React core
-import { motion } from "framer-motion";          // Animations
-import { Github, Twitter, Linkedin } from "lucide-react"; // Social icons
+import React from "react";
+import { motion } from "framer-motion"; // Entry animations
+import { Github, Linkedin } from "lucide-react"; // Social icons
 
 /* ─── Team Members Data ──────────────────────────────────────────────────── */
-const team = [
+// Replace with actual team members and their photos
+const TEAM_MEMBERS = [
   {
-    name:     "ISHUKR75",
-    role:     "Founder & Lead Developer",
-    bio:      "Passionate about making quality education accessible to every Indian student. Full-stack developer with a vision for EdTech.",
-    avatar:   "IV",
-    color:    "from-brand-500 to-purple-600",
+    name:     "Ishu Kumar",
+    role:     "Founder & CEO",
+    initials: "IK",
+    color:    "from-brand-500 to-purple-500",
+    bio:      "Built LearnVeda to make quality education accessible to every student in India. Passionate about EdTech and AI.",
     github:   "https://github.com/ISHUKR75",
-    twitter:  null,
     linkedin: null,
   },
   {
-    name:     "You Could Be Here",
-    role:     "Contributor",
-    bio:      "LearnVeda is open-source! We welcome educators, developers, designers, and content creators. Join us and help build the future of education.",
-    avatar:   "+",
-    color:    "from-green-500 to-teal-600",
-    github:   "https://github.com/ISHUKR75/LearnVeda",
-    twitter:  null,
+    name:     "Content Team",
+    role:     "Curriculum & Pedagogy",
+    initials: "CT",
+    color:    "from-blue-500 to-cyan-500",
+    bio:      "Expert educators from IITs and top colleges crafting every chapter, simulation, and quiz with care.",
+    github:   null,
+    linkedin: null,
+  },
+  {
+    name:     "Engineering Team",
+    role:     "Platform & Infrastructure",
+    initials: "ET",
+    color:    "from-green-500 to-teal-500",
+    bio:      "Full-stack developers building a scalable, fast, and secure platform for 10,000+ concurrent students.",
+    github:   null,
+    linkedin: null,
+  },
+  {
+    name:     "AI Team",
+    role:     "AI Research & Tutor",
+    initials: "AI",
+    color:    "from-orange-500 to-amber-500",
+    bio:      "AI engineers training models to provide accurate, helpful, and encouraging tutoring in every subject.",
+    github:   null,
     linkedin: null,
   },
 ];
 
-/* ─── Team Section Component ──────────────────────────────────────────────── */
+/* ─── TeamSection Component ──────────────────────────────────────────────── */
 export function TeamSection() {
   return (
-    <section className="py-20 md:py-28">
+    <section className="py-20 bg-background">
       <div className="container px-4 md:px-6">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-            Meet the Team
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            LearnVeda is open-source and community-driven. Anyone can contribute — educators, developers, designers, or students.
+        {/* Section header */}
+        <div className="text-center mb-14">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">The Team</h2>
+          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
+            LearnVeda is built by a passionate team of educators, engineers, and lifelong learners.
           </p>
         </div>
 
-        {/* Team cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          {team.map((member, i) => (
+        {/* Team grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          {TEAM_MEMBERS.map((member, i) => (
             <motion.div
               key={member.name}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="flex flex-col items-center text-center rounded-2xl border bg-card p-8 gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className="rounded-2xl border bg-card p-6 text-center shadow-sm hover:shadow-md transition-shadow"
             >
-              {/* Avatar */}
-              <div className={`flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${member.color} text-white text-2xl font-bold shadow-lg`}>
-                {member.avatar}
+              {/* Avatar — gradient circle with initials */}
+              <div
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center mx-auto mb-4`}
+              >
+                <span className="text-white font-bold text-lg">{member.initials}</span>
               </div>
 
-              {/* Name & role */}
-              <div>
-                <h3 className="text-lg font-bold">{member.name}</h3>
-                <p className="text-sm text-brand-500 font-medium">{member.role}</p>
-              </div>
+              {/* Name and role */}
+              <h3 className="font-semibold text-foreground">{member.name}</h3>
+              <p className="text-sm text-brand-500 font-medium mt-0.5">{member.role}</p>
 
               {/* Bio */}
-              <p className="text-sm text-muted-foreground leading-relaxed">{member.bio}</p>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{member.bio}</p>
 
               {/* Social links */}
-              <div className="flex items-center gap-3">
-                {member.github && (
-                  <a href={member.github} target="_blank" rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Github className="h-4 w-4" />
-                  </a>
-                )}
-                {member.twitter && (
-                  <a href={member.twitter} target="_blank" rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Twitter className="h-4 w-4" />
-                  </a>
-                )}
-                {member.linkedin && (
-                  <a href={member.linkedin} target="_blank" rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Linkedin className="h-4 w-4" />
-                  </a>
-                )}
-              </div>
+              {(member.github || member.linkedin) && (
+                <div className="flex items-center justify-center gap-3 mt-4">
+                  {member.github && (
+                    <a
+                      href={member.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={`${member.name} GitHub`}
+                    >
+                      <Github className="h-4 w-4" />
+                    </a>
+                  )}
+                  {member.linkedin && (
+                    <a
+                      href={member.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={`${member.name} LinkedIn`}
+                    >
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
 
-        {/* Open source CTA */}
-        <div className="mt-12 text-center p-8 rounded-2xl bg-muted/40 border max-w-2xl mx-auto">
-          <h3 className="text-xl font-bold mb-2">Want to Contribute?</h3>
+        {/* Join the team CTA */}
+        <div className="mt-16 text-center p-8 rounded-2xl border bg-muted/30 max-w-2xl mx-auto">
+          <h3 className="text-xl font-bold text-foreground mb-2">Join Our Team</h3>
           <p className="text-muted-foreground mb-4">
-            LearnVeda is MIT-licensed and open-source. Whether you write code, create content, or report bugs — every contribution matters.
+            We are always looking for passionate educators, engineers, and designers.
           </p>
           <a
-            href="https://github.com/ISHUKR75/LearnVeda"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-500 hover:underline"
+            href="mailto:careers@learnveda.in"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 text-white font-semibold hover:bg-brand-600 transition-colors"
           >
-            <Github className="h-4 w-4" />
-            Star on GitHub →
+            Get in Touch
           </a>
         </div>
       </div>

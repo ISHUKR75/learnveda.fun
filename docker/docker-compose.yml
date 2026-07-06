@@ -1,0 +1,149 @@
+# =============================================================================
+# docker/docker-compose.yml
+# LearnVeda — Development environment with Docker Compose
+#
+# Services:
+#  - web       : Next.js application (hot-reload in dev, standalone in prod)
+#  - mongodb   : MongoDB 7.0 database
+#  - redis     : Redis 7.0 cache + session store
+#  - mongo-express : MongoDB admin UI (dev only)
+#
+# Usage:
+#  Development:  docker compose -f docker/docker-compose.yml up
+#  Production:   docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up
+#
+# Volumes:
+#  - mongodb_data : Persists MongoDB data between container restarts
+#  - redis_data   : Persists Redis data between container restarts
+# =============================================================================
+
+version: "3.9"  # Docker Compose file format version
+
+# Named volumes — persist data even if containers are removed
+volumes:
+  mongodb_data:    # MongoDB data directory
+    driver: local  # Use local volume driver
+  redis_data:      # Redis data directory
+    driver: local
+
+# Network — all services communicate over this private network
+networks:
+  learnveda-network:
+    driver: bridge  # Bridge networking for container isolation
+
+services:
+
+  # ===========================================================================
+  # Next.js Web Application
+  # ===========================================================================
+  web:
+    build:
+      context:    ..                    # Build from repo root
+      dockerfile: docker/Dockerfile    # Multi-stage Dockerfile
+    container_name: learnveda-web      # Container name for easy reference
+    ports:
+      - "3000:3000"                    # Map host:container ports
+    environment:
+      # App configuration
+      - NODE_ENV=development           # Development mode
+      - PORT=3000                      # Server port
+      # MongoDB connection (uses service name as hostname)
+      - MONGODB_URI=mongodb://learnveda:${MONGODB_PASSWORD:-devpassword}@mongodb:27017/learnveda?authSource=admin
+      # Redis connection (uses service name as hostname)
+      - REDIS_URL=redis://redis:6379
+      # Clerk auth (override in .env.local)
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-placeholder}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-placeholder}
+      # Session secret
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production}
+    depends_on:
+      mongodb:               # Wait for MongoDB to be healthy
+        condition: service_healthy
+      redis:                 # Wait for Redis to be healthy
+        condition: service_healthy
+    networks:
+      - learnveda-network    # Join the private network
+    restart: unless-stopped  # Auto-restart on failure
+    volumes:
+      # Mount source code for hot-reload in development
+      # Comment out in production (use built image instead)
+      - ../apps/web:/app:cached       # Source code
+      - /app/node_modules             # Exclude node_modules from mount
+      - /app/.next                    # Exclude .next from mount
+
+  # ===========================================================================
+  # MongoDB 7.0 — Primary Database
+  # ===========================================================================
+  mongodb:
+    image:          mongo:7.0          # Official MongoDB 7.0 image
+    container_name: learnveda-mongodb  # Container name
+    ports:
+      - "27017:27017"                  # Expose MongoDB port (dev only)
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=learnveda    # Admin username
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-devpassword}  # Admin password
+      - MONGO_INITDB_DATABASE=learnveda         # Default database name
+    volumes:
+      - mongodb_data:/data/db         # Persist database files
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro  # Init script
+    networks:
+      - learnveda-network
+    restart: unless-stopped
+    command:
+      # Production-grade MongoDB settings
+      - mongod
+      - --wiredTigerCacheSizeGB       # Limit RAM usage
+      - "0.5"
+      - --auth                        # Enable authentication
+    healthcheck:
+      test:         ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval:     30s               # Check every 30 seconds
+      timeout:      10s               # Fail if takes longer than 10 seconds
+      retries:      5                 # Retry 5 times before marking unhealthy
+      start_period: 20s              # Wait 20 seconds before first check
+
+  # ===========================================================================
+  # Redis 7.0 — Cache + Session Store
+  # ===========================================================================
+  redis:
+    image:          redis:7.0-alpine   # Minimal Alpine-based Redis image
+    container_name: learnveda-redis    # Container name
+    ports:
+      - "6379:6379"                   # Expose Redis port (dev only)
+    volumes:
+      - redis_data:/data              # Persist Redis data (AOF enabled below)
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro  # Custom config
+    networks:
+      - learnveda-network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf  # Use custom config
+    healthcheck:
+      test:         ["CMD", "redis-cli", "ping"]
+      interval:     10s               # Check every 10 seconds
+      timeout:      5s
+      retries:      5
+      start_period: 10s
+
+  # ===========================================================================
+  # Mongo Express — MongoDB Admin UI (DEVELOPMENT ONLY)
+  # Remove this service in production docker-compose.prod.yml
+  # ===========================================================================
+  mongo-express:
+    image:          mongo-express:1.0  # MongoDB web admin UI
+    container_name: learnveda-mongo-ui
+    ports:
+      - "8081:8081"                   # Admin UI on port 8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=learnveda
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_PASSWORD:-devpassword}
+      - ME_CONFIG_MONGODB_URL=mongodb://learnveda:${MONGODB_PASSWORD:-devpassword}@mongodb:27017/
+      - ME_CONFIG_BASICAUTH=true      # Require auth for the admin UI
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-admin}
+    depends_on:
+      - mongodb                       # Start after MongoDB
+    networks:
+      - learnveda-network
+    restart: unless-stopped
+    profiles:
+      - dev                           # Only start with --profile dev flag

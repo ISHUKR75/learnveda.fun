@@ -20,6 +20,7 @@ import { useTheme }                      from "next-themes"; // Dark mode
 import { Button }                        from "@/components/ui/button"; // Button
 import { Badge }                         from "@/components/ui/badge";  // Badge
 import { cn }                            from "@/lib/utils"; // Class name utility
+import { LanguageSwitcher }              from "@/components/shared/LanguageSwitcher"; // i18n language picker
 
 /* ─── Detect Clerk availability at the module level ──────────────────────── */
 // We check for the publishable key. This variable is inlined by Next.js at build time.
@@ -247,6 +248,11 @@ export function Navbar() {
 
         {/* ── Right Actions ──────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
+          {/* Language switcher — 11 Indian languages */}
+          <div className="hidden md:block">
+            <LanguageSwitcher />
+          </div>
+
           {/* Dark mode toggle */}
           <button
             onClick={toggleTheme}

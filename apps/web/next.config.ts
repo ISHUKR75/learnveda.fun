@@ -105,6 +105,12 @@ const nextConfig: NextConfig = {
   },
 
   // ─── Output Configuration ──────────────────────────────────────────────────
+  // 'standalone' creates a self-contained deployment folder under .next/standalone/
+  // Required for Docker production image (see docker/Dockerfile)
+  // The standalone build includes only the server runtime — no node_modules needed at runtime
+  // @see https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+
   poweredByHeader: false, // Remove X-Powered-By: Next.js header (security)
 
   // ─── Environment Variables exposed to browser ──────────────────────────────

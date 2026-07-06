@@ -1,7 +1,9 @@
 /**
  * @file features/pricing/components/PricingFAQ.tsx
- * @description Frequently Asked Questions section for the Pricing page
- * Uses accordion UI pattern for expandable answers
+ * @description Pricing FAQ section with JSON-LD structured data
+ *
+ * Common questions about pricing, billing, and plan features.
+ * Includes FAQPage JSON-LD for rich search results.
  */
 
 "use client";
@@ -9,104 +11,123 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 /* ─── FAQ Data ───────────────────────────────────────────────────────────── */
-const faqs = [
+const FAQS = [
   {
-    q: "Is LearnVeda really free?",
-    a: "Yes! The Free plan is genuinely free forever. You get access to Class 9–12 CBSE content, 30+ simulations, 3 programming day-plans, community access, and basic AI tutor. No credit card required to sign up.",
+    q: "Is the Free plan really free forever?",
+    a: "Yes! The Free plan is free forever with no credit card required. You get access to selected chapters, 5 simulations, and 10 live battles per month — no expiry.",
   },
   {
     q: "Can I cancel my Pro subscription anytime?",
-    a: "Absolutely. You can cancel at any time from your account settings. If you cancel, you'll keep Pro access until the end of your billing period. No cancellation fees.",
+    a: "Absolutely. You can cancel Pro at any time from your Settings page. Your Pro access continues until the end of the billing period, and you won't be charged again.",
   },
   {
-    q: "Is there a refund policy?",
-    a: "Yes — we offer a 7-day full refund, no questions asked, for any new Pro subscription. If you're not satisfied within 7 days, contact support@learnveda.in and we'll process your refund immediately.",
+    q: "Is there a student discount?",
+    a: "Our yearly plan is already 40% cheaper than monthly. We also offer special discounts for students from low-income backgrounds — email us at support@learnveda.in with your student ID.",
   },
   {
-    q: "Are there discounts for students?",
-    a: "Yes. Students with a valid .edu email or student ID can get an additional 20% discount on Pro. Contact us at support@learnveda.in with proof of enrollment.",
+    q: "What payment methods do you accept?",
+    a: "We accept UPI, net banking, debit/credit cards, and Razorpay Pay Later. All payments are processed securely via Razorpay and Stripe.",
   },
   {
-    q: "Does the yearly plan save money?",
-    a: "The yearly plan is billed at ₹2,508/year (₹209/month) compared to ₹299/month on monthly billing — that's a saving of ₹1,080 per year, roughly 30% off.",
+    q: "Do you offer a money-back guarantee?",
+    a: "Yes — we offer a 7-day money-back guarantee on Pro plans. If you're not satisfied, email us within 7 days of your first payment and we'll refund in full.",
   },
   {
-    q: "What is the Team / School plan?",
-    a: "The Team plan is for coaching institutes, schools, and study groups. It includes teacher dashboards, bulk student licenses, custom branding, detailed analytics, and a dedicated account manager. Contact us for custom pricing.",
+    q: "How does the School plan work?",
+    a: "The School plan is for coaching institutes, schools, and colleges. We offer bulk student licenses, a teacher dashboard, and custom analytics. Email schools@learnveda.in for pricing.",
   },
   {
-    q: "Can I switch between plans?",
-    a: "Yes. You can upgrade from Free to Pro anytime. If you downgrade from Pro to Free, your content access returns to the Free tier from your next billing date.",
+    q: "Is my data secure?",
+    a: "Yes. We use Clerk for authentication (industry-standard OAuth 2.0), MongoDB Atlas with encryption at rest, and HTTPS everywhere. Read our Privacy Policy for details.",
   },
   {
-    q: "Is my data safe?",
-    a: "Yes. LearnVeda is built with enterprise-grade security — HTTPS everywhere, encrypted data at rest, Clerk authentication, and no selling of user data to third parties. See our Privacy Policy for full details.",
+    q: "Can I use LearnVeda on mobile?",
+    a: "Yes! LearnVeda is fully responsive and works on mobile browsers. A dedicated React Native app is in development — sign up to be notified when it launches.",
   },
 ];
 
-/* ─── Pricing FAQ Component ──────────────────────────────────────────────── */
+/* ─── FAQ Item Component ─────────────────────────────────────────────────── */
+function FAQItem({ q, a, isOpen, onToggle }: { q: string; a: string; isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className="border-b last:border-0">
+      {/* Question row */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-4 py-4 text-left"
+      >
+        <span className="font-medium text-foreground">{q}</span>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        </motion.div>
+      </button>
+      {/* Answer — animated slide down */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <p className="text-muted-foreground text-sm pb-4 leading-relaxed">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── PricingFAQ Component ───────────────────────────────────────────────── */
 export function PricingFAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null); // Track which item is open
+  const [openIndex, setOpenIndex] = useState<number | null>(0); // First FAQ open by default
+
+  // JSON-LD structured data for FAQ rich results
+  const faqLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  });
 
   return (
-    <section className="py-20 md:py-28">
-      <div className="container px-4 md:px-6 max-w-3xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-10">
-          Frequently Asked Questions
-        </h2>
+    <section className="py-16 bg-background">
+      {/* JSON-LD structured data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLd }} />
 
-        <div className="space-y-3">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="rounded-xl border bg-card overflow-hidden"
-            >
-              {/* Question button */}
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="flex w-full items-center justify-between gap-4 p-5 text-left font-medium hover:bg-muted/40 transition-colors"
-              >
-                {faq.q}
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200",
-                    openIndex === index && "rotate-180" // Rotate when open
-                  )}
-                />
-              </button>
+      <div className="container px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground mt-2">Everything you need to know about LearnVeda pricing</p>
+          </div>
 
-              {/* Answer — animated expand/collapse */}
-              <AnimatePresence initial={false}>
-                {openIndex === index && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="overflow-hidden"
-                  >
-                    <p className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
-                      {faq.a}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-        </div>
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
+            {FAQS.map((faq, i) => (
+              <FAQItem
+                key={faq.q}
+                q={faq.q}
+                a={faq.a}
+                isOpen={openIndex === i}
+                onToggle={() => setOpenIndex(openIndex === i ? null : i)} // Toggle open/close
+              />
+            ))}
+          </div>
 
-        {/* Contact CTA */}
-        <div className="text-center mt-10 p-6 rounded-2xl bg-muted/40 border">
-          <p className="text-muted-foreground mb-2">Still have questions?</p>
-          <a
-            href="mailto:support@learnveda.in"
-            className="font-semibold text-brand-500 hover:underline"
-          >
-            support@learnveda.in →
-          </a>
+          {/* Still have questions */}
+          <div className="mt-8 text-center">
+            <p className="text-muted-foreground text-sm">
+              Still have questions?{" "}
+              <a href="mailto:support@learnveda.in" className="text-brand-500 hover:underline font-medium">
+                Email our support team
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </section>

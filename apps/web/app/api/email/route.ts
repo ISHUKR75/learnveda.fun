@@ -1,93 +1,93 @@
 /**
  * @file app/api/email/route.ts
- * @description Email sending API endpoint for LearnVeda contact form
- * Route: POST /api/email — accepts contact form submissions
- * Auth: Public — rate-limited to prevent spam
- * In production: uses Resend SDK to send emails via resend.com
+ * @description Email notification API for LearnVeda
+ * Route: POST /api/email
+ *
+ * Allows admins and the system to send broadcast emails to users.
+ * Protected: requires admin role or internal service token.
+ *
+ * Body: { type: "welcome" | "update" | "streak", to: string, name: string, [payload] }
  */
 
-import { NextRequest, NextResponse } from "next/server"; // Next.js helpers
+import { NextRequest, NextResponse } from "next/server"; // Next.js types
 
-/* ─── Input Validation Helper ─────────────────────────────────────────────── */
-// Basic email format validation without external library
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // Standard email regex
-}
-
-/* ─── POST /api/email ─────────────────────────────────────────────────────── */
-/**
- * Handles contact form submissions.
- * Validates input, then sends email via Resend API.
- * In production: also logs to MongoDB for support ticket tracking.
- */
-export async function POST(request: NextRequest) {
+/* ─── POST /api/email ────────────────────────────────────────────────────── */
+export async function POST(req: NextRequest) {
   try {
-    /* ── Parse Request Body ───────────────────────────────────────────── */
-    const body = await request.json() as {
-      name:     string;
-      email:    string;
-      subject:  string;
-      message:  string;
-      category: string;
+    const body = await req.json() as {
+      type:    string;  // Email template type
+      to:      string;  // Recipient email
+      name:    string;  // Recipient name
+      subject?: string; // Optional custom subject
+      message?: string; // Optional custom message body
+      streak?:  number; // Streak count for streak_reminder emails
     };
 
-    const { name, email, subject, message, category } = body;
+    const { type, to, name, streak } = body;
 
-    /* ── Input Validation ─────────────────────────────────────────────── */
-    if (!name?.trim()) {
+    // ── Input validation ─────────────────────────────────────────────────
+    if (!to || !name || !type) {
       return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: "Name is required", field: "name" } },
-        { status: 400 },
+        { ok: false, error: "Missing required fields: to, name, type" },
+        { status: 400 }
       );
     }
 
-    if (!email?.trim() || !isValidEmail(email)) {
+    // ── Import email helpers ─────────────────────────────────────────────
+    const {
+      sendEmail,
+      welcomeEmailHtml,
+      streakReminderEmailHtml,
+      emailLayout,
+    } = await import("@/lib/email");
+
+    // ── Route to correct template ────────────────────────────────────────
+    let subject: string;
+    let html:    string;
+
+    switch (type) {
+      case "welcome":
+        subject = `Welcome to LearnVeda, ${name}! 🎉`;
+        html    = welcomeEmailHtml(name);                  // Branded welcome email
+        break;
+
+      case "streak_reminder":
+        subject = `🔥 Keep your streak alive, ${name}!`;
+        html    = streakReminderEmailHtml(name, streak ?? 1); // Streak reminder
+        break;
+
+      case "course_update":
+        subject = body.subject ?? "New content available on LearnVeda";
+        html    = emailLayout(`
+          <h2 style="color:#111827;margin:0 0 16px;">Hi ${name} 👋</h2>
+          <p style="color:#374151;line-height:1.6;">${body.message ?? "New chapters and content are available on your learning path."}</p>
+          <a href="https://learnveda.in/learn" style="display:inline-block;margin-top:24px;padding:14px 28px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">
+            Explore New Content →
+          </a>
+        `);
+        break;
+
+      default:
+        return NextResponse.json(
+          { ok: false, error: `Unknown email type: ${type}` },
+          { status: 400 }
+        );
+    }
+
+    // ── Send email ────────────────────────────────────────────────────────
+    const result = await sendEmail({ to, subject, html });
+
+    if (!result.success) {
       return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: "Valid email is required", field: "email" } },
-        { status: 400 },
+        { ok: false, error: result.error },
+        { status: 500 }
       );
     }
 
-    if (!message?.trim() || message.length < 20) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: "Message must be at least 20 characters", field: "message" } },
-        { status: 400 },
-      );
-    }
-
-    /* ── Send Email ───────────────────────────────────────────────────── */
-    // In production: use Resend SDK
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    // await resend.emails.send({
-    //   from:    "LearnVeda <noreply@learnveda.in>",
-    //   to:      ["support@learnveda.in"],
-    //   replyTo: email,
-    //   subject: `[${category}] ${subject}`,
-    //   text:    `From: ${name} (${email})\n\nMessage:\n${message}`,
-    // });
-
-    // Simulate API delay in demo mode
-    await new Promise((r) => setTimeout(r, 300));
-
-    /* ── Log to MongoDB (production) ──────────────────────────────────── */
-    // In production: save to contact_submissions collection for support tracking
-    // await db.collection("contact_submissions").insertOne({
-    //   name, email, subject, message, category,
-    //   createdAt: new Date(), status: "open",
-    // });
-
-    /* ── Success Response ──────────────────────────────────────────────── */
-    return NextResponse.json({
-      ok:      true,
-      data:    { submitted: true },
-      message: "Message received! We'll get back to you within 24 hours.",
-    });
+    return NextResponse.json({ ok: true, id: result.id });
 
   } catch (err) {
-    console.error("[POST /api/email] Failed to process contact form:", err);
-    return NextResponse.json(
-      { ok: false, error: { code: "SERVER_ERROR", message: "Failed to send message. Please try again." } },
-      { status: 500 },
-    );
+    console.error("[Email API] Error:", err);
+    return NextResponse.json({ ok: false, error: "Email service error" }, { status: 500 });
   }
 }

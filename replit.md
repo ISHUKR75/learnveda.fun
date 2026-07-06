@@ -2,112 +2,87 @@
 
 ## Project Overview
 
-LearnVeda is a **production-level EdTech website** for Indian students from Class 9 to Graduation. It is a **Turborepo + pnpm monorepo** — only the `apps/web` (Next.js 15 App Router) runs on Replit; microservices require external Docker/Kubernetes.
+LearnVeda is an enterprise-grade, AI-powered EdTech platform for Indian students. It covers:
+- **CBSE Class 9–12** — full NCERT-aligned curriculum with simulations and board exam prep
+- **Engineering** — 8 branches × 8 semesters (B.Tech programs)
+- **13 Programming Languages** — structured day-by-day learning plans
+- **Core CS subjects** — DSA, System Design, DBMS, OS, CN, Git, Competitive Programming
+- **Live Battles** — 1v1 real-time quiz duels with Elo matchmaking (Socket.IO)
+- **AI Tutor** — GPT-4-powered 24/7 tutor with subject context
+- **Online Compiler** — 13 languages via Monaco Editor + Judge0/Piston backend
+- **Community** — 10K+ students, Q&A forum, live chat
+- **Gamification** — XP, streaks, levels, achievement badges, leaderboard
+- **i18n** — 11 Indian languages on every page
 
-### Live App
-- **URL**: Runs on port 5000 (mapped to port 80)
-- **Start command**: `cd apps/web && npm run dev`
-- **Stack**: Next.js 15 (App Router), TypeScript, Tailwind CSS, Zustand v5, Framer Motion, Radix UI, shadcn/ui, Clerk (optional), MongoDB (optional), Redis (optional)
+## Tech Stack
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion
+- **Backend**: Next.js API Routes, MongoDB + Mongoose, Redis (with in-memory fallback)
+- **Auth**: Clerk (with graceful demo mode when keys are absent)
+- **Payments**: Stripe + Razorpay (lazy-loaded stubs)
+- **Storage**: Cloudinary (lazy-loaded stub)
+- **Email**: Resend (logs to console in demo mode)
+- **Compiler**: Monaco Editor + Judge0 or Piston API (demo fallback)
+- **CI/CD**: GitHub Actions (`.github/workflows/ci.yml`, `deploy.yml`)
+- **Docker**: Multi-stage Dockerfile + Docker Compose (`docker/`)
 
----
-
-## Architecture
-
+## Repository Structure
 ```
-apps/web/                   ← Next.js 15 App Router (the only runnable app on Replit)
-├── app/
-│   ├── (marketing)/        ← Public pages: home, about, blog, pricing, features, events, etc.
-│   ├── (platform)/         ← Auth-protected student area: dashboard, AI tutor, battles, etc.
-│   ├── (auth)/             ← Clerk sign-in/sign-up pages (demo mode when no keys)
-│   ├── (legal)/            ← Privacy policy, terms of service
-│   └── api/                ← API routes: health, search, analytics, AI, email, webhooks
-├── features/               ← Feature components organized by domain
-├── components/ui/           ← shadcn/ui component library
-├── store/                  ← Zustand client state (uiStore, userPrefsStore, notifStore)
-├── hooks/                  ← Custom React hooks (useLocalStorage, useDebounce, etc.)
-├── types/                  ← TypeScript type definitions
-├── lib/                    ← External service clients (MongoDB, Redis, Clerk, Stripe, etc.)
-├── providers/              ← React context providers (theme, auth, query, toast)
-├── middleware.ts            ← Auth protection + security headers
-├── app/sitemap.ts           ← Dynamic SEO sitemap
-└── app/robots.ts            ← robots.txt generator
+learnveda/
+├── apps/web/                  # Next.js application
+│   ├── app/                   # App Router pages
+│   │   ├── (auth)/            # Clerk auth pages
+│   │   ├── (legal)/           # Privacy, Terms
+│   │   ├── (marketing)/       # Public marketing pages
+│   │   ├── (platform)/        # Protected platform pages
+│   │   │   ├── admin/         # Admin dashboard + newsletter
+│   │   │   ├── compiler/      # Online code compiler
+│   │   │   ├── dashboard/     # User dashboard
+│   │   │   ├── learn/         # CBSE + Engineering + Programming
+│   │   │   └── ...
+│   │   └── api/               # REST API routes
+│   ├── components/            # Shared UI components
+│   ├── features/              # Feature-specific components
+│   ├── hooks/                 # Custom React hooks
+│   ├── lib/                   # Infrastructure (MongoDB, Redis, i18n, email, ...)
+│   ├── providers/             # React context providers
+│   ├── store/                 # Zustand state stores
+│   └── types/                 # TypeScript type definitions
+├── docker/                    # Docker configuration
+├── docs/                      # Architecture + API + deployment docs
+└── .github/workflows/         # GitHub Actions CI/CD
 ```
 
----
-
-## Running the App
+## Development
 
 ```bash
-cd apps/web && npm run dev   # Start dev server on port 5000
-cd apps/web && npm run build # Production build (clears .next — restart workflow after)
-cd apps/web && npx tsc --noEmit  # Type check only
+# Install dependencies
+cd apps/web && npm install
+
+# Start dev server
+npm run dev         # Runs on port 5000
+
+# Build for production
+npm run build
+
+# Type check
+npx tsc --noEmit
 ```
 
-**Important**: Running `npm run build` deletes `.next/` — always restart the "Start application" workflow after a build to restore dev server.
+## Environment Variables
 
----
-
-## Environment Variables / Secrets
-
-All external services work in **demo/passthrough mode** when keys are not configured. No crashes, just limited functionality.
-
-| Secret | Purpose | Demo Behavior |
-|--------|---------|---------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` | Authentication | Demo mode — all users shown as "Student" |
-| `MONGODB_URI` | Database | Pages use mock data |
-| `REDIS_URL` | Caching + rate limiting | In-memory fallback |
-| `OPENAI_API_KEY` or `GEMINI_API_KEY` | AI Tutor | Shows demo response explaining setup |
-| `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Payments | Pricing shown but not charged |
-| `RAZORPAY_KEY_ID` | Indian payments | Same as above |
-| `CLERK_WEBHOOK_SECRET` | Clerk webhook security | Demo mode accepts all (WARNING in logs) |
-| `SESSION_SECRET` | Session encryption | Configured ✅ |
-
----
-
-## Pages & Routes
-
-### Marketing (public)
-- `/` — Homepage with 10 sections
-- `/about`, `/blog`, `/contact`, `/events`, `/features`, `/pricing`
-- `/practice`, `/simulations`, `/test-center`
-
-### Learning Content (authenticated via platform layout)
-- `/learn/class-9`, `/learn/class-10`, `/learn/class-11`, `/learn/class-12`
-- `/learn/class-9/[subject]`, `/learn/class-9/[subject]/[chapter]`
-- `/learn/engineering`
-- `/programming`, `/programming/[language]`, `/programming/[language]/[day]`
-- `/semester/[n]` — BTech semester guides
-- `/core-cs/[slug]` — DSA, OS, DBMS, CN deep dives
-
-### Platform Features
-- `/dashboard` + subpages (analytics, progress, achievements, goals, calendar, etc.)
-- `/ai-tutor` — AI Tutor chat (needs OPENAI_API_KEY or GEMINI_API_KEY)
-- `/mentorship` — Book 1:1 mentor sessions
-- `/live` — Live classes with countdowns
-- `/live-battles` — 1v1 knowledge battles
-- `/leaderboard` — Student rankings
-- `/compiler` — In-browser code editor
-- `/community` + subpages (posts, questions, groups, chat)
-- `/simulations/[category]`
-
-### API Routes
-- `GET /api/health` — Service health check
-- `GET /api/search?q=...` — Global search
-- `GET /api/analytics` — Platform statistics
-- `GET /api/auth` — Session check
-- `POST /api/ai` — AI Tutor chat (rate-limited, auth-gated in Clerk mode)
-- `POST /api/email` — Contact form
-- `POST /api/webhooks/clerk` — Clerk user sync (fail-closed verification)
-- `POST /api/webhooks/stripe` — Payment events (fail-closed verification)
-
----
+Copy `.env.example` to `.env.local` and fill in values. The app runs in demo mode without most keys:
+- **Required**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `MONGODB_URI`, `SESSION_SECRET`
+- **Optional**: `REDIS_URL`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `RAZORPAY_KEY_ID`, `JUDGE0_API_KEY`
 
 ## User Preferences
 
-- **No deletion policy**: Never delete existing files or folders — only additions allowed
-- **Mock data convention**: All mock data has `// TODO: replace with /api/... in production` comments
-- **Every file gets JSDoc**: Every line of every file should have a detailed comment
-- **Separate feature folders**: Every feature lives in its own `features/[name]/components/` directory
-- **Framer Motion**: Use `opacity: 0.01` (not `0`) as initial opacity for above-the-fold animations (prevents blank SSR screenshots)
-- **TypeScript strict**: All code is TypeScript with no `any` unless explicitly justified
-- **No hardcoded localhost**: Use `$REPLIT_DEV_DOMAIN` in shell, relative URLs in app code
+- **Never delete any file or folder** — only add new files; every feature gets its own isolated folder
+- **Detailed comments on every file** — parameters, return values, purpose documented in JSDoc
+- **Everything production-functional** — no mocked placeholders; real API integrations with graceful fallbacks
+- **Demo mode pattern** — all external services fail gracefully when not configured; app always runs
+- **TypeScript strict mode** — no `any` types; use proper type guards and discriminated unions
+- **Workflow**: `cd apps/web && npm run dev` (never pnpm, always npm)
+- **Port**: app runs on 5000
+- **Clerk**: optional — runs in demo mode when keys are absent or placeholder
+- **Framer Motion**: use `opacity: 0.01` (not 0) in initial animation states above the fold
+- **Platform layout**: `(platform)/layout.tsx` provides the Navbar — individual platform pages must NOT import their own Navbar

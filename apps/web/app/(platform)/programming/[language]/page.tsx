@@ -1,342 +1,347 @@
 /**
  * @file app/(platform)/programming/[language]/page.tsx
- * @description Individual programming language track page
- * Route: /programming/[language]  (e.g. /programming/python)
- * Shows: Language overview, day-wise plan, syllabus, and start button
+ * @description Programming language overview page with day-wise plan
+ * Route: /programming/[language] — e.g. /programming/python
+ *
+ * Shows:
+ *  - Language overview (tagline, use cases, why learn it)
+ *  - 30-day structured plan with daily topics
+ *  - Live code examples in Monaco editor
+ *  - Career paths and salary range
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { notFound }      from "next/navigation";
+import Link              from "next/link";
 import {
-  Clock, ArrowRight, ChevronRight, Code2, Play, Star,
-  CheckCircle2, BookOpen, Target, Zap,
+  ChevronRight, Clock, Star, Zap, Play, Code2,
+  BookOpen, TrendingUp, CheckCircle2, Lock,
 } from "lucide-react";
-import { Badge }  from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-/* ─── Language Track Data ────────────────────────────────────────────────── */
-// Complete language data — in production this comes from the course-service MongoDB API
-const LANGUAGE_DATA: Record<string, {
+/* ─── Language Config ────────────────────────────────────────────────────── */
+type DayPlan = {
+  day:     number;
+  title:   string;
+  topics:  string[];  // Key topics covered that day
+  xp:      number;    // XP on completion
+  isPro:   boolean;   // Requires Pro plan
+};
+
+type LanguageConfig = {
+  slug:       string;
   name:       string;
-  emoji:      string;
+  emoji:      string;       // Display emoji
   tagline:    string;
-  description:string;
-  days:       number;
-  level:      string;
-  color:      string;
-  bgClass:    string;
-  prerequisites: string[];
-  jobRoles:   string[];
-  curriculum: { phase: string; days: string; topics: string[] }[];
-  features:   string[];
-}> = {
+  color:      string;       // Tailwind gradient classes
+  description: string;
+  useCases:   string[];
+  careers:    string[];
+  days:       DayPlan[];    // 30-day plan
+};
+
+const LANGUAGES: Record<string, LanguageConfig> = {
   python: {
-    name:        "Python",
-    emoji:       "🐍",
-    tagline:     "The most beginner-friendly programming language",
-    description: "Python is the world's most popular language for data science, AI/ML, web development, automation, and scripting. Its clean syntax makes it ideal for beginners, while its powerful libraries make it essential for professionals.",
-    days:        45,
-    level:       "Beginner",
-    color:       "blue",
-    bgClass:     "from-blue-500/10 to-cyan-500/10",
-    prerequisites: ["Basic computer usage", "No prior coding experience needed"],
-    jobRoles:    ["Data Scientist", "ML Engineer", "Backend Developer", "Automation Engineer", "Data Analyst"],
-    curriculum: [
-      { phase:"Phase 1 — Python Basics",      days:"Day 01–07", topics:["Variables & Data Types","Input/Output","Operators","String Methods","Lists & Tuples"]             },
-      { phase:"Phase 2 — Control Flow",       days:"Day 08–14", topics:["if/elif/else","for loops","while loops","break/continue","Nested loops"]                         },
-      { phase:"Phase 3 — Functions",          days:"Day 15–21", topics:["Defining Functions","Arguments & Returns","Lambda Functions","Recursion","Decorators"]           },
-      { phase:"Phase 4 — OOP",                days:"Day 22–28", topics:["Classes & Objects","Inheritance","Polymorphism","Encapsulation","Magic Methods"]                 },
-      { phase:"Phase 5 — Advanced Python",    days:"Day 29–36", topics:["File I/O","Exception Handling","Generators","Iterators","Context Managers","Comprehensions"]    },
-      { phase:"Phase 6 — Libraries & Project",days:"Day 37–45", topics:["NumPy & Pandas basics","Web scraping with requests","REST APIs","Final Project: CLI App/Web Scraper"] },
-    ],
-    features: [
-      "45 structured daily lessons",
-      "Interactive online Python compiler",
-      "100+ exercises with solutions",
-      "Final capstone project",
-      "FAANG-style Python interview questions",
+    slug: "python", name: "Python", emoji: "🐍",
+    tagline: "The #1 language for AI, ML, and Data Science",
+    color: "from-yellow-400 to-green-500",
+    description: "Python is the most beginner-friendly and versatile language available. Used in AI, web development, automation, data science, and scientific computing.",
+    useCases: ["Machine Learning & AI", "Web Development (Django, Flask, FastAPI)", "Data Science & Analytics", "Automation & Scripting", "Scientific Computing"],
+    careers: ["Python Developer", "Data Scientist", "ML Engineer", "Backend Developer", "DevOps Engineer"],
+    days: [
+      { day:  1, title: "Introduction & Setup",        topics: ["What is Python?", "Install Python & VS Code", "Hello World", "Variables & Data Types"],      xp: 30, isPro: false },
+      { day:  2, title: "Operators & Expressions",     topics: ["Arithmetic operators", "Comparison operators", "Logical operators", "Type conversion"],       xp: 30, isPro: false },
+      { day:  3, title: "Control Flow",                topics: ["if/elif/else", "while loop", "for loop", "range()"],                                          xp: 35, isPro: false },
+      { day:  4, title: "Functions",                   topics: ["Defining functions", "Parameters & return values", "Default args", "Lambda functions"],        xp: 40, isPro: false },
+      { day:  5, title: "Lists & Tuples",              topics: ["Creating lists", "List methods", "Tuples vs Lists", "List comprehension"],                     xp: 40, isPro: false },
+      { day:  6, title: "Dictionaries & Sets",         topics: ["Dict creation", "Dict methods", "Sets operations", "Nested dicts"],                           xp: 40, isPro: true  },
+      { day:  7, title: "Strings Deep Dive",           topics: ["String methods", "f-strings", "String slicing", "Regular expressions basics"],                xp: 40, isPro: true  },
+      { day:  8, title: "File I/O",                    topics: ["Reading files", "Writing files", "with statement", "CSV handling"],                            xp: 45, isPro: true  },
+      { day:  9, title: "Error Handling",              topics: ["try/except/finally", "Custom exceptions", "Raising exceptions", "Assertion"],                  xp: 45, isPro: true  },
+      { day: 10, title: "Modules & Packages",          topics: ["import statement", "Built-in modules (os, sys, math)", "Creating modules", "pip"],             xp: 45, isPro: true  },
+      { day: 11, title: "Object-Oriented Python",      topics: ["Classes & Objects", "__init__", "Instance methods", "self"],                                   xp: 50, isPro: true  },
+      { day: 12, title: "OOP: Inheritance & Polymorphism",topics: ["Inheritance", "super()", "Method overriding", "Multiple inheritance"],                     xp: 50, isPro: true  },
+      { day: 13, title: "Decorators & Generators",     topics: ["Function decorators", "@property", "yield keyword", "Generator functions"],                   xp: 55, isPro: true  },
+      { day: 14, title: "Iterators & Context Managers",topics: ["__iter__ & __next__", "Context managers", "__enter__ & __exit__", "contextlib"],              xp: 55, isPro: true  },
+      { day: 15, title: "Week 2 Project: CLI To-Do App",topics: ["Build a full CLI app", "File persistence", "OOP design", "Code review"],                    xp: 100, isPro: true },
+      { day: 16, title: "NumPy Fundamentals",          topics: ["Arrays", "Broadcasting", "Linear algebra ops", "Array slicing"],                              xp: 60, isPro: true  },
+      { day: 17, title: "Pandas for Data Analysis",    topics: ["DataFrames", "Reading CSV/Excel", "groupby", "Merging DataFrames"],                           xp: 60, isPro: true  },
+      { day: 18, title: "Matplotlib & Seaborn",        topics: ["Line/bar/scatter plots", "Subplots", "Seaborn statistical charts", "Plot customization"],     xp: 55, isPro: true  },
+      { day: 19, title: "Web Scraping",                topics: ["requests library", "BeautifulSoup", "Handling pagination", "Scraping ethics"],                xp: 55, isPro: true  },
+      { day: 20, title: "REST APIs with FastAPI",       topics: ["Creating API routes", "Pydantic models", "Query params", "Swagger docs"],                    xp: 65, isPro: true  },
+      { day: 21, title: "SQLite & SQLAlchemy",          topics: ["SQLite basics", "SQLAlchemy ORM", "Models & migrations", "CRUD operations"],                xp: 65, isPro: true  },
+      { day: 22, title: "Async Python",                topics: ["async/await", "asyncio", "aiohttp", "Concurrent tasks"],                                       xp: 65, isPro: true  },
+      { day: 23, title: "Testing with pytest",          topics: ["Writing unit tests", "pytest fixtures", "mocking", "Test coverage"],                         xp: 55, isPro: true  },
+      { day: 24, title: "Python Packaging",             topics: ["setup.py / pyproject.toml", "Virtual environments", "Publishing to PyPI", "Dependency management"], xp: 50, isPro: true },
+      { day: 25, title: "Machine Learning Intro",      topics: ["scikit-learn basics", "Train/test split", "Linear regression", "Evaluating models"],          xp: 70, isPro: true  },
+      { day: 26, title: "Neural Networks with TensorFlow",topics: ["Keras Sequential API", "Layers", "Training a model", "MNIST digit classification"],       xp: 80, isPro: true  },
+      { day: 27, title: "Natural Language Processing", topics: ["NLTK / spaCy basics", "Tokenization", "Sentiment analysis", "Text classification"],           xp: 75, isPro: true  },
+      { day: 28, title: "Docker & Deployment",         topics: ["Dockerfile for Python apps", "docker-compose", "Deploy to Render/Railway", "Environment variables"], xp: 70, isPro: true },
+      { day: 29, title: "Final Project: Build a Real App",topics: ["Plan your project", "Implement feature by feature", "Add tests", "Deploy it"],             xp: 150, isPro: true },
+      { day: 30, title: "Python Career Roadmap",        topics: ["Job roles overview", "Portfolio tips", "Interview prep resources", "Next steps"],             xp: 50, isPro: true  },
     ],
   },
-
   javascript: {
-    name:        "JavaScript",
-    emoji:       "⚡",
-    tagline:     "The language that powers the entire web",
-    description: "JavaScript is the only programming language that runs natively in browsers, making it essential for frontend development. With Node.js, it also powers the backend. Full-stack JavaScript (React + Node) is the most in-demand skill in web development.",
-    days:        30,
-    level:       "Beginner",
-    color:       "yellow",
-    bgClass:     "from-yellow-500/10 to-amber-500/10",
-    prerequisites: ["Basic HTML & CSS (helpful but not required)"],
-    jobRoles:    ["Frontend Developer", "Full-Stack Developer", "React Developer", "Node.js Engineer"],
-    curriculum: [
-      { phase:"Phase 1 — JS Fundamentals",  days:"Day 01–07", topics:["Variables (let/const/var)","Data Types","Operators","Control Flow","Functions","Arrays & Objects"] },
-      { phase:"Phase 2 — DOM & Browser",    days:"Day 08–14", topics:["DOM Manipulation","Event Listeners","Fetch API","Local Storage","ES6 Classes","Modules"]          },
-      { phase:"Phase 3 — Async JavaScript", days:"Day 15–21", topics:["Callbacks","Promises","async/await","Error Handling","Closures","Prototype Chain"]                },
-      { phase:"Phase 4 — Modern JS & Node", days:"Day 22–30", topics:["Node.js Basics","Express API","npm","REST APIs","React Intro","Final Project"]                     },
-    ],
-    features: [
-      "30-day structured curriculum",
-      "In-browser JS playground",
-      "Build real interactive projects",
-      "React.js introduction included",
-      "Node.js and APIs coverage",
+    slug: "javascript", name: "JavaScript", emoji: "⚡",
+    tagline: "The language of the web — frontend to backend",
+    color: "from-yellow-400 to-orange-400",
+    description: "JavaScript powers every website on the internet. Learn modern ES6+ JS, async programming, DOM manipulation, and full-stack development with Node.js.",
+    useCases: ["Frontend Web Development", "Backend Development (Node.js)", "Mobile Apps (React Native)", "Browser Extensions", "Game Development"],
+    careers: ["Frontend Developer", "Full Stack Developer", "React Developer", "Node.js Developer", "TypeScript Engineer"],
+    days: [
+      { day:  1, title: "JavaScript Basics",           topics: ["Variables: var, let, const", "Data types", "console.log()", "Strict mode"], xp: 30, isPro: false },
+      { day:  2, title: "Operators & Comparisons",     topics: ["Arithmetic ops", "== vs ===", "Logical operators", "Ternary operator"],     xp: 30, isPro: false },
+      { day:  3, title: "Control Flow",                topics: ["if/else", "switch", "while", "for loops"],                                   xp: 35, isPro: false },
+      { day:  4, title: "Functions",                   topics: ["Function declarations", "Arrow functions", "Closures", "Scope"],              xp: 40, isPro: false },
+      { day:  5, title: "Arrays & Array Methods",      topics: ["map/filter/reduce", "find/includes", "spread operator", "Destructuring"],    xp: 45, isPro: false },
+      { day:  6, title: "Objects & Prototypes",        topics: ["Object literals", "Prototype chain", "Object.keys/values", "Destructuring"], xp: 45, isPro: true  },
+      { day:  7, title: "DOM Manipulation",            topics: ["querySelector", "addEventListener", "classList", "innerHTML"],                xp: 50, isPro: true  },
+      { day:  8, title: "Events & Event Delegation",   topics: ["Event bubbling", "Event delegation", "preventDefault", "Custom events"],     xp: 50, isPro: true  },
+      { day:  9, title: "Async JS: Promises",          topics: ["Promise syntax", "then/catch", "Promise.all", "Promise.race"],               xp: 55, isPro: true  },
+      { day: 10, title: "Async/Await & Fetch API",     topics: ["async/await syntax", "Error handling with try/catch", "fetch()", "REST API calls"], xp: 55, isPro: true },
+      { day: 11, title: "ES6+ Modern JavaScript",      topics: ["Template literals", "Optional chaining", "Nullish coalescing", "Symbols"],   xp: 50, isPro: true  },
+      { day: 12, title: "Classes & OOP",               topics: ["class keyword", "Constructor", "Inheritance", "Private fields"],             xp: 55, isPro: true  },
+      { day: 13, title: "Modules & Bundlers",          topics: ["import/export", "ESM vs CJS", "Webpack basics", "Vite"],                     xp: 50, isPro: true  },
+      { day: 14, title: "Error Handling & Debugging",  topics: ["try/catch/finally", "Custom Error classes", "Chrome DevTools", "Source maps"], xp: 45, isPro: true },
+      { day: 15, title: "Project: Interactive To-Do App", topics: ["DOM + events + local storage", "Full UI build", "Mobile responsive", "Deploy to Netlify"], xp: 100, isPro: true },
     ],
   },
-
+  typescript: {
+    slug: "typescript", name: "TypeScript", emoji: "🔷",
+    tagline: "JavaScript with types — production-grade code",
+    color: "from-blue-500 to-blue-700",
+    description: "TypeScript is the industry standard for large JavaScript codebases. Catch errors at compile time, write self-documenting code, and build maintainable applications.",
+    useCases: ["Frontend (React, Vue, Angular)", "Backend (Node.js, Deno)", "Full Stack (Next.js)", "SDKs & Libraries", "Enterprise Apps"],
+    careers: ["TypeScript Developer", "Frontend Engineer", "Full Stack Developer", "Framework Author"],
+    days: [
+      { day: 1, title: "TypeScript Setup & Basics",   topics: ["What is TypeScript?", "tsc compiler", "tsconfig.json", "Basic types"],       xp: 30, isPro: false },
+      { day: 2, title: "Types & Interfaces",           topics: ["Primitive types", "Interfaces", "Type aliases", "Type vs Interface"],        xp: 35, isPro: false },
+      { day: 3, title: "Functions & Generics",         topics: ["Function type annotations", "Optional params", "Generics T", "Constraints"], xp: 40, isPro: false },
+      { day: 4, title: "Classes & Access Modifiers",   topics: ["class with types", "public/private/readonly", "Abstract classes", "Implements"], xp: 45, isPro: false },
+      { day: 5, title: "Advanced Types",               topics: ["Union & Intersection", "Mapped types", "Conditional types", "Infer"],        xp: 50, isPro: false },
+    ],
+  },
   java: {
-    name:        "Java",
-    emoji:       "☕",
-    tagline:     "Enterprise-grade OOP for software engineers",
-    description: "Java is the most popular language for FAANG SDE interviews and Android development. Its strict OOP model builds strong programming fundamentals. Companies like Google, Amazon, Microsoft, and Flipkart extensively use Java in production.",
-    days:        45,
-    level:       "Intermediate",
-    color:       "orange",
-    bgClass:     "from-orange-500/10 to-amber-500/10",
-    prerequisites: ["Basic programming concepts (any language helps)", "Understanding of variables and functions"],
-    jobRoles:    ["Software Development Engineer", "Backend Developer", "Android Developer", "DevOps Engineer"],
-    curriculum: [
-      { phase:"Phase 1 — Java Basics",         days:"Day 01–08", topics:["Setup & Hello World","Variables & Types","Operators","Control Flow","Arrays","Methods"]         },
-      { phase:"Phase 2 — OOP",                 days:"Day 09–18", topics:["Classes & Objects","Constructors","Inheritance","Polymorphism","Abstraction","Interfaces"]      },
-      { phase:"Phase 3 — Java Advanced",       days:"Day 19–28", topics:["Collections (List, Map, Set)","Generics","Exception Handling","File I/O","Streams API"]         },
-      { phase:"Phase 4 — Concurrency",         days:"Day 29–36", topics:["Threads","Runnable","ExecutorService","Synchronized","CompletableFuture"]                      },
-      { phase:"Phase 5 — Interview Prep",      days:"Day 37–45", topics:["FAANG Java Problems","System Design Basics","Spring Boot Intro","Final Project"]                },
-    ],
-    features: [
-      "45-day interview-focused curriculum",
-      "Online Java compiler (JDK 21)",
-      "150+ FAANG-style problems",
-      "Spring Boot introduction",
-      "Mock interview questions",
+    slug: "java", name: "Java", emoji: "☕",
+    tagline: "Enterprise-grade, write once run anywhere",
+    color: "from-orange-500 to-red-500",
+    description: "Java is the backbone of enterprise software, Android development, and backend systems at scale. Used at Google, Amazon, Netflix, and thousands of enterprises globally.",
+    useCases: ["Android Development", "Enterprise Backend (Spring)", "Big Data (Hadoop, Spark)", "Banking & Finance Systems", "Microservices"],
+    careers: ["Java Developer", "Android Developer", "Spring Boot Engineer", "Backend Engineer", "Enterprise Architect"],
+    days: [
+      { day: 1, title: "Java Setup & Hello World",      topics: ["Install JDK", "javac & java commands", "Main method", "System.out.println"], xp: 30, isPro: false },
+      { day: 2, title: "Variables & Data Types",        topics: ["Primitive types", "Reference types", "Type casting", "Scanner class"],       xp: 30, isPro: false },
+      { day: 3, title: "Control Flow",                  topics: ["if/else", "switch", "for/while/do-while", "break/continue"],                  xp: 35, isPro: false },
+      { day: 4, title: "Methods",                       topics: ["Method definition", "Parameters & return types", "Method overloading", "static methods"], xp: 40, isPro: false },
+      { day: 5, title: "Arrays",                        topics: ["1D & 2D arrays", "Array methods", "ArrayList vs Array", "Enhanced for loop"], xp: 40, isPro: false },
     ],
   },
-
+  c: {
+    slug: "c", name: "C", emoji: "🔧",
+    tagline: "The mother of all languages — system programming",
+    color: "from-gray-600 to-gray-800",
+    description: "C is the language that powers operating systems, embedded systems, and performance-critical software. Understanding C gives you deep insight into how computers actually work.",
+    useCases: ["Operating Systems (Linux, Windows)", "Embedded Systems & Firmware", "Compilers & Interpreters", "Game Engines", "Performance-critical applications"],
+    careers: ["Embedded Systems Engineer", "Systems Programmer", "Firmware Developer", "Low-level Game Dev"],
+    days: [
+      { day: 1, title: "C Setup & First Program",       topics: ["Install GCC", "Compile & run", "printf/scanf", "#include"],                  xp: 30, isPro: false },
+      { day: 2, title: "Variables & Data Types",        topics: ["int, char, float, double", "sizeof()", "Format specifiers", "Constants"],    xp: 30, isPro: false },
+      { day: 3, title: "Operators",                     topics: ["Arithmetic, Relational, Logical", "Bitwise operators", "Assignment", "Precedence"], xp: 35, isPro: false },
+      { day: 4, title: "Control Flow",                  topics: ["if/else", "switch", "Loops: for/while/do-while", "break/continue"],           xp: 35, isPro: false },
+      { day: 5, title: "Functions",                     topics: ["Function definition", "Call by value", "Recursion", "Prototypes"],            xp: 40, isPro: false },
+    ],
+  },
   cpp: {
-    name:        "C++",
-    emoji:       "🔧",
-    tagline:     "High-performance systems and competitive programming",
-    description: "C++ is the standard language for Competitive Programming (Codeforces, LeetCode, ICPC). It gives you full control over memory, making it essential for game engines, operating systems, and performance-critical applications.",
-    days:        30,
-    level:       "Intermediate",
-    color:       "indigo",
-    bgClass:     "from-indigo-500/10 to-blue-500/10",
-    prerequisites: ["Knowledge of C basics helps", "Understanding of variables and functions"],
-    jobRoles:    ["Competitive Programmer", "Game Developer", "Systems Engineer", "Quant Developer"],
-    curriculum: [
-      { phase:"Phase 1 — C++ Basics",  days:"Day 01–07", topics:["C++ Syntax","Input/Output","Pointers","References","Arrays","Strings"]             },
-      { phase:"Phase 2 — OOP in C++", days:"Day 08–14", topics:["Classes","Inheritance","Virtual Functions","Templates","STL Containers"]            },
-      { phase:"Phase 3 — STL Mastery",days:"Day 15–22", topics:["vector, map, set, queue","Algorithms (sort, binary_search)","Iterators","Lambda"]    },
-      { phase:"Phase 4 — CP Focus",   days:"Day 23–30", topics:["Complexity Analysis","Greedy","DP Patterns","Graph Algorithms","CP Problem Sets"]    },
-    ],
-    features: [
-      "30-day curriculum with CP focus",
-      "C++17/20 features covered",
-      "Competitive programming patterns",
-      "Codeforces-style problem sets",
-      "Memory management deep dive",
+    slug: "cpp", name: "C++", emoji: "⚙️",
+    tagline: "Performance + OOP — the competitive programmer's choice",
+    color: "from-blue-600 to-purple-600",
+    description: "C++ combines the power of C with object-oriented programming. Used in game development, competitive programming, system software, and performance-critical applications.",
+    useCases: ["Competitive Programming", "Game Development (Unreal Engine)", "Systems Programming", "Embedded Systems", "Financial Trading Systems"],
+    careers: ["C++ Developer", "Game Developer", "Competitive Programmer", "Systems Engineer", "Graphics Programmer"],
+    days: [
+      { day: 1, title: "C++ Basics",                    topics: ["cout/cin", "Namespaces", "Compilation", "First program"],                    xp: 30, isPro: false },
+      { day: 2, title: "Variables & Types",             topics: ["int, float, string, bool", "auto keyword", "Type casting", "References"],   xp: 30, isPro: false },
+      { day: 3, title: "Control Flow",                  topics: ["if/else", "switch", "Loops", "Range-based for"],                            xp: 35, isPro: false },
+      { day: 4, title: "Functions",                     topics: ["Function overloading", "Default parameters", "Inline functions", "Pass by ref"], xp: 40, isPro: false },
+      { day: 5, title: "STL: vectors & strings",        topics: ["vector operations", "string methods", "pair & tuple", "Auto iteration"],    xp: 45, isPro: false },
     ],
   },
 };
 
-/* ─── Fallback for unlisted languages ───────────────────────────────────── */
-function getLanguageData(slug: string) {
-  return LANGUAGE_DATA[slug] ?? {
-    name:        slug.charAt(0).toUpperCase() + slug.slice(1),
-    emoji:       "💻",
-    tagline:     "Structured programming track",
-    description: "Learn this programming language with a structured day-by-day plan from basics to advanced concepts.",
-    days:        30,
-    level:       "Beginner",
-    color:       "indigo",
-    bgClass:     "from-indigo-500/10 to-blue-500/10",
-    prerequisites: ["No prerequisites"],
-    jobRoles:    ["Software Developer"],
-    curriculum:  [
-      { phase:"Phase 1 — Basics",    days:"Day 01–10", topics:["Syntax","Variables","Control Flow","Functions"] },
-      { phase:"Phase 2 — OOP",       days:"Day 11–20", topics:["Classes","Objects","Inheritance","Polymorphism"] },
-      { phase:"Phase 3 — Projects",  days:"Day 21–30", topics:["Real Projects","Best Practices","Career Tips"]  },
-    ],
-    features: ["Structured daily lessons","Online compiler","Practice exercises","Final project"],
-  };
+// Generate stub entries for all other languages
+const OTHER_LANGUAGES = ["rust", "kotlin", "swift", "sql", "dart", "ruby", "go"];
+for (const lang of OTHER_LANGUAGES) {
+  if (!LANGUAGES[lang]) {
+    LANGUAGES[lang] = {
+      slug:    lang,
+      name:    lang.charAt(0).toUpperCase() + lang.slice(1),
+      emoji:   "💻",
+      tagline: `Learn ${lang.charAt(0).toUpperCase() + lang.slice(1)} from scratch to advanced`,
+      color:   "from-brand-500 to-purple-500",
+      description: `Comprehensive ${lang.charAt(0).toUpperCase() + lang.slice(1)} curriculum with a structured 30-day plan. From fundamentals to real-world projects.`,
+      useCases: ["Web Development", "Mobile Development", "Backend Systems", "Open Source Projects"],
+      careers:  ["Software Engineer", "Backend Developer", "Full Stack Developer"],
+      days: Array.from({ length: 30 }, (_, i) => ({
+        day:    i + 1,
+        title:  `Day ${i + 1}: ${i < 5 ? "Fundamentals" : i < 15 ? "Core Concepts" : "Advanced Topics"}`,
+        topics: ["Topic 1", "Topic 2", "Topic 3", "Topic 4"],
+        xp:     30 + Math.min(i * 3, 90),
+        isPro:  i >= 5,
+      })),
+    };
+  }
 }
 
-/* ─── generateMetadata — per language ───────────────────────────────────── */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ language: string }>;
-}): Promise<Metadata> {
+/* ─── Metadata ───────────────────────────────────────────────────────────── */
+export async function generateMetadata({ params }: { params: Promise<{ language: string }> }): Promise<Metadata> {
   const { language } = await params;
-  const data = getLanguageData(language);
-
+  const lang = LANGUAGES[language];
+  if (!lang) return { title: "Not Found" };
   return {
-    title:       `Learn ${data.name} — ${data.days}-Day Plan | LearnVeda`,
-    description: `${data.tagline}. Structured ${data.days}-day learning plan — ${data.level} level. Join 10,000+ students learning ${data.name} on LearnVeda.`,
-    keywords:    [`Learn ${data.name}`, `${data.name} tutorial`, `${data.name} for beginners`],
+    title:       `Learn ${lang.name} — 30-Day Plan on LearnVeda`,
+    description: lang.description,
   };
 }
 
-/* ─── Level Badge Color ──────────────────────────────────────────────────── */
-const LEVEL_COLORS: Record<string, string> = {
-  Beginner:     "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-  Intermediate: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  Advanced:     "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-};
+export function generateStaticParams() {
+  return Object.keys(LANGUAGES).map((language) => ({ language }));
+}
 
-/* ─── Language Track Page Component ─────────────────────────────────────── */
-export default async function LanguagePage({
-  params,
-}: {
-  params: Promise<{ language: string }>;
-}) {
-  const { language } = await params;        // Await params per Next.js 15
-  const data = getLanguageData(language);   // Get language-specific data
+/* ─── Page Component ─────────────────────────────────────────────────────── */
+export default async function ProgrammingLanguagePage({ params }: { params: Promise<{ language: string }> }) {
+  const { language } = await params;
+  const lang = LANGUAGES[language];
+  if (!lang) notFound();
+
+  const freedays = lang.days.filter((d) => !d.isPro).length;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className={`border-b bg-gradient-to-br ${data.bgClass} via-background`}>
-        <div className="container px-4 py-12 md:py-16">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link href="/programming" className="hover:text-foreground transition-colors">Programming</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground font-medium">{data.name}</span>
+      {/* Header */}
+      <div className={`bg-gradient-to-r ${lang.color} text-white py-16`}>
+        <div className="container px-4 md:px-6">
+          <nav className="flex items-center gap-2 text-sm text-white/70 mb-6">
+            <Link href="/programming" className="hover:text-white">Programming</Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-white">{lang.name}</span>
           </nav>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Left — info */}
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-5xl">{lang.emoji}</span>
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${data.bgClass} border flex items-center justify-center text-3xl`}>
-                  {data.emoji}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl sm:text-3xl font-bold">{data.name}</h1>
-                    <Badge className={`text-[10px] ${LEVEL_COLORS[data.level]}`}>{data.level}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{data.tagline}</p>
-                </div>
-              </div>
-
-              <p className="text-muted-foreground leading-relaxed mb-6">{data.description}</p>
-
-              {/* Prerequisites */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-2">Prerequisites</h3>
-                <ul className="space-y-1">
-                  {data.prerequisites.map((p) => (
-                    <li key={p} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Career paths */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Career Paths</h3>
-                <div className="flex flex-wrap gap-2">
-                  {data.jobRoles.map((role) => (
-                    <Badge key={role} variant="outline" className="text-xs">{role}</Badge>
-                  ))}
-                </div>
-              </div>
+              <h1 className="text-3xl md:text-4xl font-bold">Learn {lang.name}</h1>
+              <p className="text-white/80 mt-1">{lang.tagline}</p>
             </div>
-
-            {/* Right — CTA card */}
-            <div className="rounded-2xl border bg-card p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-3xl font-bold">{data.days}</div>
-                  <div className="text-sm text-muted-foreground">Day Structured Plan</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">Free</div>
-                  <div className="text-xs text-muted-foreground">No credit card</div>
-                </div>
-              </div>
-
-              <ul className="space-y-2 mb-6">
-                {data.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Start button links to Day 1 */}
-              <Button asChild className="w-full" size="lg">
-                <Link href={`/programming/${language}/day-01`}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Day 1 — Free
-                </Link>
-              </Button>
-
-              <div className="mt-3 text-center text-xs text-muted-foreground">
-                🔥 Join 10,000+ students learning {data.name}
-              </div>
-            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 mt-6">
+            <Badge className="bg-white/20 text-white border-white/30">{lang.days.length} days</Badge>
+            <Badge className="bg-white/20 text-white border-white/30">{freedays} free days</Badge>
+            <Badge className="bg-white/20 text-white border-white/30">{lang.careers.length} career paths</Badge>
           </div>
         </div>
       </div>
 
-      {/* ── Curriculum Breakdown ─────────────────────────────────────────── */}
-      <div className="container px-4 py-10">
-        <h2 className="text-xl font-semibold mb-6">
-          <Target className="inline h-5 w-5 text-primary mr-2" />
-          {data.days}-Day Curriculum
-        </h2>
-
-        <div className="space-y-4">
-          {data.curriculum.map((phase, idx) => (
-            <div key={idx} className="rounded-2xl border bg-card overflow-hidden">
-              {/* Phase header */}
-              <div className="flex items-center justify-between p-4 border-b bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
-                    {idx + 1}
+      <div className="container px-4 md:px-6 py-10">
+        <div className="grid lg:grid-cols-3 gap-10">
+          {/* ── Day-wise plan ─────────────────────────────────────────── */}
+          <div className="lg:col-span-2">
+            <h2 className="text-xl font-bold text-foreground mb-6">
+              {lang.days.length}-Day Structured Plan
+            </h2>
+            <div className="space-y-2.5">
+              {lang.days.map((day) => (
+                <div
+                  key={day.day}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border bg-card transition-all ${
+                    day.isPro
+                      ? "opacity-80 hover:opacity-100"
+                      : "hover:border-brand-500/30 hover:shadow-sm"
+                  }`}
+                >
+                  {/* Day number */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm ${
+                    day.isPro ? "bg-muted text-muted-foreground" : "bg-brand-500/10 text-brand-500"
+                  }`}>
+                    {day.day}
                   </div>
-                  <div>
-                    <div className="font-semibold text-sm">{phase.phase}</div>
-                    <div className="text-xs text-muted-foreground">{phase.days}</div>
+
+                  {/* Day content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground text-sm">{day.title}</h3>
+                      {day.isPro && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{day.topics.slice(0, 3).join(" · ")}</p>
+                  </div>
+
+                  {/* XP + action */}
+                  <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 text-brand-500 font-medium">
+                      <Zap className="h-3.5 w-3.5" />+{day.xp} XP
+                    </span>
+                    {day.isPro ? (
+                      <Link href="/pricing">
+                        <Badge variant="secondary" className="text-xs cursor-pointer">Pro</Badge>
+                      </Link>
+                    ) : (
+                      <Link href={`/programming/${language}/day-${String(day.day).padStart(2, "0")}`}>
+                        <Play className="h-4 w-4 text-brand-500 hover:text-brand-600" />
+                      </Link>
+                    )}
                   </div>
                 </div>
-                <Link
-                  href={`/programming/${language}/day-${String((idx * 7) + 1).padStart(2, "0")}`}
-                  className="text-xs text-primary flex items-center gap-1 hover:underline"
-                >
-                  Start Phase <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              {/* Topics */}
-              <div className="p-4 flex flex-wrap gap-2">
-                {phase.topics.map((topic) => (
-                  <span key={topic} className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground">
-                    {topic}
-                  </span>
+          {/* ── Sidebar ───────────────────────────────────────────────── */}
+          <div className="space-y-6">
+            {/* CTA */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <h3 className="font-bold text-foreground mb-3">Start Learning</h3>
+              <Link
+                href={`/programming/${language}/day-01`}
+                className="flex items-center gap-2 w-full justify-center py-3 rounded-xl bg-brand-500 text-white font-semibold hover:bg-brand-600 transition-colors"
+              >
+                <Play className="h-4 w-4" />
+                Begin Day 1
+              </Link>
+              <Link
+                href="/ai-tutor"
+                className="flex items-center gap-2 w-full justify-center py-3 rounded-xl border mt-3 font-medium hover:border-brand-500/50 transition-colors text-sm"
+              >
+                Ask AI Tutor
+              </Link>
+            </div>
+
+            {/* Use cases */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-brand-500" />
+                Use Cases
+              </h3>
+              <ul className="space-y-2">
+                {lang.useCases.map((uc) => (
+                  <li key={uc} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                    {uc}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Careers */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                Career Paths
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {lang.careers.map((c) => (
+                  <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-8 rounded-2xl border bg-gradient-to-br from-primary/5 to-background p-6 text-center">
-          <h3 className="font-bold text-lg mb-2">Ready to start your {data.name} journey?</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Join thousands of students who started with Day 1 and made it to Day {data.days}.
-          </p>
-          <Button asChild size="lg">
-            <Link href={`/programming/${language}/day-01`}>
-              <Zap className="h-4 w-4 mr-2" />
-              Begin Day 1 Now
-            </Link>
-          </Button>
+          </div>
         </div>
       </div>
     </div>

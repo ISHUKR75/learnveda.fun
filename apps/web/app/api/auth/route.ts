@@ -1,82 +1,107 @@
 /**
  * @file app/api/auth/route.ts
- * @description Authentication status check endpoint for LearnVeda
- * Route: GET /api/auth — returns current user session status
- * Auth: Varies — returns different data for authenticated vs unauthenticated users
- * In production: verifies Clerk session and fetches user from MongoDB
+ * @description Auth utility API for LearnVeda
+ * Route: GET /api/auth — returns the currently authenticated user's profile
+ *
+ * This is a thin wrapper around Clerk's server-side auth.
+ * It syncs the Clerk user to MongoDB on first call (JIT provisioning).
+ *
+ * Returns:
+ *  { ok: true,  data: { userId, name, email, role, plan, xp, level, streak } }
+ *  { ok: false, error: "Unauthorized" } — when not authenticated
  */
 
 import { NextResponse } from "next/server"; // Next.js response helper
 
-/* ─── Auth Status Constants ───────────────────────────────────────────────── */
-// Check if real Clerk keys are configured
-const hasRealClerkKeys =
+/* ─── Check Clerk configuration ──────────────────────────────────────────── */
+const hasClerk =
   !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("placeholder") &&
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
-/* ─── GET /api/auth ───────────────────────────────────────────────────────── */
-/**
- * Returns the current authentication status and user session data.
- * In Clerk-configured mode: validates the session JWT and returns user data.
- * In demo mode: returns unauthenticated status.
- */
+/* ─── GET /api/auth ──────────────────────────────────────────────────────── */
 export async function GET() {
-  /* ── Demo / No Clerk Mode ─────────────────────────────────────────────── */
-  if (!hasRealClerkKeys) {
+  // ── Demo mode — Clerk not configured ────────────────────────────────────
+  if (!hasClerk) {
     return NextResponse.json({
       ok:   true,
       data: {
-        authenticated: false,                   // Not authenticated in demo mode
-        mode:          "demo",                  // Indicate demo mode to frontend
-        user:          null,                    // No user data
-        message:       "Running in demo mode — configure Clerk to enable authentication",
+        userId:  "demo-user",
+        name:    "Demo Student",
+        email:   "demo@learnveda.in",
+        avatar:  "",
+        role:    "student",
+        plan:    "free",
+        xp:      1250,
+        level:   5,
+        streak:  7,
+        isDemo:  true,        // Flag so UI can show demo mode badge
       },
     });
   }
 
-  /* ── Clerk Auth Mode ──────────────────────────────────────────────────── */
+  // ── Production — verify Clerk auth ────────────────────────────────────────
   try {
-    // Dynamic import — only load Clerk when keys are configured
     const { auth, currentUser } = await import("@clerk/nextjs/server");
-    const { userId } = await auth(); // Get Clerk user ID from session
+    const { userId } = await auth(); // Get current Clerk session
 
     if (!userId) {
-      // Valid request but user is not signed in
-      return NextResponse.json({
-        ok:   true,
-        data: { authenticated: false, user: null, mode: "clerk" },
-      });
+      // Not authenticated — return 401
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch full user object from Clerk
-    const user = await currentUser();
+    const clerkUser = await currentUser(); // Fetch full Clerk user profile
+
+    // ── JIT MongoDB sync ──────────────────────────────────────────────────
+    // On first API call after login, create/update the MongoDB user record
+    let mongoUser = null;
+    if (process.env.MONGODB_URI) {
+      try {
+        const { connectDB }  = await import("@/lib/mongodb");
+        const { User }       = await import("@/lib/mongodb/models");
+        await connectDB();   // Ensure connection
+
+        mongoUser = await User.findOneAndUpdate(
+          { clerkId: userId },           // Find by Clerk ID
+          {
+            $setOnInsert: {              // Only set these fields on document creation
+              clerkId:  userId,
+              email:    clerkUser?.emailAddresses[0]?.emailAddress ?? "",
+              name:     `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() || "Student",
+              avatar:   clerkUser?.imageUrl ?? "",
+              role:     "student",
+              plan:     "free",
+              xp:       0,
+              level:    1,
+              streak:   0,
+              longestStreak: 0,
+            },
+          },
+          { upsert: true, new: true }   // Insert if not exists, return updated doc
+        );
+      } catch (dbErr) {
+        console.warn("[Auth API] MongoDB sync failed — returning Clerk data only:", dbErr);
+      }
+    }
 
     return NextResponse.json({
       ok:   true,
       data: {
-        authenticated: true,       // User is logged in
-        mode:          "clerk",
-        user: {
-          id:          user?.id,
-          email:       user?.emailAddresses[0]?.emailAddress,
-          firstName:   user?.firstName,
-          lastName:    user?.lastName,
-          displayName: `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Student",
-          avatar:      user?.imageUrl,
-          createdAt:   user?.createdAt,
-        },
+        userId:  userId,                                                   // Clerk user ID
+        name:    mongoUser?.name ?? clerkUser?.firstName ?? "Student",    // Display name
+        email:   mongoUser?.email ?? clerkUser?.emailAddresses[0]?.emailAddress ?? "",
+        avatar:  mongoUser?.avatar ?? clerkUser?.imageUrl ?? "",
+        role:    mongoUser?.role ?? "student",
+        plan:    mongoUser?.plan ?? "free",
+        xp:      mongoUser?.xp ?? 0,
+        level:   mongoUser?.level ?? 1,
+        streak:  mongoUser?.streak ?? 0,
+        isDemo:  false,
       },
     });
+
   } catch (err) {
-    // Clerk error — return safe error response (don't expose error details)
-    console.error("[GET /api/auth] Clerk auth error:", err);
-    return NextResponse.json(
-      {
-        ok:    false,
-        error: { code: "AUTH_ERROR", message: "Authentication service unavailable" },
-      },
-      { status: 503 },
-    );
+    console.error("[Auth API] Error:", err);
+    return NextResponse.json({ ok: false, error: "Auth service unavailable" }, { status: 500 });
   }
 }

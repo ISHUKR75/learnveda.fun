@@ -1,0 +1,35 @@
+# =============================================================================
+# docker/Dockerfile.dev
+# LearnVeda — Development Docker image (lightweight, hot-reload)
+#
+# This is NOT for production. Use docker/Dockerfile for production builds.
+# Purpose: fast startup with node_modules cached; source is bind-mounted.
+#
+# Usage (via docker-compose.dev.yml):
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+# =============================================================================
+
+FROM node:20-alpine
+
+# libc6-compat for native modules
+RUN apk add --no-cache libc6-compat
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first (cache layer)
+COPY apps/web/package.json apps/web/package-lock.json ./
+
+# Install all dependencies (including devDependencies for dev server)
+RUN npm ci
+
+# Source code is bind-mounted at runtime (see docker-compose.dev.yml)
+# No COPY needed here — the volume mount overwrites /app
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV NODE_ENV=development
+
+# Start hot-reload dev server
+CMD ["npm", "run", "dev"]

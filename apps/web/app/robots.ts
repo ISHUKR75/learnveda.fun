@@ -1,72 +1,71 @@
 /**
  * @file app/robots.ts
- * @description robots.txt generator for LearnVeda
- * Controls search engine crawler access to pages
- * Next.js automatically serves this at /robots.txt
- * Rules: Index all marketing pages, block all authenticated platform routes
+ * @description Dynamic robots.txt for LearnVeda
+ *
+ * Next.js serves this file at /robots.txt automatically.
+ *
+ * Rules:
+ *  - All public learning content is crawlable (good for SEO)
+ *  - Dashboard, profile settings, admin, and auth routes are blocked
+ *  - API routes are blocked (no value for crawlers)
  */
 
-import { MetadataRoute } from "next"; // Next.js robots type
+import type { MetadataRoute } from "next"; // Next.js robots type
 
-/* ─── Base URL ────────────────────────────────────────────────────────────── */
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://learnveda.in";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://learnveda.in";
 
-/* ─── Robots.txt Generator ────────────────────────────────────────────────── */
-/**
- * Generates robots.txt rules.
- * - Googlebot and all crawlers: allow marketing, block platform (login-required) pages
- * - Sitemap location is included for full crawl discoverability
- */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: "*",        // Apply to all crawlers (Google, Bing, etc.)
+        userAgent: "*",           // Apply to all crawlers by default
+
+        // ── Allow: public learning and marketing content ──────────────────
         allow: [
-          "/",                  // Homepage
-          "/about",             // About page
-          "/blog",              // Blog listing
-          "/blog/",             // All blog posts
-          "/contact",           // Contact page
-          "/events",            // Events listing
-          "/features",          // Features page
-          "/pricing",           // Pricing page
-          "/practice",          // Practice hub
-          "/simulations",       // Simulations catalogue
-          "/test-center",       // Test center
-          "/learn/",            // All class/subject pages (public)
-          "/programming/",      // All programming track pages
-          "/community",         // Community (public view)
-          "/privacy-policy",    // Legal
-          "/terms-of-service",  // Legal
-          "/api/og",            // OG image generation
-          "/api/health",        // Health check (harmless)
+          "/",                   // Homepage
+          "/about",              // About page
+          "/features",           // Features page
+          "/pricing",            // Pricing page
+          "/contact",            // Contact page
+          "/blog",               // Blog articles
+          "/events",             // Events page
+          "/learn",              // Learn hub
+          "/learn/class-",       // All class pages (class-9, class-10, etc.)
+          "/programming",        // Programming hub
+          "/learn/engineering",  // Engineering hub
+          "/core-cs",            // Core CS subjects
+          "/simulations",        // Public simulation showcase
+          "/test-center",        // Test center
+          "/practice",           // Practice page
+          "/explore",            // Explore page
+          "/leaderboard",        // Public leaderboard
+          "/community",          // Community feed (public posts)
+          "/sitemap.xml",        // Sitemap itself
         ],
+
+        // ── Disallow: private, auth, and API routes ───────────────────────
         disallow: [
-          "/dashboard/",        // All dashboard sub-pages (private)
-          "/ai-tutor",          // AI Tutor (platform-only)
-          "/mentorship",        // Mentorship (platform-only)
-          "/live",              // Live Classes (platform-only)
-          "/live-battles/",     // Live Battles (platform-only)
-          "/leaderboard",       // Leaderboard (platform-only)
-          "/compiler",          // Compiler (platform-only)
-          "/search",            // Search (internal)
-          "/notifications/",    // Notifications (private)
-          "/profile/",          // User profiles (private)
-          "/semester/",         // Semester pages (platform-only)
-          "/core-cs/",          // Core CS deep-dives (platform-only)
-          "/community/chat",    // Live chat (platform-only)
-          "/api/auth",          // Auth API (private)
-          "/api/ai",            // AI API (private)
-          "/api/analytics",     // Analytics API (private)
-          "/api/webhooks/",     // Webhook endpoints (private)
+          "/dashboard",          // Student dashboard (requires auth)
+          "/dashboard/*",        // All dashboard sub-pages
+          "/profile/*/settings", // Profile settings (private)
+          "/ai-tutor",           // Platform feature (requires auth)
+          "/compiler",           // Code compiler (platform feature)
+          "/live-battles",       // Live battle arena
+          "/live",               // Live classes
+          "/mentorship",         // Mentorship platform
+          "/sign-in",            // Auth pages
+          "/sign-up",            // Auth pages
+          "/api/*",              // All API routes
+          "/admin/*",            // Admin panel
         ],
       },
       {
-        userAgent: "GPTBot",   // Block OpenAI crawler from content scraping
-        disallow: ["/"],        // Block all routes from GPTBot
+        // Allow Google's image crawler on all pages for image SEO
+        userAgent:  "Googlebot-Image",
+        allow:      ["/"],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`, // Point crawlers to the sitemap
+    host:    BASE_URL,                  // Canonical host declaration
   };
 }

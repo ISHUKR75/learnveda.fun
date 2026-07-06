@@ -2,134 +2,172 @@
  * @file app/(legal)/privacy-policy/page.tsx
  * @description Privacy Policy page for LearnVeda
  * Route: /privacy-policy
- * Full legal privacy policy explaining data collection, usage, and user rights
+ *
+ * Covers:
+ *  - Data collected and why
+ *  - How we use Clerk for authentication
+ *  - MongoDB data storage
+ *  - Analytics tools (PostHog, Google Analytics)
+ *  - User rights and data deletion
+ *  - Contact information
  */
 
-import type { Metadata } from "next";
-import { Navbar } from "@/components/navigation/navbar";
-import { Footer } from "@/components/navigation/footer";
+import type { Metadata } from "next";       // SEO metadata type
+import { Navbar }  from "@/components/navigation/navbar"; // Top navigation
+import { Footer }  from "@/components/navigation/footer"; // Site footer
+import { Shield, Eye, Database, Lock, Mail, Users, FileText, Globe } from "lucide-react"; // Icons
 
+/* ─── Page SEO Metadata ──────────────────────────────────────────────────── */
 export const metadata: Metadata = {
   title:       "Privacy Policy — LearnVeda",
-  description: "LearnVeda Privacy Policy. Learn how we collect, use, and protect your personal information.",
-  robots:      { index: true, follow: true },
+  description: "LearnVeda's privacy policy. Learn how we collect, use, and protect your data. We are committed to your privacy and data security.",
+  robots:      { index: true, follow: true }, // Legal pages should be indexed
 };
 
+/* ─── Section Component ──────────────────────────────────────────────────── */
+// Reusable section with icon, title, and content
+function PolicySection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-12">
+      {/* Section header with icon */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 rounded-lg bg-brand-500/10 text-brand-500">
+          <Icon className="h-5 w-5" /> {/* Section icon */}
+        </div>
+        <h2 className="text-xl font-bold text-foreground">{title}</h2>
+      </div>
+      {/* Section content */}
+      <div className="pl-14 text-muted-foreground leading-relaxed space-y-3">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Privacy Policy Page ────────────────────────────────────────────────── */
 export default function PrivacyPolicyPage() {
-  const lastUpdated = "July 4, 2025"; // Last policy update date
+  const lastUpdated = "January 1, 2025"; // Last update date
 
   return (
     <>
-      <Navbar />
-      <main className="py-16 md:py-24">
-        <div className="container px-4 md:px-6 max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="mb-10">
-            <h1 className="text-4xl font-extrabold tracking-tight mb-3">Privacy Policy</h1>
-            <p className="text-muted-foreground text-sm">Last updated: {lastUpdated}</p>
+      <Navbar /> {/* Navigation bar */}
+
+      <main className="min-h-screen bg-background">
+        {/* ── Hero Header ───────────────────────────────────────────────── */}
+        <div className="border-b bg-muted/30 py-16">
+          <div className="container max-w-4xl px-4 md:px-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-xl bg-brand-500 text-white">
+                <Shield className="h-7 w-7" /> {/* Privacy shield icon */}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Privacy Policy</h1>
+                <p className="text-muted-foreground mt-1">Last updated: {lastUpdated}</p>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              At LearnVeda, we are committed to protecting your privacy. This policy explains what data
+              we collect, how we use it, and your rights as a user of our platform.
+            </p>
           </div>
+        </div>
 
-          {/* Policy content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed">
+        {/* ── Policy Content ────────────────────────────────────────────── */}
+        <div className="container max-w-4xl px-4 md:px-6 py-16">
+          <PolicySection icon={Eye} title="Information We Collect">
+            <p>We collect the following information to provide and improve our services:</p>
+            <ul className="list-disc pl-6 space-y-2 mt-2">
+              <li><strong>Account information</strong> — name, email address, and profile photo provided through Clerk authentication (Google, email/password)</li>
+              <li><strong>Learning data</strong> — chapters completed, quiz scores, time spent learning, streak data, and XP earned</li>
+              <li><strong>Device information</strong> — browser type, operating system, device type (for optimizing the experience)</li>
+              <li><strong>Usage analytics</strong> — pages visited, features used, click patterns (anonymized)</li>
+              <li><strong>Community content</strong> — posts, comments, and questions you submit publicly</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">1. Introduction</h2>
-              <p className="text-muted-foreground">
-                Welcome to LearnVeda (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website at learnveda.in and use our services.
-              </p>
-            </section>
+          <PolicySection icon={Database} title="How We Use Your Data">
+            <ul className="list-disc pl-6 space-y-2">
+              <li>To provide and personalize your learning experience</li>
+              <li>To calculate your XP, level, and streak progress</li>
+              <li>To show you on the leaderboard (only public nickname and stats)</li>
+              <li>To send you important updates about your learning progress and new content</li>
+              <li>To improve platform features based on aggregated usage patterns</li>
+              <li>To comply with legal obligations</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">2. Information We Collect</h2>
-              <p className="text-muted-foreground mb-3">We collect information you provide directly to us:</p>
-              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                <li><strong>Account Information:</strong> Name, email address, password (hashed), and profile details when you register.</li>
-                <li><strong>Learning Data:</strong> Course progress, quiz scores, practice results, XP earned, and badges unlocked.</li>
-                <li><strong>Usage Data:</strong> Pages visited, features used, time spent on content, and interaction patterns.</li>
-                <li><strong>Device Information:</strong> IP address, browser type, device type, and operating system.</li>
-                <li><strong>Communications:</strong> Messages you send us via the contact form or email.</li>
-              </ul>
-            </section>
+          <PolicySection icon={Lock} title="Data Security">
+            <p>
+              We take security seriously. Your data is protected by:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 mt-2">
+              <li><strong>Clerk authentication</strong> — industry-standard OAuth 2.0 and JWT tokens handle all authentication. We never store passwords</li>
+              <li><strong>HTTPS everywhere</strong> — all data in transit is encrypted with TLS 1.3</li>
+              <li><strong>MongoDB encryption</strong> — data at rest is encrypted using AES-256</li>
+              <li><strong>Rate limiting</strong> — API routes are rate-limited to prevent abuse</li>
+              <li><strong>Input validation</strong> — all user input is sanitized before processing</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">3. How We Use Your Information</h2>
-              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                <li>To provide, operate, and maintain the LearnVeda platform.</li>
-                <li>To personalize your learning experience and show relevant content.</li>
-                <li>To track your progress and provide accurate analytics on your dashboard.</li>
-                <li>To send important account and service notifications.</li>
-                <li>To respond to your support requests and inquiries.</li>
-                <li>To improve our platform based on aggregated usage analytics.</li>
-                <li>To prevent fraud, abuse, and security threats.</li>
-              </ul>
-            </section>
+          <PolicySection icon={Globe} title="Third-Party Services">
+            <p>We use trusted third-party services to operate LearnVeda:</p>
+            <ul className="list-disc pl-6 space-y-2 mt-2">
+              <li><strong>Clerk</strong> — authentication and user management (<a href="https://clerk.com/privacy" className="text-brand-500 hover:underline">Clerk Privacy Policy</a>)</li>
+              <li><strong>MongoDB Atlas</strong> — secure cloud database hosting</li>
+              <li><strong>Cloudinary</strong> — image and video storage and optimization</li>
+              <li><strong>Resend</strong> — transactional email delivery</li>
+              <li><strong>Vercel</strong> — hosting and edge deployment</li>
+              <li><strong>PostHog</strong> — anonymous usage analytics</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">4. Data We Do NOT Collect or Sell</h2>
-              <p className="text-muted-foreground">
-                We <strong>never</strong> sell your personal data to third parties. We do not display advertisements. We do not track you across other websites. We do not share your individual data with educational institutions, employers, or marketers without your explicit consent.
-              </p>
-            </section>
+          <PolicySection icon={Users} title="Your Rights">
+            <p>You have the following rights regarding your personal data:</p>
+            <ul className="list-disc pl-6 space-y-2 mt-2">
+              <li><strong>Access</strong> — request a copy of all data we hold about you</li>
+              <li><strong>Correction</strong> — update your profile information at any time in Settings</li>
+              <li><strong>Deletion</strong> — delete your account and all associated data from the Settings page. Community posts may be anonymized rather than deleted</li>
+              <li><strong>Portability</strong> — export your learning progress data as a CSV or JSON file</li>
+              <li><strong>Opt-out</strong> — opt out of non-essential emails at any time</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">5. Data Storage & Security</h2>
-              <p className="text-muted-foreground">
-                Your data is stored on secure servers with AES-256 encryption at rest and TLS 1.3 encryption in transit. Passwords are hashed using Argon2 — we never store plain-text passwords. We conduct regular security audits and follow OWASP security best practices.
-              </p>
-            </section>
+          <PolicySection icon={FileText} title="Cookies">
+            <p>
+              We use essential cookies only — for maintaining your session and theme preference.
+              We do not use third-party advertising cookies. You can disable cookies in your browser
+              settings, but this may affect your ability to stay signed in.
+            </p>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">6. Third-Party Services</h2>
-              <p className="text-muted-foreground mb-3">We use the following trusted third-party services:</p>
-              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                <li><strong>Clerk:</strong> Authentication and user management.</li>
-                <li><strong>MongoDB Atlas:</strong> Primary database, hosted securely.</li>
-                <li><strong>Cloudinary:</strong> Image and video storage.</li>
-                <li><strong>Resend:</strong> Transactional email delivery.</li>
-                <li><strong>Sentry:</strong> Error tracking and monitoring (anonymized).</li>
-              </ul>
-            </section>
+          <PolicySection icon={Mail} title="Contact Us">
+            <p>
+              If you have any questions about this privacy policy or how we handle your data,
+              please contact us:
+            </p>
+            <ul className="list-none space-y-2 mt-2">
+              <li>📧 <strong>Email:</strong> <a href="mailto:privacy@learnveda.in" className="text-brand-500 hover:underline">privacy@learnveda.in</a></li>
+              <li>📍 <strong>Address:</strong> LearnVeda, India</li>
+            </ul>
+          </PolicySection>
 
-            <section>
-              <h2 className="text-xl font-bold mb-3">7. Children&apos;s Privacy</h2>
-              <p className="text-muted-foreground">
-                LearnVeda serves students including minors. We do not knowingly collect sensitive personal information from children under 13 without parental consent. Parents can request account deletion or data export for their child by emailing privacy@learnveda.in.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold mb-3">8. Your Rights</h2>
-              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                <li><strong>Access:</strong> Request a copy of all data we hold about you.</li>
-                <li><strong>Correction:</strong> Update or correct inaccurate data.</li>
-                <li><strong>Deletion:</strong> Request deletion of your account and all associated data.</li>
-                <li><strong>Export:</strong> Download your learning data in a portable format.</li>
-                <li><strong>Objection:</strong> Opt out of any analytics or communications.</li>
-              </ul>
-              <p className="text-muted-foreground mt-3">
-                To exercise any of these rights, email privacy@learnveda.in.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold mb-3">9. Cookies</h2>
-              <p className="text-muted-foreground">
-                We use only essential cookies (session management, authentication) and analytics cookies (anonymized, opt-out available). We do not use advertising or tracking cookies. You can manage cookie preferences from our cookie consent banner.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold mb-3">10. Contact Us</h2>
-              <p className="text-muted-foreground">
-                For any privacy-related questions or requests, contact us at:<br />
-                <strong>Email:</strong> privacy@learnveda.in<br />
-                <strong>GitHub:</strong> <a href="https://github.com/ISHUKR75/LearnVeda" className="text-brand-500 hover:underline">github.com/ISHUKR75/LearnVeda</a>
-              </p>
-            </section>
+          {/* Last updated notice */}
+          <div className="mt-8 p-4 rounded-lg border bg-muted/50 text-sm text-muted-foreground">
+            This privacy policy was last updated on <strong>{lastUpdated}</strong>. We will notify
+            registered users via email if we make significant changes to this policy.
           </div>
         </div>
       </main>
-      <Footer />
+
+      <Footer /> {/* Site footer */}
     </>
   );
 }

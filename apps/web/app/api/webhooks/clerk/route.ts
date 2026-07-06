@@ -1,148 +1,140 @@
 /**
  * @file app/api/webhooks/clerk/route.ts
- * @description Clerk webhook handler for user lifecycle events
+ * @description Clerk webhook handler for LearnVeda
  * Route: POST /api/webhooks/clerk
- * Handles: user.created, user.updated, user.deleted events
- * Security: Fails closed — rejects requests when CLERK_WEBHOOK_SECRET is configured but verification fails
- * In production: syncs Clerk users to MongoDB users collection
+ *
+ * Receives Clerk lifecycle events and syncs them to MongoDB:
+ *  - user.created → create User document + send welcome email
+ *  - user.updated → update User name, avatar, email
+ *  - user.deleted → soft-delete User (isActive: false)
+ *  - session.created → update lastActiveAt
+ *
+ * Security:
+ *  - Verifies Svix signature (CLERK_WEBHOOK_SECRET required)
+ *  - Returns 401 for unverified payloads
+ *  - Fail-closed: unknown events are logged and ignored, not rejected
  */
 
-import { NextRequest, NextResponse } from "next/server"; // Next.js helpers
+import { NextRequest, NextResponse } from "next/server"; // Next.js server types
 
-/* ─── Clerk Webhook Event Types ───────────────────────────────────────────── */
-type ClerkUserCreatedData = {
-  id:              string;
-  email_addresses: { email_address: string; id: string }[];
-  first_name?:     string;
-  last_name?:      string;
-  username?:       string;
-  image_url?:      string;
-};
+/* ─── POST /api/webhooks/clerk ───────────────────────────────────────────── */
+export async function POST(req: NextRequest) {
+  // ── Guard: webhook secret must be configured ───────────────────────────
+  if (!process.env.CLERK_WEBHOOK_SECRET) {
+    console.error("[Clerk Webhook] CLERK_WEBHOOK_SECRET is not set — rejecting all webhooks");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
 
-type ClerkWebhookEvent =
-  | { type: "user.created"; data: ClerkUserCreatedData }
-  | { type: "user.updated"; data: { id: string; first_name?: string; last_name?: string; username?: string } }
-  | { type: "user.deleted"; data: { id: string; deleted: true } };
+  try {
+    // ── Verify Svix signature ─────────────────────────────────────────────
+    const svixId        = req.headers.get("svix-id");         // Unique message ID
+    const svixTimestamp = req.headers.get("svix-timestamp");  // Message timestamp
+    const svixSignature = req.headers.get("svix-signature");  // HMAC signature
 
-/* ─── Webhook Secret Status ───────────────────────────────────────────────── */
-// When the secret is configured, signature verification is REQUIRED (fail-closed)
-// When NOT configured (demo mode), log a warning and accept requests
-const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-const IS_DEMO_MODE   = !WEBHOOK_SECRET;
-
-/* ─── POST /api/webhooks/clerk ────────────────────────────────────────────── */
-export async function POST(request: NextRequest) {
-  /* ── 1. Read raw body (needed for signature verification) ───────────────── */
-  const rawBody = await request.text(); // Read as text — BEFORE any other body access
-
-  /* ── 2. Signature verification ──────────────────────────────────────────── */
-  if (!IS_DEMO_MODE) {
-    // PRODUCTION: Verify Svix webhook signature — fail-closed if verification fails
-    const svixId        = request.headers.get("svix-id")        || "";
-    const svixTimestamp = request.headers.get("svix-timestamp") || "";
-    const svixSignature = request.headers.get("svix-signature") || "";
-
-    // Reject requests missing Svix headers outright
     if (!svixId || !svixTimestamp || !svixSignature) {
-      console.error("[Clerk Webhook] Missing Svix headers — rejecting request");
-      return NextResponse.json({ error: "Missing webhook headers" }, { status: 400 });
+      return NextResponse.json({ error: "Missing Svix headers" }, { status: 401 });
     }
+
+    // Dynamically import svix to avoid bundling it unnecessarily
+    const { Webhook } = await import("svix");
+    const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET); // Create verifier
+
+    const body    = await req.text();         // Read raw body for signature verification
+    let payload: Record<string, unknown>;
 
     try {
-      // In production (with svix installed):
-      // const { Webhook } = await import("svix");
-      // const wh = new Webhook(WEBHOOK_SECRET!);
-      // wh.verify(rawBody, { "svix-id": svixId, "svix-timestamp": svixTimestamp, "svix-signature": svixSignature });
-      // If verify() throws, the signature is invalid and the catch block rejects the request
-
-      // TODO: Install svix package and uncomment the above when CLERK_WEBHOOK_SECRET is set
-      console.warn("[Clerk Webhook] CLERK_WEBHOOK_SECRET set but svix verification not yet installed");
-    } catch (err) {
-      console.error("[Clerk Webhook] Signature verification FAILED — rejecting request:", err);
-      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 }); // Fail-closed
+      // verify() throws if the signature is invalid
+      payload = wh.verify(body, {
+        "svix-id":        svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      }) as Record<string, unknown>;
+    } catch {
+      console.warn("[Clerk Webhook] Signature verification failed — rejecting request");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
-  } else {
-    // Demo mode — no secret configured; accept but warn in logs
-    console.warn("[Clerk Webhook] Running in DEMO MODE — signature verification SKIPPED. Set CLERK_WEBHOOK_SECRET in production.");
-  }
 
-  /* ── 3. Parse event body ────────────────────────────────────────────────── */
-  let event: ClerkWebhookEvent;
-  try {
-    event = JSON.parse(rawBody) as ClerkWebhookEvent;
-  } catch {
-    console.error("[Clerk Webhook] Failed to parse JSON body");
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+    const eventType = payload.type as string;  // e.g. "user.created"
+    const data      = payload.data as Record<string, unknown>; // Event payload
 
-  /* ── 4. Process events ──────────────────────────────────────────────────── */
-  try {
-    switch (event.type) {
+    // ── Connect to MongoDB ────────────────────────────────────────────────
+    const { connectDB } = await import("@/lib/mongodb");
+    const { User }      = await import("@/lib/mongodb/models");
+    await connectDB();
 
+    // ── Handle each event type ────────────────────────────────────────────
+    switch (eventType) {
       case "user.created": {
-        const { id: clerkId, email_addresses, first_name, last_name, username, image_url } = event.data;
-        const email       = email_addresses[0]?.email_address || "";
-        const displayName = `${first_name || ""} ${last_name || ""}`.trim() || "New Student";
+        // New user registered via Clerk — create a MongoDB user record
+        const email  = (data.email_addresses as {email_address: string}[])?.[0]?.email_address ?? "";
+        const name   = `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || "Student";
+        const avatar = (data.image_url as string) ?? "";
+        const userId = data.id as string;
 
-        console.log(`[Clerk Webhook] New user: ${clerkId} — ${email}`);
+        await User.findOneAndUpdate(
+          { clerkId: userId },
+          { $setOnInsert: { clerkId: userId, name, email, avatar, role: "student", plan: "free" } },
+          { upsert: true }             // Create if doesn't exist, skip if already created via JIT
+        );
 
-        // In production (MongoDB connected):
-        // const db = await getMongoClient();
-        // await db.collection("users").insertOne({
-        //   clerkId, email,
-        //   username: username || email.split("@")[0],
-        //   displayName, imageUrl: image_url,
-        //   role: "student", grade: "class-11",
-        //   plan: "free",
-        //   createdAt: new Date(), updatedAt: new Date(),
-        // });
-        // await db.collection("user_stats").insertOne({
-        //   userId: clerkId, xp: 0, level: 1, streak: 0,
-        //   chaptersCompleted: 0, battlesWon: 0, battlesPlayed: 0,
-        //   lastActiveAt: new Date(),
-        // });
-        void username; void image_url; // Suppress unused variable warning in demo mode
+        // Send welcome email asynchronously (don't await — webhook must respond fast)
+        if (process.env.RESEND_API_KEY && email) {
+          import("@/lib/email").then(({ sendEmail, welcomeEmailHtml }) => {
+            sendEmail({ to: email, subject: "Welcome to LearnVeda! 🎉", html: welcomeEmailHtml(name) });
+          }).catch(console.error);
+        }
+
+        console.log(`[Clerk Webhook] user.created — synced ${email} to MongoDB`);
         break;
       }
 
       case "user.updated": {
-        const { id: clerkId, first_name, last_name, username } = event.data;
-        const displayName = `${first_name || ""} ${last_name || ""}`.trim();
-        console.log(`[Clerk Webhook] User updated: ${clerkId} — "${displayName}"`);
+        // User updated their Clerk profile — sync changes to MongoDB
+        const userId  = data.id as string;
+        const name    = `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim();
+        const email   = (data.email_addresses as {email_address: string}[])?.[0]?.email_address ?? "";
+        const avatar  = (data.image_url as string) ?? "";
 
-        // In production:
-        // await db.collection("users").updateOne(
-        //   { clerkId },
-        //   { $set: { displayName, username, updatedAt: new Date() } },
-        // );
-        void (username); // Suppress unused variable warning in demo mode
+        await User.findOneAndUpdate(
+          { clerkId: userId },
+          { $set: { name, email, avatar } }  // Update profile fields
+        );
+        console.log(`[Clerk Webhook] user.updated — synced ${userId}`);
         break;
       }
 
       case "user.deleted": {
-        const { id: clerkId } = event.data;
-        console.log(`[Clerk Webhook] User deleted: ${clerkId}`);
-
-        // In production: GDPR-compliant soft delete
-        // await db.collection("users").updateOne(
-        //   { clerkId },
-        //   { $set: { deleted: true, deletedAt: new Date(), email: `deleted_${clerkId}@deleted`, displayName: "Deleted User" } },
-        // );
+        // User deleted their Clerk account — soft-delete in MongoDB
+        const userId = data.id as string;
+        await User.findOneAndUpdate(
+          { clerkId: userId },
+          { $set: { isActive: false } }      // Soft-delete — preserve data for analytics
+        );
+        console.log(`[Clerk Webhook] user.deleted — deactivated ${userId}`);
         break;
       }
 
-      default: {
-        // Unknown event type — log and acknowledge (don't fail)
-        const unknownType = (event as { type: string }).type;
-        console.log(`[Clerk Webhook] Unhandled event type: ${unknownType}`);
+      case "session.created": {
+        // User signed in — update lastActiveAt for streak tracking
+        const userId = (data.user_id ?? data.id) as string;
+        if (userId) {
+          await User.findOneAndUpdate(
+            { clerkId: userId },
+            { $set: { lastActiveAt: new Date() } }  // Record activity timestamp
+          );
+        }
+        break;
       }
+
+      default:
+        // Unhandled event types are logged but not rejected
+        console.info(`[Clerk Webhook] Unhandled event type: ${eventType}`);
     }
 
-    return NextResponse.json({ ok: true, received: true }); // Acknowledge the webhook
+    return NextResponse.json({ ok: true, event: eventType });
 
   } catch (err) {
-    console.error("[Clerk Webhook] Error processing event:", err);
-    // Return 500 so Clerk retries the webhook (idempotent handling required in production)
-    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+    console.error("[Clerk Webhook] Unhandled error:", err);
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

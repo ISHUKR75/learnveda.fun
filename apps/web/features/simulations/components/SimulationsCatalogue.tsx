@@ -1,146 +1,256 @@
 /**
  * @file features/simulations/components/SimulationsCatalogue.tsx
- * @description Full simulations catalogue with category filters and search
- * Displays all 140+ simulations across Physics, Chemistry, Biology, DSA, Networks, etc.
+ * @description Full simulations catalogue for the /simulations page
+ *
+ * Shows all 140+ interactive simulations grouped by category:
+ *  - Physics (Newton's laws, waves, optics, thermodynamics)
+ *  - Chemistry (reactions, periodic table, molecular bonding)
+ *  - Biology (cell division, genetics, ecosystems)
+ *  - Mathematics (geometry, calculus visualizer, statistics)
+ *  - DSA (sorting, trees, graphs, DP)
+ *  - Computer Science (CPU, memory, networks, OS)
+ *  - Electronics (circuits, logic gates)
+ *
+ * Each simulation card has: title, category, difficulty, duration,
+ * and a "Launch" button linking to the interactive viewer.
  */
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { FlaskConical, Search, Play, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import {
+  FlaskConical, Atom, Leaf, Calculator,
+  Code2, Cpu, Zap, Play, Filter, Search, Star,
+} from "lucide-react";
 import { Badge }  from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Input }  from "@/components/ui/input";
 
-/* ─── Simulation Data ────────────────────────────────────────────────────── */
-const simulations = [
-  // Physics
-  { id: "newtons-laws",         name: "Newton's Laws of Motion",   category: "Physics",  class: "Class 9",  emoji: "🌍", href: "/simulations/physics/newtons-laws"        },
-  { id: "projectile",           name: "Projectile Motion",          category: "Physics",  class: "Class 11", emoji: "🏹", href: "/simulations/physics/projectile"           },
-  { id: "electromagnetic",      name: "Electromagnetic Induction",  category: "Physics",  class: "Class 12", emoji: "⚡", href: "/simulations/physics/em-induction"         },
-  { id: "waves",                name: "Wave Properties",            category: "Physics",  class: "Class 11", emoji: "🌊", href: "/simulations/physics/waves"                },
-  { id: "optics-refraction",    name: "Light Refraction & Lenses",  category: "Physics",  class: "Class 10", emoji: "🔍", href: "/simulations/physics/refraction"           },
-  { id: "simple-pendulum",      name: "Simple Pendulum",            category: "Physics",  class: "Class 9",  emoji: "🔔", href: "/simulations/physics/pendulum"             },
+/* ─── Types ──────────────────────────────────────────────────────────────── */
+interface Simulation {
+  id:         string;
+  title:      string;
+  category:   SimCategory;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  duration:   string;      // e.g. "10 min"
+  class?:     string;      // CBSE class if applicable
+  tags:       string[];
+  isPremium:  boolean;     // Requires Pro plan
+}
 
-  // Chemistry
-  { id: "molecular-bonding",    name: "Molecular Bonding",          category: "Chemistry",class: "Class 11", emoji: "⚗️", href: "/simulations/chemistry/molecular-bonding"  },
-  { id: "titration",            name: "Acid-Base Titration",        category: "Chemistry",class: "Class 12", emoji: "🧪", href: "/simulations/chemistry/titration"          },
-  { id: "electrochemistry",     name: "Electrochemical Cell",       category: "Chemistry",class: "Class 12", emoji: "🔋", href: "/simulations/chemistry/electrochemistry"   },
-  { id: "periodic-trends",      name: "Periodic Table Trends",      category: "Chemistry",class: "Class 11", emoji: "📊", href: "/simulations/chemistry/periodic-trends"    },
+type SimCategory = "physics" | "chemistry" | "biology" | "mathematics" | "dsa" | "cs" | "electronics";
 
-  // Biology
-  { id: "cell-division",        name: "Cell Division (Mitosis)",    category: "Biology",  class: "Class 11", emoji: "🧬", href: "/simulations/biology/cell-division"        },
-  { id: "photosynthesis",       name: "Photosynthesis Process",     category: "Biology",  class: "Class 10", emoji: "🌿", href: "/simulations/biology/photosynthesis"       },
-  { id: "dna-replication",      name: "DNA Replication",            category: "Biology",  class: "Class 12", emoji: "🔬", href: "/simulations/biology/dna-replication"      },
-
-  // DSA
-  { id: "bubble-sort",          name: "Bubble Sort Visualizer",     category: "DSA",      class: "CS",       emoji: "🫧", href: "/simulations/dsa/bubble-sort"              },
-  { id: "merge-sort",           name: "Merge Sort Animation",       category: "DSA",      class: "CS",       emoji: "🔀", href: "/simulations/dsa/merge-sort"               },
-  { id: "bfs-dfs",              name: "BFS & DFS Graph Traversal",  category: "DSA",      class: "CS",       emoji: "🗺️", href: "/simulations/dsa/bfs-dfs"                  },
-  { id: "bst",                  name: "Binary Search Tree",         category: "DSA",      class: "CS",       emoji: "🌳", href: "/simulations/dsa/bst"                      },
-  { id: "dijkstra",             name: "Dijkstra's Algorithm",       category: "DSA",      class: "CS",       emoji: "🛣️", href: "/simulations/dsa/dijkstra"                 },
-  { id: "dp-knapsack",          name: "Dynamic Programming — Knapsack", category: "DSA",  class: "CS",       emoji: "🎒", href: "/simulations/dsa/dp-knapsack"              },
-  { id: "sorting-race",         name: "Sorting Algorithm Race",     category: "DSA",      class: "CS",       emoji: "🏎️", href: "/simulations/dsa/sorting-race"             },
-
-  // Networks
-  { id: "tcp-ip",               name: "TCP/IP Packet Journey",      category: "Networks", class: "CS",       emoji: "🌐", href: "/simulations/networks/tcp-ip"              },
-  { id: "dns-resolution",       name: "DNS Resolution Process",     category: "Networks", class: "CS",       emoji: "📡", href: "/simulations/networks/dns"                 },
-  { id: "osi-layers",           name: "OSI Layer Walkthrough",      category: "Networks", class: "CS",       emoji: "🔗", href: "/simulations/networks/osi"                 },
-
-  // OS
-  { id: "cpu-cycle",            name: "CPU Execution Cycle",        category: "OS",       class: "CS",       emoji: "💾", href: "/simulations/os/cpu-cycle"                 },
-  { id: "process-scheduling",   name: "Process Scheduling (FCFS/SJF)", category: "OS",   class: "CS",       emoji: "📋", href: "/simulations/os/process-scheduling"        },
-  { id: "memory-management",    name: "Memory Management & Paging", category: "OS",       class: "CS",       emoji: "🗃️", href: "/simulations/os/memory-management"          },
-
-  // Digital Logic
-  { id: "logic-gates",          name: "Logic Gates Simulator",      category: "Circuits", class: "CS",       emoji: "🔌", href: "/simulations/circuits/logic-gates"          },
-  { id: "flip-flops",           name: "Flip-Flops & Registers",     category: "Circuits", class: "CS",       emoji: "🔁", href: "/simulations/circuits/flip-flops"           },
+/* ─── Category Config ────────────────────────────────────────────────────── */
+const CATEGORIES: { id: SimCategory | "all"; label: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
+  { id: "all",         label: "All",         icon: Filter,    color: "text-foreground"     },
+  { id: "physics",     label: "Physics",     icon: Atom,      color: "text-blue-500"       },
+  { id: "chemistry",   label: "Chemistry",   icon: FlaskConical, color: "text-green-500"  },
+  { id: "biology",     label: "Biology",     icon: Leaf,      color: "text-emerald-500"   },
+  { id: "mathematics", label: "Mathematics", icon: Calculator,color: "text-purple-500"    },
+  { id: "dsa",         label: "DSA",         icon: Code2,     color: "text-orange-500"    },
+  { id: "cs",          label: "Comp. Sci",   icon: Cpu,       color: "text-brand-500"     },
+  { id: "electronics", label: "Electronics", icon: Zap,       color: "text-yellow-500"    },
 ];
 
-/* ─── Categories ─────────────────────────────────────────────────────────── */
-const categories = ["All", "Physics", "Chemistry", "Biology", "DSA", "Networks", "OS", "Circuits"];
+/* ─── Simulations Data ───────────────────────────────────────────────────── */
+const SIMULATIONS: Simulation[] = [
+  // Physics
+  { id: "newton-laws",        title: "Newton's Laws of Motion",       category: "physics",   difficulty: "Beginner",     duration: "15 min", class: "Class 9",  tags: ["Force", "Motion"],       isPremium: false },
+  { id: "projectile-motion",  title: "Projectile Motion Simulator",   category: "physics",   difficulty: "Intermediate", duration: "12 min", class: "Class 11", tags: ["Kinematics"],            isPremium: false },
+  { id: "pendulum",           title: "Simple Pendulum & SHM",         category: "physics",   difficulty: "Intermediate", duration: "10 min", class: "Class 11", tags: ["SHM", "Oscillation"],    isPremium: true  },
+  { id: "wave-interference",  title: "Wave Interference & Diffraction",category: "physics",  difficulty: "Advanced",     duration: "20 min", class: "Class 12", tags: ["Waves", "Optics"],       isPremium: true  },
+  { id: "electric-field",     title: "Electric Field Visualizer",     category: "physics",   difficulty: "Intermediate", duration: "15 min", class: "Class 12", tags: ["Electrostatics"],        isPremium: true  },
+  { id: "magnetic-field",     title: "Magnetic Field Lines",          category: "physics",   difficulty: "Intermediate", duration: "12 min", class: "Class 12", tags: ["Magnetism"],             isPremium: true  },
+  { id: "ray-optics",         title: "Ray Optics: Lens & Mirror",     category: "physics",   difficulty: "Beginner",     duration: "10 min", class: "Class 10", tags: ["Optics", "Light"],       isPremium: false },
+  { id: "resistor-circuit",   title: "Resistor Circuits (Ohm's Law)", category: "physics",   difficulty: "Beginner",     duration: "8 min",  class: "Class 10", tags: ["Electricity", "Circuit"], isPremium: false },
+  // Chemistry
+  { id: "periodic-table",     title: "Interactive Periodic Table",    category: "chemistry", difficulty: "Beginner",     duration: "20 min", class: "Class 9",  tags: ["Elements", "Properties"], isPremium: false },
+  { id: "molecular-bonding",  title: "Molecular Bonding Visualizer",  category: "chemistry", difficulty: "Intermediate", duration: "15 min", class: "Class 11", tags: ["Bonding", "Structure"],   isPremium: true  },
+  { id: "acid-base",          title: "Acid-Base Titration Lab",       category: "chemistry", difficulty: "Intermediate", duration: "12 min", class: "Class 11", tags: ["Acids", "Bases"],         isPremium: true  },
+  { id: "reaction-simulator", title: "Chemical Reaction Simulator",   category: "chemistry", difficulty: "Advanced",     duration: "18 min", class: "Class 12", tags: ["Reactions", "Kinetics"],  isPremium: true  },
+  // Biology
+  { id: "cell-division",      title: "Cell Division: Mitosis & Meiosis", category: "biology", difficulty: "Beginner",   duration: "12 min", class: "Class 9",  tags: ["Cell", "DNA"],            isPremium: false },
+  { id: "genetics",           title: "Mendelian Genetics Simulator",  category: "biology",   difficulty: "Intermediate", duration: "15 min", class: "Class 12", tags: ["Genetics", "Heredity"],   isPremium: true  },
+  { id: "ecosystem",          title: "Ecosystem Food Web",            category: "biology",   difficulty: "Beginner",     duration: "10 min", class: "Class 9",  tags: ["Ecology", "Food Chain"],  isPremium: false },
+  { id: "photosynthesis",     title: "Photosynthesis Process",        category: "biology",   difficulty: "Beginner",     duration: "8 min",  class: "Class 10", tags: ["Plants", "Energy"],       isPremium: false },
+  // Mathematics
+  { id: "geometry-visualizer",title: "Geometry Visualizer",           category: "mathematics", difficulty: "Beginner",  duration: "15 min", class: "Class 9",  tags: ["Shapes", "Theorems"],     isPremium: false },
+  { id: "calculus-limits",    title: "Calculus: Limits & Derivatives",category: "mathematics", difficulty: "Advanced",  duration: "25 min", class: "Class 12", tags: ["Calculus", "Derivatives"], isPremium: true  },
+  { id: "statistics-viz",     title: "Statistics & Probability",      category: "mathematics", difficulty: "Intermediate",duration:"20 min", class: "Class 10", tags: ["Statistics", "Charts"],   isPremium: true  },
+  { id: "coordinate-geo",     title: "Coordinate Geometry Explorer",  category: "mathematics", difficulty: "Beginner",  duration: "12 min", class: "Class 10", tags: ["Coordinate", "Lines"],    isPremium: false },
+  // DSA
+  { id: "sorting-visualizer", title: "Sorting Algorithm Visualizer",  category: "dsa",       difficulty: "Beginner",     duration: "15 min", tags: ["Sorting", "Algorithms"], isPremium: false },
+  { id: "binary-tree",        title: "Binary Search Tree Operations", category: "dsa",       difficulty: "Intermediate", duration: "20 min", tags: ["Trees", "BST"],           isPremium: false },
+  { id: "graph-traversal",    title: "Graph BFS & DFS Visualizer",    category: "dsa",       difficulty: "Intermediate", duration: "15 min", tags: ["Graphs", "BFS", "DFS"],  isPremium: true  },
+  { id: "dp-visualizer",      title: "Dynamic Programming Visualizer",category: "dsa",       difficulty: "Advanced",     duration: "25 min", tags: ["DP", "Memoization"],      isPremium: true  },
+  { id: "linked-list",        title: "Linked List Operations",        category: "dsa",       difficulty: "Beginner",     duration: "12 min", tags: ["LinkedList", "Pointers"], isPremium: false },
+  { id: "heap-visualizer",    title: "Heap & Priority Queue",         category: "dsa",       difficulty: "Intermediate", duration: "15 min", tags: ["Heap", "Priority Queue"], isPremium: true  },
+  // CS
+  { id: "cpu-simulator",      title: "CPU Architecture Simulator",    category: "cs",        difficulty: "Advanced",     duration: "30 min", tags: ["CPU", "Architecture"],   isPremium: true  },
+  { id: "memory-management",  title: "Memory Management (OS)",        category: "cs",        difficulty: "Advanced",     duration: "25 min", tags: ["OS", "Memory"],          isPremium: true  },
+  { id: "network-packets",    title: "Network Packet Routing",        category: "cs",        difficulty: "Intermediate", duration: "20 min", tags: ["Networks", "TCP/IP"],    isPremium: true  },
+  { id: "cache-simulator",    title: "Cache Memory Simulator",        category: "cs",        difficulty: "Advanced",     duration: "20 min", tags: ["Cache", "Performance"],  isPremium: true  },
+  { id: "compiler-phases",    title: "Compiler Phases Visualizer",    category: "cs",        difficulty: "Advanced",     duration: "30 min", tags: ["Compiler", "Parsing"],   isPremium: true  },
+  // Electronics
+  { id: "logic-gates",        title: "Digital Logic Gate Simulator",  category: "electronics", difficulty: "Beginner",  duration: "15 min", tags: ["Logic Gates", "Boolean"], isPremium: false },
+  { id: "flip-flop",          title: "Flip-Flop & Sequential Logic",  category: "electronics", difficulty: "Intermediate",duration: "20 min", tags: ["Sequential", "Latches"], isPremium: true },
+  { id: "circuit-builder",    title: "Circuit Builder (RC, RL, RLC)", category: "electronics", difficulty: "Intermediate",duration: "18 min", tags: ["Circuits", "Components"], isPremium: true },
+];
 
-/* ─── Simulations Catalogue Component ────────────────────────────────────── */
+/* ─── Difficulty badge colors ────────────────────────────────────────────── */
+const DIFFICULTY_COLORS: Record<string, string> = {
+  Beginner:     "bg-green-500/10 text-green-600 border-green-500/20",
+  Intermediate: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+  Advanced:     "bg-red-500/10 text-red-600 border-red-500/20",
+};
+
+/* ─── SimulationsCatalogue Component ────────────────────────────────────────*/
 export function SimulationsCatalogue() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<SimCategory | "all">("all");
+  const [searchQuery,    setSearchQuery]    = useState("");
 
-  const filtered = useMemo(() => simulations.filter((s) => {
-    const matchesCat    = activeCategory === "All" || s.category === activeCategory;
-    const matchesSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
-  }), [activeCategory, search]);
+  // Filter simulations
+  const filtered = SIMULATIONS.filter((sim) => {
+    const matchesCategory = activeCategory === "all" || sim.category === activeCategory;
+    const matchesSearch   = !searchQuery ||
+      sim.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sim.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="py-16 md:py-24">
-      <div className="container px-4 md:px-6">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <Badge variant="outline" className="mb-4 text-brand-500 border-brand-500/30">
-            <FlaskConical className="h-3 w-3 mr-1" /> Interactive Learning
-          </Badge>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            <span className="text-gradient">140+ Simulations</span>
+    <div className="min-h-screen bg-background">
+      {/* Hero */}
+      <section className="py-16 border-b bg-gradient-to-b from-muted/30 to-background text-center">
+        <div className="container px-4 md:px-6">
+          <Badge variant="secondary" className="mb-4">140+ Interactive Labs</Badge>
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            Learn by{" "}
+            <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+              Doing
+            </span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Physics, Chemistry, Biology, DSA, OS, Networks, and more — learn by doing, not just reading.
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Interactive simulations for Physics, Chemistry, Biology, Mathematics, DSA, and Computer Science.
+            See concepts in action — not just on paper.
           </p>
         </div>
+      </section>
 
-        {/* Search */}
-        <div className="relative max-w-md mx-auto mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input type="text" placeholder="Search simulations..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border bg-background pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
+      {/* Catalogue */}
+      <section className="py-12">
+        <div className="container px-4 md:px-6">
+          {/* Search */}
+          <div className="relative max-w-md mx-auto mb-8">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search simulations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
 
-        {/* Category filters */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {categories.map((cat) => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeCategory === cat ? "bg-brand-500 text-white shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {cat} {cat === "All" ? `(${simulations.length})` : `(${simulations.filter(s => s.category === cat).length})`}
-            </button>
-          ))}
-        </div>
+          {/* Category tabs */}
+          <div className="flex gap-2 flex-wrap justify-center mb-10">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  activeCategory === cat.id
+                    ? "bg-brand-500 text-white shadow-sm"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <cat.icon className={`h-4 w-4 ${activeCategory === cat.id ? "text-white" : cat.color}`} />
+                {cat.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Simulations grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((sim, i) => (
-            <motion.div key={sim.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
-            >
-              <Link href={sim.href} className="group flex flex-col gap-3 rounded-xl border bg-card p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 h-full">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{sim.emoji}</span>
-                  <div className="flex flex-col gap-1 flex-1 min-w-0">
-                    <Badge variant="outline" className="text-xs w-fit">{sim.category}</Badge>
-                    <span className="text-xs text-muted-foreground">{sim.class}</span>
+          {/* Results count */}
+          <p className="text-muted-foreground text-sm mb-6 text-center">
+            Showing {filtered.length} simulation{filtered.length !== 1 ? "s" : ""}
+          </p>
+
+          {/* Simulations grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filtered.map((sim, i) => (
+              <motion.div
+                key={sim.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03, duration: 0.35 }}
+                className="rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
+              >
+                {/* Color header bar */}
+                <div className={`h-1.5 w-full ${
+                  sim.category === "physics"     ? "bg-blue-500"    :
+                  sim.category === "chemistry"   ? "bg-green-500"   :
+                  sim.category === "biology"     ? "bg-emerald-500" :
+                  sim.category === "mathematics" ? "bg-purple-500"  :
+                  sim.category === "dsa"         ? "bg-orange-500"  :
+                  sim.category === "cs"          ? "bg-brand-500"   :
+                  "bg-yellow-500"
+                }`} />
+
+                <div className="p-5">
+                  {/* Badges */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge variant="outline" className={`text-xs ${DIFFICULTY_COLORS[sim.difficulty]}`}>
+                      {sim.difficulty}
+                    </Badge>
+                    {sim.isPremium && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Star className="h-3 w-3 mr-1 text-yellow-500" />Pro
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="font-semibold text-foreground text-sm mb-2 leading-snug group-hover:text-brand-500 transition-colors">
+                    {sim.title}
+                  </h3>
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {sim.tags.slice(0, 2).map((tag) => (
+                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                    {sim.class && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {sim.class}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Duration + Launch */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">⏱ {sim.duration}</span>
+                    <Link href={`/simulations/${sim.category}`}>
+                      <button className="flex items-center gap-1.5 text-xs font-semibold text-brand-500 hover:text-brand-600 transition-colors">
+                        <Play className="h-3.5 w-3.5" />
+                        Launch
+                      </button>
+                    </Link>
                   </div>
                 </div>
-                <h3 className="font-semibold text-sm leading-snug group-hover:text-brand-500 transition-colors flex-1">
-                  {sim.name}
-                </h3>
-                <div className="flex items-center gap-1 text-xs font-semibold text-brand-500 group-hover:gap-2 transition-all">
-                  <Play className="h-3 w-3 fill-current" /> Launch <ArrowRight className="h-3 w-3" />
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
 
-        {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground mt-12">No simulations found for &quot;{search}&quot;</p>
-        )}
-      </div>
+          {/* Empty state */}
+          {filtered.length === 0 && (
+            <div className="text-center py-16 text-muted-foreground">
+              No simulations found for &quot;{searchQuery}&quot;
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,187 +1,185 @@
 /**
  * @file app/(platform)/dashboard/analytics/page.tsx
- * @description Student analytics page — detailed learning analytics and insights
+ * @description Learning analytics page — deep stats on study habits
  * Route: /dashboard/analytics
- * Shows: XP over time, study time breakdown, chapter completion rate, subject-wise performance
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  BarChart3, TrendingUp, Clock, BookOpen, Star,
-  Flame, Trophy, Target, ChevronRight, ArrowUp,
+  TrendingUp, Clock, BookOpen, Target, Award,
+  Brain, BarChart3, Calendar, Zap, Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-/* ─── Page SEO Metadata ──────────────────────────────────────────────────── */
 export const metadata: Metadata = {
-  title:       "Analytics — Dashboard | LearnVeda",
-  description: "Your detailed learning analytics — track XP, study time, subject performance, and progress trends.",
-  robots:      { index: false, follow: false }, // Private page — don't index
+  title:       "Analytics — LearnVeda",
+  description: "Detailed analytics on your study habits, quiz performance, and learning patterns.",
+  robots:      { index: false, follow: false },
 };
 
-/* ─── Mock Analytics Data ────────────────────────────────────────────────── */
-// Sample data — in production fetched from MongoDB via API
-const weeklyXP = [
-  { day: "Mon", xp: 120 }, { day: "Tue", xp: 85  }, { day: "Wed", xp: 200 },
-  { day: "Thu", xp: 150 }, { day: "Fri", xp: 90  }, { day: "Sat", xp: 310 }, { day: "Sun", xp: 180 },
+/* ─── Monthly study hours (last 6 months) ────────────────────────────────── */
+const MONTHLY_HOURS = [
+  { month: "Feb", hours: 18 },
+  { month: "Mar", hours: 24 },
+  { month: "Apr", hours: 31 },
+  { month: "May", hours: 28 },
+  { month: "Jun", hours: 36 },
+  { month: "Jul", hours: 12 }, // Partial month
 ];
-const totalWeeklyXP = weeklyXP.reduce((acc, d) => acc + d.xp, 0); // Total XP this week
-const maxXP         = Math.max(...weeklyXP.map((d) => d.xp));     // Max for bar scaling
+const MAX_HOURS = Math.max(...MONTHLY_HOURS.map((m) => m.hours));
 
-const SUBJECT_STATS = [
-  { subject: "Mathematics",    score: 88, chapters: 12, time: "18h", color: "bg-blue-500"   },
-  { subject: "Science",        score: 92, chapters: 9,  time: "14h", color: "bg-green-500"  },
-  { subject: "Social Science", score: 76, chapters: 7,  time: "10h", color: "bg-orange-500" },
-  { subject: "English",        score: 84, chapters: 5,  time: "8h",  color: "bg-purple-500" },
-  { subject: "Python",         score: 95, chapters: 15, time: "22h", color: "bg-cyan-500"   },
-];
-
-const OVERVIEW_STATS = [
-  { label: "Total XP",          value: "2,450",    icon: Star,    change: "+310 this week", up: true  },
-  { label: "Study Streak",       value: "7 days",   icon: Flame,   change: "+2 from last",   up: true  },
-  { label: "Chapters Completed", value: "48",       icon: BookOpen,change: "+6 this week",   up: true  },
-  { label: "Average Score",      value: "87%",      icon: Target,  change: "+3% from last",  up: true  },
-  { label: "Battles Won",        value: "18",       icon: Trophy,  change: "+3 this week",   up: true  },
-  { label: "Study Time",         value: "72 hours", icon: Clock,   change: "+8h this week",  up: true  },
+/* ─── Subject performance ────────────────────────────────────────────────── */
+const SUBJECT_PERF = [
+  { name: "Mathematics", accuracy: 88, quizzes: 24, color: "bg-blue-500"    },
+  { name: "Physics",     accuracy: 74, quizzes: 18, color: "bg-cyan-500"    },
+  { name: "Python",      accuracy: 92, quizzes: 15, color: "bg-yellow-500"  },
+  { name: "DSA",         accuracy: 67, quizzes: 20, color: "bg-orange-500"  },
+  { name: "Chemistry",   accuracy: 80, quizzes: 12, color: "bg-green-500"   },
 ];
 
-/* ─── Analytics Page Component ──────────────────────────────────────────── */
+/* ─── Study time distribution ────────────────────────────────────────────── */
+const TIME_DIST = [
+  { label: "Morning (6–10 AM)",    pct: 35 },
+  { label: "Afternoon (10–4 PM)", pct: 20 },
+  { label: "Evening (4–8 PM)",    pct: 30 },
+  { label: "Night (8 PM–12 AM)", pct: 15 },
+];
+
 export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div className="border-b bg-gradient-to-br from-primary/5 to-background">
-        <div className="container px-4 py-8">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground font-medium">Analytics</span>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Learning Analytics</h1>
-              <p className="text-sm text-muted-foreground">Track your progress and study patterns</p>
-            </div>
+      <div className="container px-4 md:px-6 py-10 max-w-5xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Learning Analytics</h1>
+            <p className="text-sm text-muted-foreground mt-1">Insights from your study sessions</p>
           </div>
+          <Link href="/dashboard" className="text-sm text-brand-500 hover:underline">
+            ← Back to Dashboard
+          </Link>
         </div>
-      </div>
 
-      <div className="container px-4 py-8 space-y-8">
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {[
+            { icon: Clock,     value: "149h",  label: "Total Study Time", sub: "+12h this week"   },
+            { icon: BookOpen,  value: "51",    label: "Chapters Done",    sub: "Across 5 subjects" },
+            { icon: Target,    value: "82%",   label: "Average Accuracy", sub: "All quizzes"       },
+            { icon: Award,     value: "5",     label: "Badges Earned",    sub: "7 locked"          },
+          ].map((kpi) => (
+            <div key={kpi.label} className="rounded-2xl border bg-card p-5 shadow-sm">
+              <kpi.icon className="h-5 w-5 text-brand-500 mb-3" />
+              <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+              <p className="text-xs font-medium text-foreground mt-0.5">{kpi.label}</p>
+              <p className="text-xs text-muted-foreground">{kpi.sub}</p>
+            </div>
+          ))}
+        </div>
 
-        {/* ── Overview Stats Grid ───────────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">All-Time Stats</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {OVERVIEW_STATS.map((stat) => {
-              const Icon = stat.icon;
+        {/* Monthly hours chart */}
+        <div className="rounded-2xl border bg-card p-6 shadow-sm mb-8">
+          <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-brand-500" />
+            Monthly Study Hours (Last 6 Months)
+          </h2>
+          <div className="flex items-end gap-3 h-36">
+            {MONTHLY_HOURS.map((m) => {
+              const heightPct = MAX_HOURS > 0 ? m.hours / MAX_HOURS : 0;
               return (
-                <div key={stat.label} className="rounded-2xl border bg-card p-4 text-center">
-                  <Icon className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
-                  <div className="text-xl font-bold">{stat.value}</div>
-                  <div className="text-[10px] text-muted-foreground mb-1">{stat.label}</div>
-                  <div className={`text-[10px] flex items-center justify-center gap-0.5 ${stat.up ? "text-green-600" : "text-red-600"}`}>
-                    <ArrowUp className="h-2.5 w-2.5" />
-                    {stat.change}
+                <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">{m.hours}h</span>
+                  <div className="w-full rounded-t-lg bg-brand-500/20 overflow-hidden" style={{ height: "100px" }}>
+                    <div
+                      className="w-full bg-brand-500 rounded-t-lg"
+                      style={{
+                        height:    `${Math.round(heightPct * 100)}px`,
+                        marginTop: `${100 - Math.round(heightPct * 100)}px`,
+                      }}
+                    />
                   </div>
+                  <span className="text-xs text-muted-foreground">{m.month}</span>
                 </div>
               );
             })}
           </div>
-        </section>
+        </div>
 
-        {/* ── Weekly XP Bar Chart ───────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">XP This Week</h2>
-            <Badge variant="outline" className="text-xs">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              {totalWeeklyXP} XP total
-            </Badge>
-          </div>
-
-          <div className="rounded-2xl border bg-card p-6">
-            <div className="flex items-end justify-between gap-2 h-40">
-              {weeklyXP.map((d) => {
-                const heightPercent = (d.xp / maxXP) * 100; // Scale bars to max
-                return (
-                  <div key={d.day} className="flex flex-col items-center gap-2 flex-1">
-                    {/* XP value on hover */}
-                    <span className="text-[10px] text-muted-foreground">{d.xp}</span>
-                    {/* Bar */}
-                    <div className="w-full rounded-t-lg bg-primary/80 transition-all duration-300"
-                         style={{ height: `${heightPercent}%` }} />
-                    {/* Day label */}
-                    <span className="text-xs text-muted-foreground">{d.day}</span>
+        {/* Subject performance */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
+            <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+              <Brain className="h-4 w-4 text-brand-500" />
+              Quiz Accuracy by Subject
+            </h2>
+            <div className="space-y-4">
+              {SUBJECT_PERF.map((subj) => (
+                <div key={subj.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-foreground">{subj.name}</span>
+                    <span className="text-sm font-bold text-foreground">{subj.accuracy}%</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Subject Performance ───────────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Subject Performance</h2>
-          <div className="rounded-2xl border bg-card overflow-hidden">
-            <div className="divide-y">
-              {SUBJECT_STATS.map((sub, i) => (
-                <div key={sub.subject} className="flex items-center gap-4 p-4">
-                  {/* Rank */}
-                  <span className="text-xs text-muted-foreground w-4 shrink-0">{i + 1}</span>
-
-                  {/* Subject name */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">{sub.subject}</span>
-                      <span className="text-sm font-bold">{sub.score}%</span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${sub.color}`}
-                        style={{ width: `${sub.score}%` }}
-                      />
-                    </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${subj.color}`}
+                      style={{ width: `${subj.accuracy}%` }}
+                    />
                   </div>
-
-                  {/* Additional info */}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                    <span>{sub.chapters} chapters</span>
-                    <span>{sub.time}</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{subj.quizzes} quizzes taken</p>
                 </div>
               ))}
             </div>
           </div>
-        </section>
 
-        {/* ── Study Time by Day ─────────────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Study Habits</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { label: "Best Study Day",   value: "Saturday",  icon: Star,   desc: "Most XP earned on Saturdays"        },
-              { label: "Peak Study Time",  value: "7–9 PM",    icon: Clock,  desc: "You study most between 7 and 9 PM"  },
-              { label: "Avg Daily Study",  value: "1.5 hours", icon: Target, desc: "Maintain this to hit your goals"    },
-            ].map((insight) => {
-              const Icon = insight.icon;
-              return (
-                <div key={insight.label} className="rounded-2xl border bg-card p-5">
-                  <Icon className="h-5 w-5 text-primary mb-3" />
-                  <div className="text-xl font-bold mb-1">{insight.value}</div>
-                  <div className="text-sm text-muted-foreground">{insight.label}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{insight.desc}</div>
+          {/* Study time distribution */}
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
+            <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-brand-500" />
+              When You Study
+            </h2>
+            <div className="space-y-4">
+              {TIME_DIST.map((slot) => (
+                <div key={slot.label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-foreground">{slot.label}</span>
+                    <span className="text-sm font-bold text-foreground">{slot.pct}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-purple-500"
+                      style={{ width: `${slot.pct}%` }}
+                    />
+                  </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              💡 Your best accuracy is in the morning — try scheduling hard topics then.
+            </p>
           </div>
-        </section>
+        </div>
+
+        {/* Insights */}
+        <div className="rounded-2xl border bg-gradient-to-br from-brand-500/10 to-purple-500/10 p-6 shadow-sm">
+          <h2 className="font-bold text-foreground mb-4 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-brand-500" />
+            AI Insights
+          </h2>
+          <ul className="space-y-3">
+            {[
+              "Your DSA accuracy (67%) is your weakest area — try the LearnVeda AI Tutor for personalized explanations.",
+              "You study best in the morning. Schedule your hardest subject (Physics) before 10 AM.",
+              "Your streak is 7 days — keep going to unlock the 'Hot Streak' badge at 30 days.",
+              "You've taken 24 Math quizzes with 88% accuracy — you're ready for the CBSE Class 10 Mock Test.",
+            ].map((insight, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                <Star className="h-4 w-4 text-brand-500 flex-shrink-0 mt-0.5" />
+                {insight}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

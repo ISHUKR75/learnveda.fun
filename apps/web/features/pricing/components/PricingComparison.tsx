@@ -1,113 +1,120 @@
 /**
  * @file features/pricing/components/PricingComparison.tsx
  * @description Full feature comparison table for the Pricing page
+ *
+ * Shows a detailed breakdown of what's included in each plan (Free, Pro, School).
+ * Uses a responsive table with sticky headers on mobile.
  */
 
 "use client";
 
 import React from "react";
-import { Check, X, Minus } from "lucide-react";
+import { CheckCircle2, XCircle, Minus } from "lucide-react";
 
-/* ─── Comparison Data ────────────────────────────────────────────────────── */
-const categories = [
-  {
-    name: "Learning Content",
-    features: [
-      { name: "Class 9–12 CBSE",              free: true,   pro: true,   team: true   },
-      { name: "Engineering (9 branches × 8 semesters)", free: false, pro: true,  team: true },
-      { name: "Programming Languages",          free: "3",    pro: "14",   team: "14"   },
-      { name: "Core CS Subjects",               free: "3",    pro: "9",    team: "9"    },
-      { name: "Interactive Simulations",         free: "30+",  pro: "140+", team: "140+" },
-    ],
-  },
-  {
-    name: "Practice & Tests",
-    features: [
-      { name: "Practice Questions",   free: "Limited",   pro: "Unlimited", team: "Unlimited" },
-      { name: "Mock Tests per month", free: "10",        pro: "Unlimited", team: "Unlimited" },
-      { name: "Live Battles",         free: "3/day",     pro: "Unlimited", team: "Unlimited" },
-      { name: "Coding Playground",    free: true,        pro: true,        team: true        },
-      { name: "Test Center (JEE/NEET)",free: "Preview",  pro: true,        team: true        },
-    ],
-  },
-  {
-    name: "AI & Personalization",
-    features: [
-      { name: "AI Tutor",              free: "10/day",   pro: "Unlimited", team: "Unlimited" },
-      { name: "Personalized Roadmap",  free: false,      pro: true,        team: true        },
-      { name: "Weakness Analysis",     free: false,      pro: true,        team: true        },
-      { name: "AI-Generated Practice", free: false,      pro: true,        team: true        },
-    ],
-  },
-  {
-    name: "Dashboard & Progress",
-    features: [
-      { name: "Progress Dashboard",    free: "Basic",    pro: "Advanced",  team: "Advanced"  },
-      { name: "XP, Streaks, Badges",   free: true,       pro: true,        team: true        },
-      { name: "Leaderboard",           free: true,       pro: true,        team: true        },
-      { name: "Certificates",          free: false,      pro: true,        team: true        },
-      { name: "Offline Downloads",     free: false,      pro: true,        team: true        },
-    ],
-  },
-  {
-    name: "Support & Admin",
-    features: [
-      { name: "Community Support",     free: true,       pro: true,        team: true        },
-      { name: "Email Support",         free: false,      pro: "Priority",  team: "Dedicated" },
-      { name: "Parent Dashboard",      free: false,      pro: true,        team: true        },
-      { name: "Teacher Dashboard",     free: false,      pro: false,       team: true        },
-      { name: "API Access",            free: false,      pro: false,       team: true        },
-    ],
-  },
-];
+/* ─── Comparison Rows ────────────────────────────────────────────────────── */
+type PlanValue = boolean | string; // true = included, false = not, string = custom text
 
-/* ─── Cell Renderer ──────────────────────────────────────────────────────── */
-function Cell({ value }: { value: boolean | string }) {
-  if (value === true)    return <Check  className="h-5 w-5 text-green-500 mx-auto" />;
-  if (value === false)   return <X      className="h-5 w-5 text-muted-foreground/30 mx-auto" />;
-  if (value === "—")     return <Minus  className="h-4 w-4 text-muted-foreground/30 mx-auto" />;
-  return <span className="text-sm font-medium text-brand-500">{value}</span>;
+interface ComparisonRow {
+  category: string;
+  feature:  string;
+  free:     PlanValue;
+  pro:      PlanValue;
+  school:   PlanValue;
 }
 
-/* ─── Pricing Comparison Component ───────────────────────────────────────── */
-export function PricingComparison() {
-  return (
-    <section className="py-16 bg-muted/10">
-      <div className="container px-4 md:px-6">
-        <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-10">
-          Full Feature Comparison
-        </h2>
+const ROWS: ComparisonRow[] = [
+  // Curriculum
+  { category: "Curriculum", feature: "Class 9–12 chapters",      free: "Selected (3/subject)", pro: true, school: true },
+  { category: "Curriculum", feature: "All NCERT content",         free: false,  pro: true, school: true },
+  { category: "Curriculum", feature: "Engineering curriculum",    free: false,  pro: true, school: true },
+  { category: "Curriculum", feature: "Programming (12 languages)",free: "2 days/language", pro: true, school: true },
+  { category: "Curriculum", feature: "Core CS subjects",          free: false,  pro: true, school: true },
+  // Simulations
+  { category: "Simulations", feature: "Physics simulations",       free: "5 free", pro: true, school: true },
+  { category: "Simulations", feature: "Chemistry simulations",     free: false,    pro: true, school: true },
+  { category: "Simulations", feature: "Biology simulations",       free: false,    pro: true, school: true },
+  { category: "Simulations", feature: "DSA visualizations",        free: false,    pro: true, school: true },
+  { category: "Simulations", feature: "All 140+ simulations",      free: false,    pro: true, school: true },
+  // AI Features
+  { category: "AI", feature: "AI Tutor",             free: "5 queries/day", pro: "Unlimited", school: "Unlimited" },
+  { category: "AI", feature: "AI-powered search",    free: true,  pro: true,        school: true },
+  { category: "AI", feature: "Personalized recommendations", free: false, pro: true, school: true },
+  // Practice
+  { category: "Practice", feature: "Mock tests",        free: false,  pro: true, school: true },
+  { category: "Practice", feature: "Previous year questions", free: false, pro: true, school: true },
+  { category: "Practice", feature: "Chapter quizzes",    free: true,   pro: true, school: true },
+  { category: "Practice", feature: "Coding assignments", free: false,  pro: true, school: true },
+  // Battles
+  { category: "Battles", feature: "Live battles",        free: "10/month", pro: "Unlimited", school: "Unlimited" },
+  { category: "Battles", feature: "Battle history",      free: true,  pro: true, school: true },
+  { category: "Battles", feature: "Ranked mode",         free: false, pro: true, school: true },
+  { category: "Battles", feature: "Tournament access",   free: false, pro: true, school: true },
+  // Community
+  { category: "Community", feature: "Forum access",       free: true,  pro: true, school: true },
+  { category: "Community", feature: "Study groups",       free: true,  pro: true, school: true },
+  { category: "Community", feature: "Mentorship",         free: false, pro: true, school: true },
+  // Analytics
+  { category: "Analytics", feature: "Basic progress tracking", free: true, pro: true, school: true },
+  { category: "Analytics", feature: "Detailed analytics",      free: false, pro: true, school: true },
+  { category: "Analytics", feature: "Class analytics dashboard", free: false, pro: false, school: true },
+  // School
+  { category: "School", feature: "Teacher accounts",    free: false, pro: false, school: true },
+  { category: "School", feature: "Assignment creation", free: false, pro: false, school: true },
+  { category: "School", feature: "White-label",         free: false, pro: false, school: true },
+  // Support
+  { category: "Support", feature: "Community support",  free: true,  pro: true,  school: true  },
+  { category: "Support", feature: "Priority support",   free: false, pro: true,  school: true  },
+  { category: "Support", feature: "Dedicated manager",  free: false, pro: false, school: true  },
+];
 
-        <div className="overflow-x-auto rounded-2xl border bg-background">
-          <table className="w-full text-sm">
+/* ─── Cell renderer ──────────────────────────────────────────────────────── */
+function Cell({ value }: { value: PlanValue }) {
+  if (value === true)  return <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto" />;
+  if (value === false) return <XCircle className="h-4 w-4 text-muted-foreground/40 mx-auto" />;
+  return <span className="text-xs text-muted-foreground text-center block">{value}</span>;
+}
+
+/* ─── PricingComparison Component ────────────────────────────────────────── */
+export function PricingComparison() {
+  // Group rows by category
+  const categories = Array.from(new Set(ROWS.map((r) => r.category)));
+
+  return (
+    <section className="py-16 bg-muted/20">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">Full Feature Comparison</h2>
+          <p className="text-muted-foreground mt-2">See exactly what each plan includes</p>
+        </div>
+
+        <div className="max-w-4xl mx-auto overflow-x-auto rounded-2xl border bg-card shadow-sm">
+          <table className="w-full">
             {/* Table header */}
             <thead>
-              <tr className="border-b">
-                <th className="text-left p-4 font-semibold w-1/2">Feature</th>
-                <th className="p-4 font-semibold text-center">Free</th>
-                <th className="p-4 font-semibold text-center text-brand-500">Pro</th>
-                <th className="p-4 font-semibold text-center text-green-500">Team</th>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left p-4 font-medium text-foreground w-1/2">Feature</th>
+                <th className="text-center p-4 font-medium text-foreground">Free</th>
+                <th className="text-center p-4 font-medium text-brand-500">Pro</th>
+                <th className="text-center p-4 font-medium text-orange-500">School</th>
               </tr>
             </thead>
 
-            {/* Table body */}
             <tbody>
               {categories.map((category) => (
-                <React.Fragment key={category.name}>
+                <React.Fragment key={category}>
                   {/* Category header row */}
-                  <tr className="bg-muted/40">
-                    <td colSpan={4} className="px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      {category.name}
+                  <tr className="bg-muted/30">
+                    <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {category}
                     </td>
                   </tr>
-
                   {/* Feature rows */}
-                  {category.features.map((feature) => (
-                    <tr key={feature.name} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="p-4 font-medium">{feature.name}</td>
-                      <td className="p-4 text-center"><Cell value={feature.free} /></td>
-                      <td className="p-4 text-center bg-brand-500/3"><Cell value={feature.pro} /></td>
-                      <td className="p-4 text-center"><Cell value={feature.team} /></td>
+                  {ROWS.filter((r) => r.category === category).map((row) => (
+                    <tr key={row.feature} className="border-t hover:bg-muted/20 transition-colors">
+                      <td className="p-4 text-sm text-foreground">{row.feature}</td>
+                      <td className="p-4 text-center"><Cell value={row.free} /></td>
+                      <td className="p-4 text-center bg-brand-500/5"><Cell value={row.pro} /></td>
+                      <td className="p-4 text-center"><Cell value={row.school} /></td>
                     </tr>
                   ))}
                 </React.Fragment>
