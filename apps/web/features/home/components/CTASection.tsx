@@ -24,7 +24,7 @@ export function CTASection() {
 
       <div className="relative container px-4 md:px-6 text-center text-white">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0.01, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}

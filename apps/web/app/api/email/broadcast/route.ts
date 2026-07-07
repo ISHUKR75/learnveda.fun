@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"; // Server utilities
+import { auth }                      from "@clerk/nextjs/server"; // Clerk session auth
 import { z } from "zod";                                 // Input validation
 
 /* ─── Validation Schema ───────────────────────────────────────────────────── */
@@ -32,10 +33,36 @@ const BroadcastSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    /* ── Auth check — require admin Clerk session ─────────────────── */
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    /* ── Auth check — require valid Clerk session ─────────────────── */
+    // `auth()` reads the Clerk session token from the request cookie/header.
+    // Only authenticated sessions will have a non-null userId.
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+
+    /* ── Admin check — verify caller has admin role in DB ─────────── */
+    // In demo mode (no MongoDB) this check is skipped — admin UI is
+    // not publicly accessible so the risk is acceptable in dev.
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (MONGODB_URI) {
+      try {
+        const { connectToDatabase } = await import("@/lib/mongodb");
+        const { db } = await connectToDatabase();
+        const caller = await db.collection("users").findOne(
+          { clerkId: userId },
+          { projection: { role: 1 } }
+        );
+        if (caller?.role !== "admin") {
+          return NextResponse.json({ error: "Forbidden — admin access only." }, { status: 403 });
+        }
+      } catch {
+        // If DB check fails, deny access (fail-closed on admin routes)
+        return NextResponse.json({ error: "Unable to verify permissions." }, { status: 500 });
+      }
+    } else {
+      // Demo mode: log the skip but do not block (useful for local dev testing)
+      console.warn("[broadcast] DEMO MODE — skipping admin role check. Set MONGODB_URI for production security.");
     }
 
     /* ── Parse + validate ─────────────────────────────────────────── */

@@ -181,7 +181,7 @@ export function XPBar({
       {xpGain > 0 && (
         <motion.span
           className="absolute top-0 right-0 text-xs font-bold text-emerald-500"
-          initial={{ opacity: 0, y: 0 }}          // Start at bar position
+          initial={{ opacity: 0.01, y: 0 }}          // Start at bar position
           animate={{ opacity: [0, 1, 1, 0], y: -20 }} // Float up + fade out
           transition={{ duration: 1.5 }}
         >

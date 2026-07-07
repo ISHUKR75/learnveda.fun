@@ -71,7 +71,7 @@ export function StatsSection() {
       <div className="container px-4 md:px-6">
         {/* ── Section Header ───────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0.01, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
@@ -89,7 +89,7 @@ export function StatsSection() {
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 30 }}                        // Start below + invisible
+              initial={{ opacity: 0.01, y: 30 }}                        // Start below + invisible
               animate={inView ? { opacity: 1, y: 0 } : {}}           // Animate when in view
               transition={{ duration: 0.5, delay: index * 0.08 }}    // Staggered delay
               className="flex flex-col items-center text-center p-4 rounded-xl bg-background border hover:shadow-md transition-shadow"

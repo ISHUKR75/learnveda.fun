@@ -210,7 +210,7 @@ export function MockTestEngine({
       <div className="min-h-screen bg-background">
         <div className="container px-4 py-10 max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0.01, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="text-center mb-10"
           >
@@ -354,7 +354,7 @@ export function MockTestEngine({
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQ}
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0.01, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}

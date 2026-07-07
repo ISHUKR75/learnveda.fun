@@ -144,7 +144,7 @@ export function DashboardOverview({ userName }: DashboardOverviewProps) {
           ].map((stat) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0.01, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
               className="rounded-2xl border bg-card p-4 shadow-sm"

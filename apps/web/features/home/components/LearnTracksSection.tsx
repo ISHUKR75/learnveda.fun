@@ -129,7 +129,7 @@ export function LearnTracksSection() {
           {tracks.map((track, index) => (
             <motion.div
               key={track.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0.01, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: index * 0.07 }}

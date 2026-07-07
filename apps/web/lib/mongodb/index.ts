@@ -94,3 +94,22 @@ export async function disconnectDB(): Promise<void> {
 
 /* ─── Default export ─────────────────────────────────────────────────────── */
 export default connectDB;
+
+/* ─── Compatibility: connectToDatabase ──────────────────────────────────── */
+/**
+ * Named re-export for API routes that use:
+ *   `const { connectToDatabase } = await import("@/lib/mongodb")`
+ *   `const { db } = await connectToDatabase()`
+ *
+ * Wraps `lib/database/mongodb` (raw MongoClient driver) in the `{ db }` shape
+ * that those callers expect. Uses a dynamic import to avoid circular references.
+ *
+ * @param dbName - Optional database name (defaults to MONGODB_DB env or "learnveda")
+ * @returns { db: Db } — raw MongoDB Db instance for collection-level operations
+ */
+export async function connectToDatabase(dbName?: string): Promise<{ db: import("mongodb").Db }> {
+  // Dynamic import avoids circular deps between the two connection modules
+  const { default: rawConnect } = await import("../database/mongodb");
+  const db = await rawConnect(dbName);
+  return { db };
+}

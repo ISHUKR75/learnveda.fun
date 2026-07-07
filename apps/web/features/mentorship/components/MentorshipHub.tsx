@@ -183,7 +183,7 @@ function BookingModal({ mentor, onClose }: { mentor: Mentor; onClose: () => void
           {booked ? (
             /* Success State */
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0.01, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-6 space-y-3"
             >
@@ -282,7 +282,7 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0.01, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       className="group rounded-2xl border bg-card hover:border-brand-500/30 hover:shadow-md transition-all overflow-hidden"
@@ -457,7 +457,7 @@ export function MentorshipHub() {
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0.01, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="space-y-2"
@@ -551,7 +551,7 @@ export function MentorshipHub() {
 
         {/* ── Become a Mentor CTA ──────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0.01, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="rounded-2xl border bg-gradient-to-br from-brand-500/5 to-purple-500/5 p-8 text-center space-y-4"

@@ -98,7 +98,7 @@ export function StreakDisplay({
       {/* ── At-risk warning banner ─────────────────────────────────── */}
       {isAtRisk && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}    // Slides down from above
+          initial={{ opacity: 0.01, height: 0 }}    // Slides down from above
           animate={{ opacity: 1, height: "auto" }}
           className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-600 dark:text-amber-400"
         >

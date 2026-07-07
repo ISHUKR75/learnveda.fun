@@ -225,7 +225,7 @@ export function Class9SubjectHub() {
       <div className="container px-4 md:px-6 py-10 max-w-6xl mx-auto">
 
         {/* ── Header ──────────────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Link href="/learn" className="hover:text-foreground">Learn</Link>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -279,7 +279,7 @@ export function Class9SubjectHub() {
               {important.map((subject, i) => (
                 <motion.div
                   key={subject.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0.01, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.08 }}
                 >
@@ -348,7 +348,7 @@ export function Class9SubjectHub() {
               {others.map((subject, i) => (
                 <motion.div
                   key={subject.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0.01, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                 >

@@ -59,7 +59,7 @@ export function HeroSection() {
       {floatingPills.map((pill) => (
         <motion.div
           key={pill.text}
-          initial={{ opacity: 0, scale: 0.8 }}       // Start invisible + small
+          initial={{ opacity: 0.01, scale: 0.8 }}       // Start invisible + small
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: pill.delay, duration: 0.5 }}
           className="absolute hidden lg:flex items-center gap-1.5 rounded-full border bg-background/80 backdrop-blur-sm px-3 py-1.5 text-xs font-medium shadow-lg text-foreground"

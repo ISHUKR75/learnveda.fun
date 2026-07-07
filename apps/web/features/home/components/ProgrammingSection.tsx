@@ -64,7 +64,7 @@ export function ProgrammingSection() {
           {languages.map((lang, index) => (
             <motion.div
               key={lang.id}
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0.01, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.3, delay: index * 0.04 }}

@@ -70,7 +70,7 @@ export function PricingCards() {
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {/* ── Free Plan ──────────────────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0.01, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="rounded-2xl border bg-card p-7 shadow-sm flex flex-col"
@@ -107,7 +107,7 @@ export function PricingCards() {
 
           {/* ── Pro Plan (highlighted) ─────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0.01, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
             className="rounded-2xl border-2 border-brand-500 bg-card p-7 shadow-lg flex flex-col relative"
@@ -157,7 +157,7 @@ export function PricingCards() {
 
           {/* ── School Plan ───────────────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0.01, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
             className="rounded-2xl border bg-card p-7 shadow-sm flex flex-col"

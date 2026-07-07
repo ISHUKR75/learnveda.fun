@@ -184,7 +184,7 @@ export function CommunityFeed() {
               {filtered.map((post, i) => (
                 <motion.div
                   key={post.id}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0.01, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05, duration: 0.35 }}
                   className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"

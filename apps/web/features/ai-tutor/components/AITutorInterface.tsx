@@ -295,7 +295,7 @@ export function AITutorInterface() {
           {messages.map((message) => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0.01, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               className={`flex gap-3 max-w-3xl ${
@@ -332,7 +332,7 @@ export function AITutorInterface() {
         {/* Loading indicator */}
         {isLoading && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0.01, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-3 max-w-3xl"
           >

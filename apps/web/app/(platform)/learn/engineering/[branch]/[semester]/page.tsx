@@ -127,7 +127,7 @@ export default function EngineeringBranchSemesterPage() {
           {subjects.map((subj, i) => (
             <motion.div
               key={subj.name}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0.01, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}
               className={cn("rounded-xl border p-5", colors.bg, colors.border)}

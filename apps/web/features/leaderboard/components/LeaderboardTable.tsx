@@ -93,7 +93,7 @@ export function LeaderboardTable() {
           {/* 2nd place */}
           {data[1] && (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0.01, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
               className="flex flex-col items-center gap-2"
@@ -111,7 +111,7 @@ export function LeaderboardTable() {
           {/* 1st place (taller podium) */}
           {data[0] && (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0.01, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0, duration: 0.5 }}
               className="flex flex-col items-center gap-2"
@@ -130,7 +130,7 @@ export function LeaderboardTable() {
           {/* 3rd place */}
           {data[2] && (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0.01, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
               className="flex flex-col items-center gap-2"
@@ -200,7 +200,7 @@ export function LeaderboardTable() {
           {data.map((entry, i) => (
             <motion.div
               key={entry.rank}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0.01, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.04, duration: 0.3 }}
               className={`grid grid-cols-12 gap-2 px-4 py-3 border-b last:border-0 items-center hover:bg-muted/30 transition-colors ${

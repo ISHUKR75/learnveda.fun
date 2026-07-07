@@ -146,7 +146,7 @@ export function SimulationsSection() {
             {featuredSims.map((sim, index) => (
               <motion.div
                 key={sim.title}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0.01, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3, delay: index * 0.07 }}

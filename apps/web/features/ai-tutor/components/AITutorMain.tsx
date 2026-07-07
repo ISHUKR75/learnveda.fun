@@ -101,7 +101,7 @@ function ChatMessageBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}        // Slide up on appear
+      initial={{ opacity: 0.01, y: 12 }}        // Slide up on appear
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={cn("flex gap-3 group", isUser ? "flex-row-reverse" : "flex-row")}
@@ -196,7 +196,7 @@ function ChatMessageBubble({
 function TypingIndicator() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0.01, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       className="flex items-center gap-3"
@@ -464,7 +464,7 @@ export function AITutorMain() {
           {/* ── Empty State — Starter Prompts ─────────────────────────────── */}
           {isEmpty && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0.01, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center gap-6 py-8 max-w-2xl mx-auto"
@@ -553,7 +553,7 @@ export function AITutorMain() {
           <AnimatePresence>
             {copiedMsg && (
               <motion.div
-                initial={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0.01, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="mb-2 text-xs text-center text-green-600 font-medium"

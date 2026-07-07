@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"; // Next.js types
+import { auth }                       from "@clerk/nextjs/server"; // Clerk session
 import { z }                          from "zod";         // Input validation
 import { connectDB }                  from "@/lib/mongodb"; // MongoDB connection
 
@@ -117,6 +118,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 /** Mark an item as complete and award XP */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    /* ── Authentication + Authorization ──────────────────────────── */
+    const { userId: sessionUserId } = await auth();
+    if (!sessionUserId) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+
     const body   = await req.json();
     const parsed = CompleteSchema.safeParse(body);
 
@@ -125,6 +132,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const { userId, type, itemId, metadata } = parsed.data;
+
+    /* ── Prevent IDOR: caller may only update their own progress ────── */
+    if (userId !== sessionUserId) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
 
     /* Calculate XP to award (server-side — never trust client) */
     let xpAwarded = XP_AWARDS[type === "chapter" ? "chapter_complete"
@@ -175,6 +187,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 /** Update streak and daily goal progress */
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
+    /* ── Authentication + Authorization ──────────────────────────── */
+    const { userId: sessionUserId } = await auth();
+    if (!sessionUserId) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+
     const body   = await req.json();
     const parsed = UpdateSchema.safeParse(body);
 
@@ -183,6 +201,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const { userId, studiedMinutes, streakAction } = parsed.data;
+
+    /* ── Prevent IDOR: caller may only update their own progress ────── */
+    if (userId !== sessionUserId) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
     const updates: Record<string, unknown> = {};
 
     /* Daily study minutes update */

@@ -206,7 +206,7 @@ export function EngineeringHub() {
           </button>
 
           {/* Branch header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <div className="flex items-center gap-3 mb-3">
               <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl border", branch.bg, branch.border)}>
                 <branch.icon className={cn("h-6 w-6", branch.text)} />
@@ -230,7 +230,7 @@ export function EngineeringHub() {
             {CSE_SEMESTERS.map((semData, i) => (
               <motion.div
                 key={semData.sem}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0.01, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
                 className={cn("rounded-xl border p-5 hover:shadow-sm transition-all cursor-pointer", branch.bg, branch.border)}
@@ -269,7 +269,7 @@ export function EngineeringHub() {
       <div className="container px-4 md:px-6 py-10 max-w-6xl mx-auto">
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-sm font-medium text-brand-500 mb-3">
             <Award className="h-3.5 w-3.5" />
             Engineering Track — 8 Branches, 8 Semesters Each
@@ -308,7 +308,7 @@ export function EngineeringHub() {
             {popular.map((branch, i) => (
               <motion.button
                 key={branch.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0.01, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.07 }}
                 onClick={() => setSelectedBranch(branch.id)}
@@ -335,7 +335,7 @@ export function EngineeringHub() {
             {others.map((branch, i) => (
               <motion.button
                 key={branch.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0.01, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => setSelectedBranch(branch.id)}

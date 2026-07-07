@@ -320,7 +320,7 @@ export function MathChapterView({ chapterId }: MathChapterViewProps) {
       <div className="container px-4 md:px-6 py-10 max-w-5xl mx-auto">
 
         {/* ── Chapter Header ─────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <span>Class 9</span> <ChevronRight className="h-3.5 w-3.5" />
             <span>Mathematics</span> <ChevronRight className="h-3.5 w-3.5" />
@@ -415,7 +415,7 @@ export function MathChapterView({ chapterId }: MathChapterViewProps) {
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${activeSection}-${activeTab}`}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0.01, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}

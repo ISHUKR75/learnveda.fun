@@ -200,7 +200,7 @@ export default function FlashcardsPage() {
           {/* Rating buttons */}
           <AnimatePresence>
             {flipped && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
+              <motion.div initial={{ opacity: 0.01, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
                 <p className="text-center text-sm text-muted-foreground mb-3">How well did you know this?</p>
                 <div className="grid grid-cols-4 gap-3">
                   {([

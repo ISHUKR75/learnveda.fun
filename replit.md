@@ -4,17 +4,18 @@
 
 LearnVeda is an enterprise-grade, AI-powered EdTech platform for Indian students. It covers:
 - **CBSE Class 9–12** — full NCERT-aligned curriculum with simulations and board exam prep
-- **Engineering** — 8 branches × 8 semesters (B.Tech programs)
-- **13 Programming Languages** — structured day-by-day learning plans
-- **Core CS subjects** — DSA, System Design, DBMS, OS, CN, Git, Competitive Programming
-- **Live Battles** — 1v1 real-time quiz duels with Elo matchmaking (Socket.IO)
+- **Engineering** — 8+ branches × 8 semesters (B.Tech programs)
+- **13 Programming Languages** — structured day-by-day learning plans (Python, JS, TS, Java, C, C++, Go, Rust, Swift, Dart, Ruby, SQL, Kotlin)
+- **Core CS subjects** — DSA, System Design, DBMS, OS, CN, Git, Competitive Programming, Web Dev, Interview Prep
+- **Live Battles** — 1v1 real-time quiz duels (Socket.IO)
 - **AI Tutor** — GPT-4-powered 24/7 tutor with subject context
 - **Online Compiler** — 13 languages via Monaco Editor + Judge0/Piston backend
-- **Community** — 10K+ students, Q&A forum, live chat
+- **Community** — Q&A forum, live chat, posts
 - **Gamification** — XP, streaks, levels, achievement badges, leaderboard
-- **i18n** — 11 Indian languages on every page
+- **Simulations** — 140+ interactive physics/chemistry/biology/CS simulations
 
 ## Tech Stack
+
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion
 - **Backend**: Next.js API Routes, MongoDB + Mongoose, Redis (with in-memory fallback)
 - **Auth**: Clerk (with graceful demo mode when keys are absent)
@@ -22,67 +23,74 @@ LearnVeda is an enterprise-grade, AI-powered EdTech platform for Indian students
 - **Storage**: Cloudinary (lazy-loaded stub)
 - **Email**: Resend (logs to console in demo mode)
 - **Compiler**: Monaco Editor + Judge0 or Piston API (demo fallback)
-- **CI/CD**: GitHub Actions (`.github/workflows/ci.yml`, `deploy.yml`)
-- **Docker**: Multi-stage Dockerfile + Docker Compose (`docker/`)
 
-## Repository Structure
+## Running the App
+
+The app runs on port 5000 via the **Start application** workflow:
 ```
-learnveda/
-├── apps/web/                  # Next.js application
-│   ├── app/                   # App Router pages
-│   │   ├── (auth)/            # Clerk auth pages
-│   │   ├── (legal)/           # Privacy, Terms
-│   │   ├── (marketing)/       # Public marketing pages
-│   │   ├── (platform)/        # Protected platform pages
-│   │   │   ├── admin/         # Admin dashboard + newsletter
-│   │   │   ├── compiler/      # Online code compiler
-│   │   │   ├── dashboard/     # User dashboard
-│   │   │   ├── learn/         # CBSE + Engineering + Programming
-│   │   │   └── ...
-│   │   └── api/               # REST API routes
-│   ├── components/            # Shared UI components
-│   ├── features/              # Feature-specific components
-│   ├── hooks/                 # Custom React hooks
-│   ├── lib/                   # Infrastructure (MongoDB, Redis, i18n, email, ...)
-│   ├── providers/             # React context providers
-│   ├── store/                 # Zustand state stores
-│   └── types/                 # TypeScript type definitions
-├── docker/                    # Docker configuration
-├── docs/                      # Architecture + API + deployment docs
-└── .github/workflows/         # GitHub Actions CI/CD
-```
-
-## Development
-
-```bash
-# Install dependencies
-cd apps/web && npm install
-
-# Start dev server
-npm run dev         # Runs on port 5000
-
-# Build for production
-npm run build
-
-# Type check
-npx tsc --noEmit
+cd apps/web && WATCHPACK_POLLING=true ./node_modules/.bin/next dev --port 5000
 ```
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in values. The app runs in demo mode without most keys:
-- **Required**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `MONGODB_URI`, `SESSION_SECRET`
-- **Optional**: `REDIS_URL`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `RAZORPAY_KEY_ID`, `JUDGE0_API_KEY`
+`apps/web/.env.local` — create from this template:
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder  # Real keys from clerk.com
+CLERK_SECRET_KEY=sk_test_placeholder
+NEXT_PUBLIC_APP_URL=http://localhost:5000
+MONGODB_URI=                                           # Leave empty for demo mode
+SESSION_SECRET=<from Replit secrets>
+OPENAI_API_KEY=                                        # Optional — AI Tutor feature
+RESEND_API_KEY=                                        # Optional — email feature
+LEARNVEDA_DEMO_MODE=true
+```
+
+**Demo mode**: The app runs without Clerk or MongoDB configured. All features show realistic demo data. Set real keys to enable live auth and database.
+
+## Repository Structure
+
+```
+learnveda/
+├── apps/web/                   # Next.js 15 application (104 pages)
+│   ├── app/
+│   │   ├── (auth)/             # Clerk sign-in / sign-up pages
+│   │   ├── (legal)/            # Privacy, Terms, Cookies
+│   │   ├── (marketing)/        # Public pages: home, about, pricing, features, etc.
+│   │   ├── (platform)/         # Protected platform: dashboard, learn, programming, etc.
+│   │   └── api/                # REST API routes
+│   ├── features/               # Feature modules (one per feature area)
+│   │   ├── home/               # Homepage sections
+│   │   ├── dashboard/          # User dashboard
+│   │   ├── learn/              # CBSE + Engineering hubs
+│   │   ├── programming/        # Language day plans
+│   │   ├── community/          # Community feed + chat
+│   │   ├── ai-tutor/           # AI Tutor interface
+│   │   ├── compiler/           # Code compiler
+│   │   ├── live-battles/       # 1v1 battles arena
+│   │   ├── test-center/        # Mock test engine
+│   │   ├── simulations/        # Interactive simulations
+│   │   ├── leaderboard/        # Global leaderboard
+│   │   ├── pricing/            # Pricing plans
+│   │   └── gamification/       # XP, badges, streaks
+│   ├── components/             # Shared UI components (navbar, footer, cards, etc.)
+│   ├── lib/                    # Utilities (mongodb, clerk, redis, ai, email)
+│   └── providers/              # React context providers
+├── packages/                   # Shared packages (config, types, utils)
+└── .github/                    # CI/CD workflows
+```
+
+## Key Architecture Decisions
+
+- **Demo mode pattern**: `hasRealClerkKeys` checked at runtime; app works without auth keys. All API routes gracefully fall back to mock data when MongoDB is not configured.
+- **Two MongoDB helpers**: `lib/database/mongodb.ts` (raw MongoClient → `Db`) and `lib/mongodb/index.ts` (Mongoose). The latter re-exports `connectToDatabase` as a compatibility shim for routes using `{ connectToDatabase } from "@/lib/mongodb"`.
+- **Framer Motion SSR**: Use `opacity: 0.01` (not `0`) as the initial value for above-the-fold animations to avoid blank SSR screenshots.
+- **Platform layout**: `(platform)/layout.tsx` provides the Navbar. Individual platform pages must NOT render their own Navbar.
+- **API security**: All write routes (POST/PATCH/DELETE) require valid Clerk session. Admin-only routes additionally verify `role: "admin"` in MongoDB.
 
 ## User Preferences
 
-- **Never delete any file or folder** — only add new files; every feature gets its own isolated folder
-- **Detailed comments on every file** — parameters, return values, purpose documented in JSDoc
-- **Everything production-functional** — no mocked placeholders; real API integrations with graceful fallbacks
-- **Demo mode pattern** — all external services fail gracefully when not configured; app always runs
-- **TypeScript strict mode** — no `any` types; use proper type guards and discriminated unions
-- **Workflow**: `cd apps/web && npm run dev` (never pnpm, always npm)
-- **Port**: app runs on 5000
-- **Clerk**: optional — runs in demo mode when keys are absent or placeholder
-- **Framer Motion**: use `opacity: 0.01` (not 0) in initial animation states above the fold
-- **Platform layout**: `(platform)/layout.tsx` provides the Navbar — individual platform pages must NOT import their own Navbar
+- Never delete existing files or folders — only add
+- Every page/section/feature in its own separate folder
+- Heavy commenting on every file (enterprise-level, function docs, inline comments)
+- Fully functional with real data (no placeholders)
+- Professional, modern, animated, fully responsive

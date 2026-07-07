@@ -177,7 +177,7 @@ export function PythonDayPlan() {
                     return (
                       <motion.div
                         key={dayData.day}
-                        initial={{ opacity: 0, y: 6 }}
+                        initial={{ opacity: 0.01, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25, delay: i * 0.04 }}
                         className={`flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors ${isDone ? "opacity-70" : ""}`}

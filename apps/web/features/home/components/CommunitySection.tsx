@@ -74,7 +74,7 @@ export function CommunitySection() {
 
           {/* ── Left: Text + Stats ──────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0.01, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6 }}
@@ -115,7 +115,7 @@ export function CommunitySection() {
 
           {/* ── Right: Live Activity Feed ────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0.01, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -129,7 +129,7 @@ export function CommunitySection() {
             {recentPosts.map((post, index) => (
               <motion.div
                 key={post.question}
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0.01, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.08 }}

@@ -89,7 +89,7 @@ export function TestCenterPage() {
         {/* Test cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
           {active.tests.map((test, i) => (
-            <motion.div key={test.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+            <motion.div key={test.name} initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
               <div className="rounded-xl border bg-card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <h3 className="font-semibold text-sm mb-3">{test.name}</h3>
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-4">

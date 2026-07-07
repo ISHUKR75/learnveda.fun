@@ -181,7 +181,7 @@ export function DSAPage() {
                     const isDone = completedDays.has(d.day);
                     const isNext = !isDone && d.day === Math.min(...DSA_DAYS.filter(x => !completedDays.has(x.day)).map(x => x.day));
                     return (
-                      <motion.div key={d.day} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: i * 0.025 }}
+                      <motion.div key={d.day} initial={{ opacity: 0.01, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: i * 0.025 }}
                         className={`flex items-start gap-3 p-4 hover:bg-muted/30 transition-colors ${isDone ? "opacity-70" : ""}`}>
                         {isDone ? <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" /> : <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />}
 

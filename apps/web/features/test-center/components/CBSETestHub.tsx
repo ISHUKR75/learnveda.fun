@@ -112,7 +112,7 @@ export function CBSETestHub() {
         </div>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
               <BookOpen className="h-6 w-6 text-blue-500" />
@@ -165,7 +165,7 @@ export function CBSETestHub() {
           {displayList.map((test, i) => (
             <motion.div
               key={test.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0.01, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
               className="flex items-center justify-between rounded-xl border bg-card px-5 py-4 hover:bg-muted/20 hover:border-blue-500/30 transition-all group"

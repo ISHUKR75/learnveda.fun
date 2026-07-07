@@ -254,7 +254,7 @@ export function NotificationCenter() {
                   <motion.div
                     key={notif.id}
                     layout
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0.01, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20, height: 0 }}
                     transition={{ delay: i * 0.03 }}

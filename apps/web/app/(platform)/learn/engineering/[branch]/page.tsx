@@ -280,7 +280,7 @@ export default function EngineeringBranchPage() {
               {semesters.map((semData, i) => (
                 <motion.div
                   key={semData.sem}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0.01, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                 >
@@ -317,7 +317,7 @@ export default function EngineeringBranchPage() {
                     {/* Expanded content — rendered outside the toggle button */}
                     {activeSem === semData.sem && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
+                        initial={{ opacity: 0.01, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         transition={{ duration: 0.2 }}
                         className="px-4 pb-4 grid sm:grid-cols-2 gap-2"

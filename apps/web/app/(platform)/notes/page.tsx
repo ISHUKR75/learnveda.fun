@@ -239,7 +239,7 @@ export default function NotesPage() {
 
             {/* Note detail (shown only on md+) */}
             {selected && (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              <motion.div initial={{ opacity: 0.01, x: 20 }} animate={{ opacity: 1, x: 0 }}
                 className="hidden md:flex flex-col flex-1 rounded-2xl border bg-card p-6 h-fit sticky top-24">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-bold text-lg">{selected.title}</h2>

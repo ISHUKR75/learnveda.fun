@@ -139,7 +139,7 @@ export function TestCenterHub() {
 
         {/* ── Page Header ──────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0.01, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-10"
         >
@@ -161,7 +161,7 @@ export function TestCenterHub() {
 
         {/* ── Stats Row ────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0.01, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
@@ -182,7 +182,7 @@ export function TestCenterHub() {
             {EXAM_CATEGORIES.map((exam, i) => (
               <motion.div
                 key={exam.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0.01, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
               >

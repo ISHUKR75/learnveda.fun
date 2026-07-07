@@ -15,15 +15,19 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { auth }                      from "@clerk/nextjs/server"; // Clerk session auth
 import { z } from "zod";
 
 /* ─── Validation schema ───────────────────────────────────────────────────── */
+// ⚠️ SECURITY: `role` is intentionally excluded from the client schema.
+// Role is always forced to "student" on upsert — never trust client-supplied roles.
+// Admin role can only be set via direct DB write or a protected admin API.
 const UpsertUserSchema = z.object({
   clerkId:   z.string().min(1),                            // Clerk user ID
   email:     z.string().email().optional(),                // Email (only stored internally)
   name:      z.string().min(1).max(100).optional(),        // Display name
   avatarUrl: z.string().url().optional(),                  // Profile picture URL
-  role:      z.enum(["student", "admin"]).default("student"),
+  // role is NOT accepted from clients — see security note above
 });
 
 /* ─── Mock user data ─────────────────────────────────────────────────────── */
@@ -95,12 +99,25 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/users
  * Creates or upserts a user record.
- * Called automatically by the auth webhook on first Clerk login.
+ * Called automatically by the Clerk webhook (webhooks/clerk) on first login.
  *
- * @param req - Request body: { clerkId, email, name, avatarUrl, role }
+ * ⚠️ SECURITY:
+ *  - Requires a valid Clerk session. Unauthenticated callers are rejected.
+ *  - The clerkId in the body is cross-checked against the session userId
+ *    so a user cannot upsert another user's record.
+ *  - Role is always forced to "student" — privilege escalation via this route
+ *    is impossible.
+ *
+ * @param req - Request body: { clerkId, email, name, avatarUrl }
  */
 export async function POST(req: NextRequest) {
   try {
+    /* ── Authentication: require valid Clerk session ──────────────── */
+    const { userId: sessionUserId } = await auth();
+    if (!sessionUserId) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+
     let body: unknown;
     try {
       body = await req.json();
@@ -118,6 +135,18 @@ export async function POST(req: NextRequest) {
 
     const userData = parsed.data;
 
+    /* ── Authorization: caller may only upsert their own record ───── */
+    if (userData.clerkId !== sessionUserId) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    /* ── Always force role to "student" — prevent privilege escalation */
+    const safeUserData = {
+      ...userData,
+      role:      "student" as const, // Server-enforced; never trust the client
+      updatedAt: new Date(),
+    };
+
     /* ── Persist to MongoDB if available ─────────────────────────── */
     const MONGODB_URI = process.env.MONGODB_URI;
     if (MONGODB_URI) {
@@ -126,9 +155,9 @@ export async function POST(req: NextRequest) {
         const { db } = await connectToDatabase();
 
         await db.collection("users").updateOne(
-          { clerkId: userData.clerkId },
+          { clerkId: safeUserData.clerkId },
           {
-            $set:         { ...userData, updatedAt: new Date() },
+            $set:         safeUserData,
             $setOnInsert: { xp: 0, level: 1, streak: 0, createdAt: new Date() },
           },
           { upsert: true }
@@ -141,7 +170,7 @@ export async function POST(req: NextRequest) {
     }
 
     /* ── Demo mode fallback ────────────────────────────────────── */
-    console.log("[users] Demo mode — would upsert user:", userData.clerkId);
+    console.log("[users] Demo mode — would upsert user:", safeUserData.clerkId);
     return NextResponse.json({ success: true, source: "demo" }, { status: 201 });
   } catch (err) {
     console.error("[users] Unexpected error:", err);

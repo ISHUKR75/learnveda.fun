@@ -112,7 +112,7 @@ export function LiveBattlesHub() {
             {battleModes.map((mode, i) => (
               <motion.div
                 key={mode.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0.01, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
                 className={`rounded-2xl border ${mode.border} bg-gradient-to-br ${mode.color.replace("from-", "from-").replace("to-", "to-")}/5 p-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200`}
@@ -150,7 +150,7 @@ export function LiveBattlesHub() {
             {liveFeed.map((battle, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0.01, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08 }}
                 className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4"

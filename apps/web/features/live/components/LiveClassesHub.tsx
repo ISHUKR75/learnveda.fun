@@ -150,7 +150,7 @@ function LiveClassCard({ liveClass }: { liveClass: LiveClass }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0.01, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       className="group rounded-2xl border bg-card hover:border-brand-500/30 hover:shadow-md transition-all overflow-hidden"
@@ -355,7 +355,7 @@ export function LiveClassesHub() {
 
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0.01, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="space-y-3"
@@ -471,7 +471,7 @@ export function LiveClassesHub() {
 
       {/* ── Weekly Schedule CTA ──────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0.01, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="rounded-2xl border bg-gradient-to-br from-blue-500/5 to-purple-500/5 p-8 text-center space-y-4"

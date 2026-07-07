@@ -881,7 +881,7 @@ export function JavaDayPlan() {
       <div className="container px-4 md:px-6 py-10 max-w-5xl mx-auto">
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20">
               <Coffee className="h-6 w-6 text-orange-500" />
@@ -934,7 +934,7 @@ export function JavaDayPlan() {
           {filtered.map((day, i) => (
             <motion.button
               key={day.day}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0.01, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.02 }}
               onClick={() => setSelectedDay(day)}

@@ -148,7 +148,7 @@ export function NEETTestHub() {
         </div>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10 border border-green-500/20">
               <Leaf className="h-6 w-6 text-green-500" />
@@ -217,7 +217,7 @@ export function NEETTestHub() {
           {filtered.map((test, i) => (
             <motion.div
               key={test.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0.01, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               className="flex items-center justify-between rounded-xl border bg-card px-5 py-4 hover:bg-muted/20 hover:border-green-500/30 transition-all group"

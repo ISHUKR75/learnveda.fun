@@ -310,7 +310,7 @@ export default function QuizPracticePage() {
           <Progress value={((questionIndex + 1) / questions.length) * 100} className="h-2 mb-8" />
 
           <AnimatePresence mode="wait">
-            <motion.div key={questionIndex} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key={questionIndex} initial={{ opacity: 0.01, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               {/* Question header */}
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="secondary">{current.subject}</Badge>
@@ -352,7 +352,7 @@ export default function QuizPracticePage() {
 
               {/* Explanation */}
               {showExplanation && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div initial={{ opacity: 0.01, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-xl border bg-muted/50 p-4 mb-6 text-sm">
                   <p className="font-semibold mb-1">Explanation</p>
                   <p className="text-muted-foreground">{current.explanation}</p>

@@ -593,7 +593,7 @@ export function CDayPlan() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container px-4 md:px-6 py-10 max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0.01, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-500/10 border border-slate-500/20">
               <Terminal className="h-6 w-6 text-slate-500" />
@@ -617,7 +617,7 @@ export function CDayPlan() {
           {C_DAYS.map((day, i) => (
             <motion.button
               key={day.day}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0.01, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => setSelectedDay(day)}

@@ -191,7 +191,7 @@ export function LevelUpModal({
                   </motion.div>
 
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }} // Fade up
+                    initial={{ opacity: 0.01, y: 10 }} // Fade up
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
@@ -216,7 +216,7 @@ export function LevelUpModal({
 
                 {/* ── XP Earned stat ─────────────────────────────────── */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0.01, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
                   className="flex items-center justify-center gap-2 rounded-2xl bg-muted/50 border border-border px-5 py-4 mb-6"
@@ -230,7 +230,7 @@ export function LevelUpModal({
 
                 {/* ── Action buttons ─────────────────────────────────── */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0.01, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   className="flex flex-col sm:flex-row gap-3"
