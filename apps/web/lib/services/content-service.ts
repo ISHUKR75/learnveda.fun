@@ -29,16 +29,28 @@ import { CLASS_10_ENGLISH_CHAPTERS } from "@/lib/content/class10-english";
 import { CLASS_10_HINDI_CHAPTERS } from "@/lib/content/class10-hindi";
 import { CLASS_10_COMPUTER_SCIENCE_CHAPTERS } from "@/lib/content/class10-computer-science";
 import { CLASS_10_SANSKRIT_CHAPTERS } from "@/lib/content/class10-sanskrit";
+// ── Class 11 content (added for full NCERT coverage) ──────────────────────
+import { CLASS_11_MATHEMATICS_CHAPTERS } from "@/lib/content/class11-mathematics";
+import { CLASS_11_PHYSICS_CHAPTERS }     from "@/lib/content/class11-physics";
+import { CLASS_11_CHEMISTRY_CHAPTERS }   from "@/lib/content/class11-chemistry";
+import { CLASS_11_BIOLOGY_CHAPTERS }     from "@/lib/content/class11-biology";
+// ── Class 12 content ───────────────────────────────────────────────────────
+import { CLASS_12_MATHEMATICS_CHAPTERS } from "@/lib/content/class12-mathematics";
+import { CLASS_12_PHYSICS_CHAPTERS }     from "@/lib/content/class12-physics";
+import { CLASS_12_CHEMISTRY_CHAPTERS }   from "@/lib/content/class12-chemistry";
+import { CLASS_12_BIOLOGY_CHAPTERS }     from "@/lib/content/class12-biology";
 
 /* ─── Static Content Registry ────────────────────────────────────────────── */
 // Maps "classLevel:subject" to its bundled static chapter array. New subjects
 // register themselves here as their content files are authored.
 const STATIC_CONTENT: Record<string, ContentChapter[]> = {
+  // ── Class 9 ──────────────────────────────────────────────────────────────
   "class-9:mathematics":       CLASS_9_MATHEMATICS_CHAPTERS,
   "class-9:science":           CLASS_9_SCIENCE_CHAPTERS,
   "class-9:social-science":    CLASS_9_SOCIAL_SCIENCE_CHAPTERS,
   "class-9:english":           CLASS_9_ENGLISH_CHAPTERS,
   "class-9:hindi":             CLASS_9_HINDI_CHAPTERS,
+  // ── Class 10 ─────────────────────────────────────────────────────────────
   "class-10:mathematics":      CLASS_10_MATHEMATICS_CHAPTERS,
   "class-10:science":          CLASS_10_SCIENCE_CHAPTERS,
   "class-10:physics":          CLASS_10_PHYSICS_CHAPTERS,
@@ -49,6 +61,16 @@ const STATIC_CONTENT: Record<string, ContentChapter[]> = {
   "class-10:hindi":            CLASS_10_HINDI_CHAPTERS,
   "class-10:computer-science": CLASS_10_COMPUTER_SCIENCE_CHAPTERS,
   "class-10:sanskrit":         CLASS_10_SANSKRIT_CHAPTERS,
+  // ── Class 11 ─────────────────────────────────────────────────────────────
+  "class-11:mathematics":      CLASS_11_MATHEMATICS_CHAPTERS,
+  "class-11:physics":          CLASS_11_PHYSICS_CHAPTERS,
+  "class-11:chemistry":        CLASS_11_CHEMISTRY_CHAPTERS,
+  "class-11:biology":          CLASS_11_BIOLOGY_CHAPTERS,
+  // ── Class 12 ─────────────────────────────────────────────────────────────
+  "class-12:mathematics":      CLASS_12_MATHEMATICS_CHAPTERS,
+  "class-12:physics":          CLASS_12_PHYSICS_CHAPTERS,
+  "class-12:chemistry":        CLASS_12_CHEMISTRY_CHAPTERS,
+  "class-12:biology":          CLASS_12_BIOLOGY_CHAPTERS,
 };
 
 /* ─── Shared normalized shape returned to callers ────────────────────────── */
