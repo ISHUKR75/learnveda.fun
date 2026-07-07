@@ -40,18 +40,18 @@ const CompleteSchema = z.object({
   type:     z.enum(["chapter", "day_lesson", "simulation", "battle_win", "battle_draw", "event", "community"]),
   itemId:   z.string().min(1), // Chapter/day/event ID
   metadata: z.object({
-    quizScore?:  z.number().min(0).max(100).optional(), // Quiz score percentage
-    timeSpentMs?: z.number().positive().optional(),     // Time spent in ms
-    subject?:    z.string().optional(),                  // Subject name
-    class?:      z.string().optional(),                  // Class level
+    quizScore:   z.number().min(0).max(100).optional(), // Quiz score percentage
+    timeSpentMs: z.number().positive().optional(),      // Time spent in ms
+    subject:     z.string().optional(),                  // Subject name
+    class:       z.string().optional(),                  // Class level
   }).optional(),
 });
 
 /** PATCH body: update streak or daily goal */
 const UpdateSchema = z.object({
   userId:        z.string().min(1),
-  studiedMinutes?: z.number().min(0).max(1440).optional(), // Minutes studied (max 24h)
-  streakAction?:   z.enum(["maintain", "reset"]).optional(),
+  studiedMinutes: z.number().min(0).max(1440).optional(), // Minutes studied (max 24h)
+  streakAction:   z.enum(["maintain", "reset"]).optional(),
 });
 
 /* ─── GET /api/progress ──────────────────────────────────────────────────── */

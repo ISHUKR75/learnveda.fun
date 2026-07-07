@@ -1,133 +1,187 @@
 /**
  * @file features/learn/components/LearnHubPage.tsx
- * @description Learning Hub page component showing all available tracks
- * Links to Class 9-12, Engineering, Programming Languages, and Core CS
+ * @description Learn Hub — all learning tracks in one place
+ *
+ * The main /learn page showing all available learning paths:
+ * - CBSE Classes 9–12 with subject overview + chapter counts
+ * - Engineering branches (B.Tech, 9 branches)
+ * - Core CS subjects (DSA, OS, DBMS, CN, System Design, Git, CP, Web Dev, Interview)
+ * - Programming languages (14 languages with day plans)
+ *
+ * Used in: app/(marketing)/learn/page.tsx
  */
 
-"use client";
+"use client"; // Client component — hover animations
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { BookOpen, GraduationCap, Code2, Brain, ArrowRight, Search, FlaskConical } from "lucide-react";
-import { Badge }  from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React from "react"; // React core
+import Link from "next/link"; // Navigation
+import { motion } from "framer-motion"; // Entry animations
+import {
+  BookOpen, Code2, Cpu, ChevronRight, Atom, FlaskConical,
+  Calculator, Globe, GraduationCap, ArrowRight,
+  BarChart2, Database, Network, HardDrive, GitBranch,
+  Brain, Terminal, Zap, Trophy,
+} from "lucide-react"; // Icons
+import { Badge }  from "@/components/ui/badge";  // Status badges
+import { Button } from "@/components/ui/button"; // CTA button
 
-/* ─── Class 9-12 Data ────────────────────────────────────────────────────── */
-const classes = [
+/* ─── CBSE Classes Data ──────────────────────────────────────────────────── */
+const CLASSES = [
   {
-    name: "Class 9", href: "/learn/class-9", emoji: "9️⃣",
-    subjects: ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Hindi", "Social Science", "Computer", "AI"],
-    chapters: 75, questions: 2000,
-    color: "from-blue-500 to-cyan-500", border: "border-blue-500/20", bg: "from-blue-500/5 to-cyan-500/5",
+    id:       "class-9",
+    label:    "Class 9",
+    href:     "/learn/class-9",
+    emoji:    "📗",
+    subjects: ["Mathematics", "Science", "Social Science", "English", "Hindi", "Computer", "AI"],
+    chapters: 90,
+    color:    "from-blue-500 to-cyan-500",
+    bg:       "bg-blue-500/10",
+    border:   "border-blue-500/20",
+    plans:    "45-day plan",
   },
   {
-    name: "Class 10", href: "/learn/class-10", emoji: "🔟",
-    subjects: ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Hindi", "Social Science", "Computer"],
-    chapters: 80, questions: 2500,
-    color: "from-purple-500 to-pink-500", border: "border-purple-500/20", bg: "from-purple-500/5 to-pink-500/5",
+    id:       "class-10",
+    label:    "Class 10",
+    href:     "/learn/class-10",
+    emoji:    "📘",
+    subjects: ["Mathematics", "Science", "Social Science", "English", "Hindi", "IT"],
+    chapters: 95,
+    color:    "from-green-500 to-emerald-500",
+    bg:       "bg-green-500/10",
+    border:   "border-green-500/20",
+    plans:    "50-day plan · Board prep",
   },
   {
-    name: "Class 11", href: "/learn/class-11", emoji: "1️⃣1️⃣",
-    subjects: ["Physics", "Chemistry", "Math", "Biology", "CS", "English", "Accountancy", "Economics"],
-    chapters: 120, questions: 4000,
-    color: "from-green-500 to-teal-500", border: "border-green-500/20", bg: "from-green-500/5 to-teal-500/5",
+    id:       "class-11",
+    label:    "Class 11",
+    href:     "/learn/class-11",
+    emoji:    "📙",
+    subjects: ["Physics", "Chemistry", "Mathematics", "Biology", "Economics", "Accounts"],
+    chapters: 110,
+    color:    "from-orange-500 to-amber-500",
+    bg:       "bg-orange-500/10",
+    border:   "border-orange-500/20",
+    plans:    "Science · Commerce · Arts streams",
   },
   {
-    name: "Class 12", href: "/learn/class-12", emoji: "1️⃣2️⃣",
-    subjects: ["Physics", "Chemistry", "Math", "Biology", "CS", "English", "Accountancy", "Economics"],
-    chapters: 130, questions: 5000,
-    color: "from-orange-500 to-red-500", border: "border-orange-500/20", bg: "from-orange-500/5 to-red-500/5",
+    id:       "class-12",
+    label:    "Class 12",
+    href:     "/learn/class-12",
+    emoji:    "📕",
+    subjects: ["Physics", "Chemistry", "Mathematics", "Biology", "Accountancy", "Business Studies"],
+    chapters: 115,
+    color:    "from-purple-500 to-violet-500",
+    bg:       "bg-purple-500/10",
+    border:   "border-purple-500/20",
+    plans:    "2,000+ questions · JEE/NEET prep",
   },
 ];
 
 /* ─── Engineering Branches ───────────────────────────────────────────────── */
-const engineeringBranches = [
-  { name: "CSE",         emoji: "💻", href: "/learn/engineering/cse"         },
-  { name: "ECE",         emoji: "📡", href: "/learn/engineering/ece"         },
-  { name: "EEE",         emoji: "⚡", href: "/learn/engineering/eee"         },
-  { name: "Mechanical",  emoji: "⚙️", href: "/learn/engineering/mechanical"  },
-  { name: "Civil",       emoji: "🏗️", href: "/learn/engineering/civil"      },
-  { name: "Chemical",    emoji: "🧪", href: "/learn/engineering/chemical"    },
-  { name: "AI & ML",     emoji: "🤖", href: "/learn/engineering/ai-ml"      },
-  { name: "Data Science",emoji: "📊", href: "/learn/engineering/data-science"},
-  { name: "IT",          emoji: "🌐", href: "/learn/engineering/it"          },
+const ENGINEERING_BRANCHES = [
+  { id:"cse",      label:"Computer Science (CSE)",     emoji:"💻", href:"/learn/engineering/cse",      semesters:8 },
+  { id:"ece",      label:"Electronics & Comm (ECE)",   emoji:"📡", href:"/learn/engineering/ece",      semesters:8 },
+  { id:"eee",      label:"Electrical (EEE)",           emoji:"⚡", href:"/learn/engineering/eee",      semesters:8 },
+  { id:"civil",    label:"Civil Engineering",          emoji:"🏗",  href:"/learn/engineering/civil",    semesters:8 },
+  { id:"mech",     label:"Mechanical",                 emoji:"⚙️",  href:"/learn/engineering/mech",     semesters:8 },
+  { id:"ai-ml",    label:"AI & Machine Learning",      emoji:"🤖", href:"/learn/engineering/ai-ml",    semesters:8 },
+  { id:"data-sci", label:"Data Science",               emoji:"📊", href:"/learn/engineering/data-sci", semesters:8 },
+  { id:"it",       label:"Information Technology",     emoji:"🌐", href:"/learn/engineering/it",       semesters:8 },
+  { id:"chemical", label:"Chemical Engineering",       emoji:"🧪", href:"/learn/engineering/chemical", semesters:8 },
+];
+
+/* ─── Core CS Subjects ───────────────────────────────────────────────────── */
+const CORE_CS = [
+  { id:"dsa",      label:"Data Structures & Algorithms", emoji:"🌳", days:60, href:"/core-cs/dsa",          icon:GitBranch   },
+  { id:"os",       label:"Operating Systems",            emoji:"💾", days:20, href:"/core-cs/os",           icon:HardDrive   },
+  { id:"dbms",     label:"Database Management",          emoji:"🗄️", days:20, href:"/core-cs/dbms",         icon:Database    },
+  { id:"cn",       label:"Computer Networks",            emoji:"🌐", days:20, href:"/core-cs/cn",           icon:Network     },
+  { id:"sd",       label:"System Design",                emoji:"🏛",  days:25, href:"/core-cs/system-design",icon:BarChart2   },
+  { id:"git",      label:"Git & GitHub",                 emoji:"🔀", days:10, href:"/core-cs/git",          icon:GitBranch   },
+  { id:"cp",       label:"Competitive Programming",      emoji:"🏆", days:60, href:"/core-cs/cp",           icon:Trophy      },
+  { id:"web",      label:"Web Development",              emoji:"🕸",  days:30, href:"/core-cs/web-dev",      icon:Globe       },
+  { id:"interview",label:"Interview Preparation",        emoji:"🎯", days:30, href:"/core-cs/interview",    icon:Brain       },
 ];
 
 /* ─── Programming Languages ──────────────────────────────────────────────── */
-const languages = [
-  { name: "Python",     emoji: "🐍", days: 45, href: "/learn/programming/python"     },
-  { name: "Java",       emoji: "☕", days: 45, href: "/learn/programming/java"       },
-  { name: "C++",        emoji: "➕", days: 30, href: "/learn/programming/cpp"        },
-  { name: "JavaScript", emoji: "🌐", days: 30, href: "/learn/programming/javascript" },
-  { name: "C",          emoji: "©️", days: 30, href: "/learn/programming/c"          },
-  { name: "TypeScript", emoji: "📘", days: 25, href: "/learn/programming/typescript" },
-  { name: "Rust",       emoji: "🦀", days: 40, href: "/learn/programming/rust"       },
-  { name: "Go",         emoji: "🔵", days: 30, href: "/learn/programming/go"         },
+const LANGUAGES = [
+  { id:"python",     name:"Python",     emoji:"🐍", days:45, level:"Beginner",     href:"/programming/python",     color:"from-yellow-500 to-green-500"  },
+  { id:"javascript", name:"JavaScript", emoji:"🌐", days:30, level:"Beginner",     href:"/programming/javascript", color:"from-yellow-400 to-yellow-600" },
+  { id:"java",       name:"Java",       emoji:"☕", days:45, level:"Intermediate", href:"/programming/java",       color:"from-orange-500 to-red-500"    },
+  { id:"c",          name:"C",          emoji:"©️",  days:30, level:"Beginner",     href:"/programming/c",          color:"from-blue-500 to-blue-600"     },
+  { id:"cpp",        name:"C++",        emoji:"➕", days:30, level:"Intermediate", href:"/programming/cpp",        color:"from-blue-600 to-indigo-600"   },
+  { id:"typescript", name:"TypeScript", emoji:"📘", days:25, level:"Intermediate", href:"/programming/typescript", color:"from-blue-500 to-cyan-500"     },
+  { id:"rust",       name:"Rust",       emoji:"🦀", days:40, level:"Advanced",     href:"/programming/rust",       color:"from-orange-600 to-red-700"    },
+  { id:"go",         name:"Go",         emoji:"🔵", days:30, level:"Intermediate", href:"/programming/go",         color:"from-cyan-500 to-teal-500"     },
+  { id:"kotlin",     name:"Kotlin",     emoji:"🟣", days:30, level:"Intermediate", href:"/programming/kotlin",     color:"from-purple-500 to-violet-600" },
+  { id:"swift",      name:"Swift",      emoji:"🐦", days:30, level:"Intermediate", href:"/programming/swift",      color:"from-orange-500 to-pink-500"   },
+  { id:"sql",        name:"SQL",        emoji:"🗄️", days:20, level:"Beginner",     href:"/programming/sql",        color:"from-teal-500 to-cyan-600"     },
+  { id:"dart",       name:"Dart",       emoji:"🎯", days:25, level:"Beginner",     href:"/programming/dart",       color:"from-cyan-400 to-blue-500"     },
+  { id:"ruby",       name:"Ruby",       emoji:"💎", days:25, level:"Beginner",     href:"/programming/ruby",       color:"from-red-500 to-pink-500"      },
 ];
 
-/* ─── Learn Hub Component ────────────────────────────────────────────────── */
+/* ─── Animation variants ─────────────────────────────────────────────────── */
+const cardVariant = {
+  hidden:  { opacity: 0.01, y: 12 },
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { duration: 0.35, delay: i * 0.06 } }),
+};
+
+/* ─── LearnHubPage Component ─────────────────────────────────────────────── */
+
+/**
+ * Full /learn page with all learning tracks.
+ */
 export function LearnHubPage() {
-  const [search, setSearch] = useState("");
-
   return (
-    <div className="py-12 md:py-20">
-      <div className="container px-4 md:px-6 space-y-16">
+    <div className="py-12">
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
 
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="text-center">
-          <Badge variant="outline" className="mb-4 text-brand-500 border-brand-500/30">
-            Learning Hub
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
-            What Do You Want to{" "}
-            <span className="text-gradient">Learn Today?</span>
+        {/* ── Page Header ────────────────────────────────────────── */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-foreground mb-3">
+            All Learning Tracks
           </h1>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            From Class 9 to your first job — choose your path and start learning with structured plans, simulations, and AI tutoring.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            From Class 9 to Graduation — structured, CBSE-aligned, and updated for 2025-26.
           </p>
-
-          {/* Search */}
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text" placeholder="Search subjects, topics, languages..."
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border bg-background pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring shadow-sm"
-            />
-          </div>
         </div>
 
-        {/* ── Class 9-12 ─────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-extrabold">School — Class 9 to 12</h2>
-              <p className="text-sm text-muted-foreground">Complete CBSE NCERT curriculum</p>
-            </div>
+        {/* ── Section 1: CBSE Classes ─────────────────────────────── */}
+        <section className="mb-14">
+          <div className="flex items-center gap-2 mb-5">
+            <BookOpen className="h-5 w-5 text-brand-500" />
+            <h2 className="text-xl font-bold text-foreground">CBSE Classes (9–12)</h2>
+            <Badge variant="outline" className="text-xs">NCERT Aligned</Badge>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {classes.map((cls, i) => (
-              <motion.div key={cls.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                <Link href={cls.href} className="group block">
-                  <div className={`rounded-2xl border ${cls.border} bg-gradient-to-br ${cls.bg} p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-200`}>
-                    <div className="text-3xl mb-3">{cls.emoji}</div>
-                    <h3 className="font-bold text-lg mb-2 group-hover:text-brand-500 transition-colors">{cls.name}</h3>
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {cls.subjects.slice(0, 4).map((s) => (
-                        <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-background/60 border text-muted-foreground">{s}</span>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {CLASSES.map((cls, i) => (
+              <motion.div
+                key={cls.id}
+                custom={i}
+                variants={cardVariant}
+                initial="hidden"
+                animate="visible"
+              >
+                <Link href={cls.href}>
+                  <div className={`h-full rounded-2xl border ${cls.border} ${cls.bg} p-5 hover:shadow-md transition-all group cursor-pointer`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">{cls.emoji}</span>
+                      <span className="text-sm font-bold text-foreground">{cls.label}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {cls.subjects.slice(0, 4).map(s => (
+                        <span key={s} className="text-xs px-1.5 py-0.5 bg-background/50 text-muted-foreground rounded-full">
+                          {s}
+                        </span>
                       ))}
-                      {cls.subjects.length > 4 && <span className="text-xs text-muted-foreground px-1">+{cls.subjects.length - 4} more</span>}
+                      {cls.subjects.length > 4 && (
+                        <span className="text-xs text-muted-foreground">+{cls.subjects.length - 4}</span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{cls.chapters} chapters</span>
-                      <span className="flex items-center gap-1 text-brand-500 font-medium group-hover:gap-2 transition-all">
-                        Start <ArrowRight className="h-3 w-3" />
-                      </span>
+                      <span>{cls.chapters}+ chapters</span>
+                      <ChevronRight className="h-3.5 w-3.5 group-hover:text-brand-500 transition-colors" />
                     </div>
                   </div>
                 </Link>
@@ -136,94 +190,129 @@ export function LearnHubPage() {
           </div>
         </section>
 
-        {/* ── Engineering ────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-extrabold">Engineering</h2>
-              <p className="text-sm text-muted-foreground">9 branches × 8 semesters</p>
-            </div>
+        {/* ── Section 2: Programming Languages ───────────────────── */}
+        <section className="mb-14">
+          <div className="flex items-center gap-2 mb-5">
+            <Code2 className="h-5 w-5 text-brand-500" />
+            <h2 className="text-xl font-bold text-foreground">Programming Languages</h2>
+            <Badge variant="outline" className="text-xs">14 Languages</Badge>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
-            {engineeringBranches.map((branch, i) => (
-              <motion.div key={branch.name} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
-                <Link href={branch.href} className="group flex flex-col items-center gap-2 rounded-xl border bg-background p-3 hover:shadow-md hover:-translate-y-0.5 transition-all text-center">
-                  <span className="text-2xl">{branch.emoji}</span>
-                  <span className="text-xs font-medium group-hover:text-brand-500 transition-colors">{branch.name}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {LANGUAGES.map((lang, i) => (
+              <motion.div
+                key={lang.id}
+                custom={i}
+                variants={cardVariant}
+                initial="hidden"
+                animate="visible"
+              >
+                <Link href={lang.href}>
+                  <div className="rounded-2xl border bg-card p-4 hover:shadow-md transition-all group cursor-pointer text-center">
+                    <div className="text-2xl mb-1">{lang.emoji}</div>
+                    <p className="font-semibold text-sm text-foreground group-hover:text-brand-500 transition-colors">
+                      {lang.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{lang.days} days</p>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs mt-1.5 ${
+                        lang.level === "Beginner"     ? "border-green-500/40 text-green-600" :
+                        lang.level === "Intermediate" ? "border-yellow-500/40 text-yellow-600" :
+                        "border-red-500/40 text-red-600"
+                      }`}
+                    >
+                      {lang.level}
+                    </Badge>
+                  </div>
                 </Link>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* ── Programming Languages ───────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-500">
-                <Code2 className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-extrabold">Programming Languages</h2>
-                <p className="text-sm text-muted-foreground">14 languages with N-day structured plans</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/learn/programming">View All</Link>
+        {/* ── Section 3: Core CS Subjects ─────────────────────────── */}
+        <section className="mb-14">
+          <div className="flex items-center gap-2 mb-5">
+            <Brain className="h-5 w-5 text-brand-500" />
+            <h2 className="text-xl font-bold text-foreground">Core CS Subjects</h2>
+            <Badge variant="outline" className="text-xs">SDE Interview Ready</Badge>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CORE_CS.map((sub, i) => (
+              <motion.div
+                key={sub.id}
+                custom={i}
+                variants={cardVariant}
+                initial="hidden"
+                animate="visible"
+              >
+                <Link href={sub.href}>
+                  <div className="flex items-center gap-4 rounded-2xl border bg-card p-4 hover:shadow-md hover:border-brand-500/30 transition-all group cursor-pointer">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-2xl">
+                      {sub.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground group-hover:text-brand-500 transition-colors">
+                        {sub.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{sub.days} day plan</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 transition-colors flex-shrink-0" />
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Section 4: Engineering ───────────────────────────────── */}
+        <section className="mb-12">
+          <div className="flex items-center gap-2 mb-5">
+            <GraduationCap className="h-5 w-5 text-brand-500" />
+            <h2 className="text-xl font-bold text-foreground">Engineering (B.Tech)</h2>
+            <Badge variant="outline" className="text-xs">9 Branches · 8 Semesters</Badge>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ENGINEERING_BRANCHES.map((branch, i) => (
+              <motion.div
+                key={branch.id}
+                custom={i}
+                variants={cardVariant}
+                initial="hidden"
+                animate="visible"
+              >
+                <Link href={branch.href}>
+                  <div className="flex items-center gap-4 rounded-2xl border bg-card p-4 hover:shadow-md hover:border-brand-500/30 transition-all group cursor-pointer">
+                    <span className="text-2xl flex-shrink-0">{branch.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground group-hover:text-brand-500 transition-colors">
+                        {branch.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{branch.semesters} semesters</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-brand-500 transition-colors flex-shrink-0" />
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Bottom CTA ───────────────────────────────────────────── */}
+        <div className="text-center p-8 rounded-2xl border bg-brand-500/5 border-brand-500/20">
+          <h3 className="text-xl font-bold text-foreground mb-2">Not sure where to start?</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Try our AI-powered learning path builder — get a personalized plan in 2 minutes.
+          </p>
+          <Link href="/ai-tutor">
+            <Button className="gap-1.5">
+              Get My Learning Path <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {languages.map((lang, i) => (
-              <Link key={lang.name} href={lang.href}
-                className="group flex flex-col items-center gap-2 rounded-xl border bg-background p-4 hover:shadow-md hover:-translate-y-0.5 transition-all text-center">
-                <span className="text-2xl">{lang.emoji}</span>
-                <span className="text-xs font-bold group-hover:text-brand-500 transition-colors">{lang.name}</span>
-                <span className="text-xs text-muted-foreground">{lang.days}d plan</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Core CS ─────────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
-              <Brain className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-extrabold">Core CS Subjects</h2>
-              <p className="text-sm text-muted-foreground">SDE interview essentials</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[
-              { name: "DSA",           days: 60, emoji: "🌳", href: "/learn/core-cs/dsa"           },
-              { name: "System Design", days: 25, emoji: "⚙️", href: "/learn/core-cs/system-design" },
-              { name: "Web Dev",       days: 30, emoji: "🌐", href: "/learn/core-cs/web-dev"       },
-              { name: "DBMS",          days: 20, emoji: "🗄️", href: "/learn/core-cs/dbms"         },
-              { name: "OS",            days: 20, emoji: "💻", href: "/learn/core-cs/os"            },
-              { name: "Comp. Networks",days: 20, emoji: "🔗", href: "/learn/core-cs/cn"            },
-              { name: "Git & GitHub",  days: 10, emoji: "📦", href: "/learn/core-cs/git"           },
-              { name: "Comp. Prog.",   days: 60, emoji: "🏆", href: "/learn/core-cs/cp"            },
-              { name: "Interview Prep",days: 30, emoji: "🎯", href: "/learn/core-cs/interview"     },
-            ].map((sub) => (
-              <Link key={sub.name} href={sub.href}
-                className="group flex items-center gap-3 rounded-xl border bg-background p-4 hover:shadow-md hover:border-brand-500/30 transition-all duration-200">
-                <span className="text-xl">{sub.emoji}</span>
-                <div>
-                  <p className="text-sm font-semibold group-hover:text-brand-500 transition-colors">{sub.name}</p>
-                  <p className="text-xs text-muted-foreground">{sub.days} days</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+          </Link>
+        </div>
       </div>
     </div>
   );

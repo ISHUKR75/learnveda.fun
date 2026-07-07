@@ -1,359 +1,281 @@
 /**
  * @file features/features-page/components/FeaturesFullPage.tsx
- * @description Full features showcase page for LearnVeda
+ * @description Full platform features page for /features route
  *
- * Shows all platform features in detail:
- *  - AI Tutor capabilities
- *  - Interactive Simulations (140+)
- *  - Live Coding Battles
- *  - CBSE & Engineering curriculum
- *  - Code compiler (16 languages)
- *  - Community & mentorship
- *  - Analytics & progress tracking
+ * Shows all LearnVeda platform capabilities:
+ * 1. Hero section with headline + feature count
+ * 2. Core feature grid (AI Tutor, Simulations, Live Battles, etc.)
+ * 3. Curriculum coverage (Class 9-12, Engineering, CS, Programming)
+ * 4. Tools grid (Compiler, Flashcards, AI Chat, etc.)
+ * 5. Community features
+ * 6. CTA to start
+ *
+ * Used in: app/(marketing)/features/page.tsx
  */
 
-"use client"; // Client component for motion animations
+"use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
-  Brain, Zap, FlaskConical, BookOpen, Code2, Users,
-  BarChart3, Trophy, Globe2, Shield, Sparkles, Monitor,
-  GraduationCap, ChevronRight, CheckCircle2, Play,
+  Sparkles, Zap, BookOpen, Code2, Trophy, Users,
+  Brain, FlaskConical, BarChart3, Calendar, Globe,
+  Shield, Star, ArrowRight, CheckCircle2, Cpu,
+  MessageSquare, Flame, Target, Clock, GraduationCap,
+  Terminal, Layout, Layers, Heart,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge }  from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-/* ─── Feature Category Data ──────────────────────────────────────────────── */
-const FEATURE_CATEGORIES = [
+/* ─── Main feature cards ─────────────────────────────────────────────────── */
+const CORE_FEATURES = [
   {
-    id:    "ai",
-    icon:  Brain,
-    title: "AI Tutor",
-    color: "from-brand-500 to-purple-500",
-    bg:    "bg-brand-500/10 text-brand-500",
-    tagline: "Your personal teacher, available 24/7",
-    description: "LearnVeda's AI tutor is powered by GPT-4 and Gemini. Ask any question, get detailed step-by-step explanations, and receive personalized study recommendations based on your weaknesses.",
-    capabilities: [
-      "Answers questions from any chapter in seconds",
-      "Generates custom practice problems at your level",
-      "Identifies weak areas and recommends targeted content",
-      "Explains concepts in English and Hindi",
-      "Provides exam-style solved examples",
-      "Available 24/7 — no waiting, no scheduling",
-    ],
+    icon: Sparkles,   color:"text-brand-500",   bg:"bg-brand-500/10",
+    title:"AI Tutor",
+    desc: "Chat with an AI tutor that explains concepts like a patient teacher. Asks guiding questions. Explains in Hindi or English. Covers every subject.",
+    badges: ["GPT-4o Powered","Hindi + English","Subject-specific modes"],
     href: "/ai-tutor",
-    ctaLabel: "Try AI Tutor",
   },
   {
-    id:    "simulations",
-    icon:  FlaskConical,
-    title: "140+ Simulations",
-    color: "from-blue-500 to-cyan-500",
-    bg:    "bg-blue-500/10 text-blue-500",
-    tagline: "See concepts come to life",
-    description: "Physics simulations, chemistry lab experiments, DSA visualizers, and more. Every simulation is interactive — you control the variables and watch the results in real time.",
-    capabilities: [
-      "Newton's Laws of Motion (interactive)",
-      "Pendulum, projectile, wave interference",
-      "Organic chemistry reaction simulator",
-      "Cell division and mitosis animation",
-      "Sorting algorithms (bubble, merge, quick, heap)",
-      "Binary tree and graph traversal visualizer",
-      "Digital logic circuit simulator",
-      "CPU, cache, and memory simulator",
-    ],
+    icon: FlaskConical, color:"text-purple-500", bg:"bg-purple-500/10",
+    title:"140+ Simulations",
+    desc: "Interactive physics, chemistry, biology, DSA, OS, networks, and database simulations. See concepts come alive instead of reading about them.",
+    badges: ["Physics","Chemistry","DSA","OS","Networks"],
     href: "/simulations",
-    ctaLabel: "Explore Simulations",
   },
   {
-    id:    "battles",
-    icon:  Zap,
-    title: "Live Coding Battles",
-    color: "from-red-500 to-orange-500",
-    bg:    "bg-red-500/10 text-red-500",
-    tagline: "Compete. Learn. Level up.",
-    description: "Challenge other students to real-time 1v1 coding and quiz battles. Earn XP, climb the leaderboard, and win prizes. Elo-based matchmaking ensures fair competition.",
-    capabilities: [
-      "Real-time 1v1 battles via Socket.IO",
-      "10 questions, 15 seconds each",
-      "Elo-based matchmaking (±3 levels)",
-      "Subjects: Math, Science, DSA, Coding",
-      "Earn XP and Stars for wins",
-      "Weekly tournament with ₹5,000 prize pool",
-      "Anti-cheat detection active",
-      "Spectator mode (coming soon)",
-    ],
+    icon: Zap,        color:"text-orange-500",  bg:"bg-orange-500/10",
+    title:"Live Battles",
+    desc: "1v1 real-time MCQ battles against other students. 10 questions, 15 seconds each. Elo-based matchmaking. +100 XP for winning.",
+    badges: ["Real-time","Elo matchmaking","7+ subjects"],
     href: "/live-battles",
-    ctaLabel: "Start a Battle",
   },
   {
-    id:    "curriculum",
-    icon:  BookOpen,
-    title: "CBSE & Engineering",
-    color: "from-green-500 to-teal-500",
-    bg:    "bg-green-500/10 text-green-500",
-    tagline: "Complete curriculum, zero compromises",
-    description: "NCERT-aligned chapters for Class 9–12 with every subject covered. Engineering curriculum covers 8 branches across 8 semesters. All content reviewed by subject matter experts.",
-    capabilities: [
-      "All CBSE Class 9–12 subjects (NCERT aligned)",
-      "Physics, Chemistry, Biology, Math, English, Hindi, Social Science",
-      "Engineering: CSE, ECE, EEE, Civil, Mechanical",
-      "Day-wise structured plans for 12+ programming languages",
-      "Core CS: DSA, OS, DBMS, CN, System Design",
-      "Previous year questions (PYQs) bank",
-      "CBSE board exam mock tests",
-      "JEE and NEET preparation content",
-    ],
-    href: "/learn",
-    ctaLabel: "Browse Curriculum",
-  },
-  {
-    id:    "compiler",
-    icon:  Code2,
-    title: "Online Code Compiler",
-    color: "from-purple-500 to-pink-500",
-    bg:    "bg-purple-500/10 text-purple-500",
-    tagline: "Code in 16 languages, right in your browser",
-    description: "A full-featured Monaco Editor-based code compiler. Write, run, and debug code without installing anything. Supports 16 programming languages with syntax highlighting and auto-complete.",
-    capabilities: [
-      "16 programming languages supported",
-      "Monaco Editor (same as VS Code)",
-      "Syntax highlighting and IntelliSense",
-      "Standard input/output support",
-      "Execution time and memory tracking",
-      "Code history saved automatically",
-      "Share code snippets with a link",
-      "Dark and light themes",
-    ],
+    icon: Code2,      color:"text-green-500",   bg:"bg-green-500/10",
+    title:"Code Compiler",
+    desc: "Run code in 14 languages directly in the browser. No installation required. Python, Java, C++, JavaScript, Rust, Go, and more.",
+    badges: ["14 languages","Judge0 engine","In-browser"],
     href: "/compiler",
-    ctaLabel: "Open Compiler",
   },
   {
-    id:    "community",
-    icon:  Users,
-    title: "Community & Mentorship",
-    color: "from-orange-500 to-amber-500",
-    bg:    "bg-orange-500/10 text-orange-500",
-    tagline: "Learn better together",
-    description: "Ask questions, share resources, and connect with students nationwide. Our community is moderated to keep it safe, helpful, and free from spam.",
-    capabilities: [
-      "Q&A forum for every subject",
-      "Study groups by class and subject",
-      "Peer mentorship matching",
-      "Resource sharing (notes, PDFs)",
-      "Weekly live discussion sessions",
-      "Expert answers from teachers",
-      "Community leaderboard",
-      "Safe and moderated environment",
-    ],
+    icon: BarChart3,  color:"text-blue-500",    bg:"bg-blue-500/10",
+    title:"Student Dashboard",
+    desc: "Track XP, daily streaks, chapter completions, battle wins, and achievements. 52-week activity heatmap. Personalized next-step recommendations.",
+    badges: ["XP & levels","Streak tracking","AI recommendations"],
+    href: "/dashboard",
+  },
+  {
+    icon: Trophy,     color:"text-amber-500",   bg:"bg-amber-500/10",
+    title:"Test Center",
+    desc: "Full-length CBSE board simulations, JEE/NEET mock tests, company placement tests. Timed. With detailed solutions and performance analysis.",
+    badges: ["CBSE","JEE/NEET","Company tests"],
+    href: "/test-center",
+  },
+  {
+    icon: Users,      color:"text-teal-500",    bg:"bg-teal-500/10",
+    title:"Community Forum",
+    desc: "Ask questions, share resources, join study groups. 10,000+ students, mentor-verified answers, and weekly Q&A sessions with educators.",
+    badges: ["Q&A","Study groups","Mentor verified"],
     href: "/community",
-    ctaLabel: "Join Community",
   },
   {
-    id:    "analytics",
-    icon:  BarChart3,
-    title: "Progress Analytics",
-    color: "from-cyan-500 to-blue-500",
-    bg:    "bg-cyan-500/10 text-cyan-500",
-    tagline: "Know exactly where you stand",
-    description: "Detailed analytics on your learning journey. See which subjects you're strongest in, track your streak, and get personalized recommendations for what to study next.",
-    capabilities: [
-      "52-week learning activity heatmap",
-      "Subject-wise progress breakdown",
-      "Time spent per chapter tracking",
-      "Quiz and test score history",
-      "XP and level progression chart",
-      "Battle win rate statistics",
-      "Streak calendar",
-      "Downloadable progress reports",
-    ],
-    href: "/dashboard/analytics",
-    ctaLabel: "View Analytics",
+    icon: Target,     color:"text-red-500",     bg:"bg-red-500/10",
+    title:"Practice Hub",
+    desc: "10,000+ MCQs, previous year papers (2015–2025), flashcards, daily challenges, and a coding playground. Track your accuracy and improvement.",
+    badges: ["10K+ MCQs","PYQs 2015–25","Daily challenges"],
+    href: "/practice",
   },
   {
-    id:    "seo",
-    icon:  Globe2,
-    title: "22-Language Support",
-    color: "from-teal-500 to-green-500",
-    bg:    "bg-teal-500/10 text-teal-500",
-    tagline: "Learn in your language",
-    description: "LearnVeda supports 22 Indian and international languages. Switch language instantly from any page. Content is available in English and Hindi, with more languages being added.",
-    capabilities: [
-      "UI available in 22 languages",
-      "English and Hindi content fully available",
-      "Auto-detect browser language preference",
-      "Language switcher on every page",
-      "Right-to-left (RTL) language support",
-      "AI Tutor responds in your chosen language",
-    ],
-    href: "/features",
-    ctaLabel: "Learn More",
+    icon: Globe,      color:"text-cyan-500",    bg:"bg-cyan-500/10",
+    title:"11 Indian Languages",
+    desc: "All content available in Hindi, Tamil, Telugu, Bengali, Marathi, Kannada, Gujarati, Malayalam, Odia, Punjabi, and English.",
+    badges: ["Hindi","Tamil","Telugu","+ 8 more"],
+    href: "/learn",
   },
 ];
 
+/* ─── Curriculum coverage numbers ────────────────────────────────────────── */
+const CURRICULUM_STATS = [
+  { value:"4",    label:"CBSE Classes (9–12)",       emoji:"📚" },
+  { value:"14",   label:"Programming Languages",      emoji:"💻" },
+  { value:"9",    label:"Engineering Branches",        emoji:"🏗" },
+  { value:"9",    label:"Core CS Subjects",            emoji:"🧠" },
+  { value:"140+", label:"Interactive Simulations",     emoji:"⚗️" },
+  { value:"10K+", label:"Practice Questions",          emoji:"❓" },
+  { value:"500+", label:"Chapters & Lessons",          emoji:"📖" },
+  { value:"50+",  label:"Events per Month",            emoji:"📅" },
+];
+
+/* ─── Other tools ────────────────────────────────────────────────────────── */
+const OTHER_TOOLS = [
+  { icon: Layout,     title:"Flashcards",       href:"/flashcards",    desc:"Create and review flashcard decks. Spaced repetition built in." },
+  { icon: Calendar,   title:"Study Calendar",   href:"/dashboard",     desc:"Plan and schedule your study sessions. Sync with daily goals." },
+  { icon: Flame,      title:"Streak System",    href:"/dashboard",     desc:"Daily streaks keep you accountable. XP multipliers for long streaks." },
+  { icon: Brain,      title:"Leaderboard",      href:"/leaderboard",   desc:"See where you stand among all students on the platform globally." },
+  { icon: Terminal,   title:"Whiteboard",       href:"/whiteboard",    desc:"Digital math whiteboard for scratch work and visual problem solving." },
+  { icon: Clock,      title:"Exam Scheduler",   href:"/schedule",      desc:"Mark your board exam date. Get a reverse-engineered study plan." },
+  { icon: Layers,     title:"Cheat Sheets",     href:"/cheatsheets",   desc:"Quick-reference formula and concept sheets for every subject." },
+  { icon: Shield,     title:"Offline Mode",     href:"/learn",         desc:"Download lessons for offline study. Works on slow connections too." },
+];
+
+/* ─── Animation ──────────────────────────────────────────────────────────── */
+const fadeUp = (i: number) => ({
+  initial: { opacity: 0.01, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, delay: i * 0.07 },
+});
+
 /* ─── FeaturesFullPage Component ─────────────────────────────────────────── */
 export function FeaturesFullPage() {
-  const [activeFeature, setActiveFeature] = useState(FEATURE_CATEGORIES[0].id);
-
-  // Active feature details
-  const active = FEATURE_CATEGORIES.find((f) => f.id === activeFeature) ?? FEATURE_CATEGORIES[0];
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="py-20 text-center border-b bg-gradient-to-b from-muted/30 to-background">
-        <div className="container px-4 md:px-6">
-          <Badge variant="secondary" className="mb-4 text-sm">Platform Features</Badge>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4">
-            Everything You Need to{" "}
+    <div className="py-12">
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
+
+        {/* ── Hero ────────────────────────────────────────────────── */}
+        <div className="text-center mb-14">
+          <motion.div {...fadeUp(0)}>
+            <Badge variant="outline" className="gap-1.5 mb-4 border-brand-500/30 text-brand-600">
+              <Sparkles className="h-3.5 w-3.5" /> 140+ Features Built for Indian Students
+            </Badge>
+          </motion.div>
+          <motion.h1 {...fadeUp(1)} className="text-4xl md:text-5xl font-bold text-foreground mb-4 max-w-3xl mx-auto leading-tight">
+            Every tool you need from{" "}
             <span className="bg-gradient-to-r from-brand-500 to-purple-500 bg-clip-text text-transparent">
-              Excel in Learning
+              Class 9 to Placement
             </span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            From AI-powered tutoring to interactive simulations and live battles —
-            LearnVeda combines every tool a student needs into one platform.
-          </p>
-        </div>
-      </section>
-
-      {/* ── Feature Detail Explorer ──────────────────────────────────────── */}
-      <section className="py-16">
-        <div className="container px-4 md:px-6">
-          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Left: Feature selector */}
-            <div className="space-y-2">
-              {FEATURE_CATEGORIES.map((feature) => (
-                <button
-                  key={feature.id}
-                  onClick={() => setActiveFeature(feature.id)}
-                  className={`w-full flex items-center gap-3 p-4 rounded-xl text-left transition-all ${
-                    activeFeature === feature.id
-                      ? "bg-brand-500/10 border border-brand-500/30 text-brand-500"
-                      : "hover:bg-muted border border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${feature.bg}`}>
-                    <feature.icon className="h-4 w-4" />
-                  </div>
-                  <span className="font-medium text-sm">{feature.title}</span>
-                  {activeFeature === feature.id && (
-                    <ChevronRight className="h-4 w-4 ml-auto" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Right: Feature details */}
-            <div className="lg:col-span-2">
-              <motion.div
-                key={active.id}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.35 }}
-                className="rounded-2xl border bg-card p-8 shadow-sm h-full"
-              >
-                {/* Feature header */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className={`p-3 rounded-xl ${active.bg}`}>
-                    <active.icon className="h-7 w-7" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">{active.title}</h2>
-                    <p className="text-muted-foreground text-sm">{active.tagline}</p>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <p className="text-muted-foreground leading-relaxed mb-8">{active.description}</p>
-
-                {/* Capabilities list */}
-                <div className="grid sm:grid-cols-2 gap-2 mb-8">
-                  {active.capabilities.map((cap) => (
-                    <div key={cap} className="flex items-start gap-2.5">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-foreground">{cap}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <div className="flex items-center gap-3">
-                  <Link href={active.href}>
-                    <Button className="gap-2">
-                      <Play className="h-4 w-4" />
-                      {active.ctaLabel}
-                    </Button>
-                  </Link>
-                  <Link href="/pricing">
-                    <Button variant="outline">View Pricing</Button>
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── All features grid ────────────────────────────────────────────── */}
-      <section className="py-16 bg-muted/30">
-        <div className="container px-4 md:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground">Built for Indian Students</h2>
-            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-              Every feature is designed with the Indian student&apos;s journey in mind
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {[
-              { icon: Shield,       title: "No Ads, Ever",          desc: "Zero ads, zero distractions. Pure learning." },
-              { icon: Monitor,      title: "Works Offline",          desc: "Download content for studying without internet." },
-              { icon: GraduationCap,title: "Expert Content",         desc: "Reviewed by teachers from top institutions." },
-              { icon: Trophy,       title: "Gamified Learning",      desc: "XP, levels, streaks, and battles keep you engaged." },
-              { icon: Sparkles,     title: "AI-Powered",             desc: "GPT-4 and Gemini power the AI tutor and search." },
-              { icon: Globe2,       title: "22 Languages",           desc: "Learn in English, Hindi, or 20 other languages." },
-              { icon: BarChart3,    title: "Detailed Analytics",     desc: "Know your strengths and weaknesses precisely." },
-              { icon: Users,        title: "10K+ Students",          desc: "Join a growing community of motivated learners." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-                className="rounded-xl border bg-card p-5 shadow-sm"
-              >
-                <item.icon className="h-6 w-6 text-brand-500 mb-3" />
-                <h3 className="font-semibold text-foreground text-sm mb-1">{item.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Bottom CTA ───────────────────────────────────────────────────── */}
-      <section className="py-20 text-center">
-        <div className="container px-4 md:px-6">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Ready to Start Learning?</h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Join 10,400+ students already using LearnVeda. Free forever — no credit card required.
-          </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+          </motion.h1>
+          <motion.p {...fadeUp(2)} className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+            One platform. AI Tutor, 140+ simulations, live battles, 10K+ practice questions,
+            a code compiler, community forum, and structured day-plans for every subject.
+          </motion.p>
+          <motion.div {...fadeUp(3)} className="flex flex-wrap gap-3 justify-center">
             <Link href="/sign-up">
-              <Button size="lg" className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                Create Free Account
+              <Button size="lg" className="gap-1.5">
+                Start Free <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="outline" size="lg">See Pro Plans</Button>
+              <Button size="lg" variant="outline">View Pricing</Button>
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* ── Core Features Grid ──────────────────────────────────── */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-bold text-foreground text-center mb-8">Core Platform Features</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {CORE_FEATURES.map((feature, i) => (
+              <motion.div key={feature.title} {...fadeUp(i)}>
+                <Link href={feature.href}>
+                  <div className="h-full rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md hover:border-brand-500/30 transition-all group cursor-pointer flex flex-col">
+                    {/* Icon */}
+                    <div className={`inline-flex p-2.5 rounded-xl ${feature.bg} ${feature.color} mb-3 w-fit`}>
+                      <feature.icon className="h-5 w-5" />
+                    </div>
+                    {/* Title + desc */}
+                    <h3 className="font-bold text-foreground mb-2 group-hover:text-brand-500 transition-colors">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex-1">{feature.desc}</p>
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {feature.badges.map(b => (
+                        <Badge key={b} variant="outline" className="text-xs h-5">{b}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Curriculum Coverage ─────────────────────────────────── */}
+        <section className="mb-16">
+          <div className="rounded-2xl border bg-brand-500/5 border-brand-500/20 p-8">
+            <h2 className="text-2xl font-bold text-foreground text-center mb-6">Curriculum Coverage</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {CURRICULUM_STATS.map((stat, i) => (
+                <motion.div key={stat.label} {...fadeUp(i)} className="text-center">
+                  <div className="text-3xl mb-1">{stat.emoji}</div>
+                  <p className="text-3xl font-bold text-brand-500">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Other Tools ─────────────────────────────────────────── */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-bold text-foreground text-center mb-8">More Learning Tools</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {OTHER_TOOLS.map((tool, i) => (
+              <motion.div key={tool.title} {...fadeUp(i)}>
+                <Link href={tool.href}>
+                  <div className="h-full rounded-2xl border bg-card p-4 hover:shadow-md hover:border-brand-500/30 transition-all group cursor-pointer">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500">
+                        <tool.icon className="h-4 w-4" />
+                      </div>
+                      <p className="font-semibold text-sm text-foreground group-hover:text-brand-500 transition-colors">{tool.title}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{tool.desc}</p>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── All-inclusive checklist ─────────────────────────────── */}
+        <section className="mb-14">
+          <div className="rounded-2xl border bg-card p-8 shadow-sm">
+            <h2 className="text-2xl font-bold text-foreground text-center mb-6">Everything Included in Pro</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                "Full Class 9–12 CBSE curriculum",
+                "All 9 Engineering branches (8 semesters)",
+                "14 programming language day-plans",
+                "9 Core CS subjects",
+                "140+ interactive simulations",
+                "Unlimited live battles",
+                "10,000+ MCQs + PYQs",
+                "AI Tutor (unlimited messages)",
+                "Code compiler (14 languages)",
+                "Community forum + mentor access",
+                "Study schedule + calendar",
+                "Achievement badges + certificates",
+                "Progress tracking + analytics",
+                "Offline mode",
+                "11 Indian language support",
+              ].map(item => (
+                <div key={item} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span className="text-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final CTA ────────────────────────────────────────────── */}
+        <div className="text-center p-10 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 text-white">
+          <h3 className="text-2xl font-bold mb-2">Start your learning journey today</h3>
+          <p className="text-white/80 mb-6">Free forever. No credit card required. Upgrade anytime.</p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Link href="/sign-up">
+              <Button size="lg" className="bg-white text-brand-600 hover:bg-white/90 gap-1.5">
+                Get Started Free <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/learn">
+              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10">
+                Explore Content
+              </Button>
             </Link>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

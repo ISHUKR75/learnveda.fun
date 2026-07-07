@@ -2,255 +2,291 @@
  * @file features/simulations/components/SimulationsCatalogue.tsx
  * @description Full simulations catalogue for the /simulations page
  *
- * Shows all 140+ interactive simulations grouped by category:
- *  - Physics (Newton's laws, waves, optics, thermodynamics)
- *  - Chemistry (reactions, periodic table, molecular bonding)
- *  - Biology (cell division, genetics, ecosystems)
- *  - Mathematics (geometry, calculus visualizer, statistics)
- *  - DSA (sorting, trees, graphs, DP)
- *  - Computer Science (CPU, memory, networks, OS)
- *  - Electronics (circuits, logic gates)
+ * Shows all 140+ interactive simulations organized by subject category:
+ * Physics, Chemistry, Biology, Mathematics, DSA, Computer Networks,
+ * Operating Systems, Database, Digital Logic, CPU, Sorting, Searching, etc.
  *
- * Each simulation card has: title, category, difficulty, duration,
- * and a "Launch" button linking to the interactive viewer.
+ * Features:
+ * - Category filter tabs
+ * - Search filter
+ * - Grid of simulation cards
+ * - Difficulty badges
+ * - Direct links to each simulation
+ *
+ * Used in: app/(marketing)/simulations/page.tsx
  */
 
-"use client";
+"use client"; // Client component — category filter + search state
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import Link from "next/link";
+import React, { useState, useMemo } from "react"; // React + hooks
+import Link from "next/link"; // Navigation
+import { motion } from "framer-motion"; // Entry animations
 import {
-  FlaskConical, Atom, Leaf, Calculator,
-  Code2, Cpu, Zap, Play, Filter, Search, Star,
-} from "lucide-react";
-import { Badge }  from "@/components/ui/badge";
-import { Input }  from "@/components/ui/input";
+  Search, Play, Star, Clock, ChevronRight,
+  Atom, FlaskConical, Leaf, Calculator, Cpu, Zap,
+  Network, Database, BarChart3, GitBranch, Layers,
+  Radio, HardDrive, Monitor, Server, ArrowRight,
+} from "lucide-react"; // Icons for categories
+import { Badge }  from "@/components/ui/badge";  // Subject/level badges
+import { Button } from "@/components/ui/button"; // CTA button
+import { Input }  from "@/components/ui/input";  // Search input
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
+
+/** Difficulty levels for simulations */
+type SimDifficulty = "Easy" | "Medium" | "Advanced";
+
+/** A single simulation card's data */
 interface Simulation {
-  id:         string;
-  title:      string;
-  category:   SimCategory;
-  difficulty: "Beginner" | "Intermediate" | "Advanced";
-  duration:   string;      // e.g. "10 min"
-  class?:     string;      // CBSE class if applicable
-  tags:       string[];
-  isPremium:  boolean;     // Requires Pro plan
+  id:          string;        // Unique simulation slug
+  title:       string;        // Display title
+  description: string;        // Short description (1–2 sentences)
+  category:    string;        // Category ID (e.g., "physics")
+  class:       string;        // Relevant class/level (e.g., "Class 9")
+  chapter:     string;        // NCERT chapter or topic
+  difficulty:  SimDifficulty; // Difficulty level
+  href:        string;        // Route to the simulation
+  tags:        string[];      // Searchable tags
+  isPopular?:  boolean;       // Whether to show "Popular" badge
+  isNew?:      boolean;       // Whether to show "New" badge
 }
 
-type SimCategory = "physics" | "chemistry" | "biology" | "mathematics" | "dsa" | "cs" | "electronics";
-
 /* ─── Category Config ────────────────────────────────────────────────────── */
-const CATEGORIES: { id: SimCategory | "all"; label: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
-  { id: "all",         label: "All",         icon: Filter,    color: "text-foreground"     },
-  { id: "physics",     label: "Physics",     icon: Atom,      color: "text-blue-500"       },
-  { id: "chemistry",   label: "Chemistry",   icon: FlaskConical, color: "text-green-500"  },
-  { id: "biology",     label: "Biology",     icon: Leaf,      color: "text-emerald-500"   },
-  { id: "mathematics", label: "Mathematics", icon: Calculator,color: "text-purple-500"    },
-  { id: "dsa",         label: "DSA",         icon: Code2,     color: "text-orange-500"    },
-  { id: "cs",          label: "Comp. Sci",   icon: Cpu,       color: "text-brand-500"     },
-  { id: "electronics", label: "Electronics", icon: Zap,       color: "text-yellow-500"    },
+const CATEGORIES = [
+  { id: "all",       name: "All",               emoji: "🔭", icon: BarChart3  },
+  { id: "physics",   name: "Physics",           emoji: "⚛️", icon: Atom        },
+  { id: "chemistry", name: "Chemistry",         emoji: "🧪", icon: FlaskConical},
+  { id: "biology",   name: "Biology",           emoji: "🧬", icon: Leaf        },
+  { id: "maths",     name: "Mathematics",       emoji: "📐", icon: Calculator  },
+  { id: "dsa",       name: "DSA",               emoji: "🌳", icon: GitBranch   },
+  { id: "networks",  name: "Networks",          emoji: "🌐", icon: Network     },
+  { id: "os",        name: "Operating Systems", emoji: "💻", icon: Monitor     },
+  { id: "database",  name: "Database",          emoji: "🗄️", icon: Database    },
+  { id: "digital",   name: "Digital Logic",     emoji: "🔌", icon: Zap         },
+  { id: "cpu",       name: "CPU & Memory",      emoji: "🧠", icon: Cpu         },
+  { id: "circuits",  name: "Electronics",       emoji: "⚡", icon: Radio       },
 ];
 
-/* ─── Simulations Data ───────────────────────────────────────────────────── */
-const SIMULATIONS: Simulation[] = [
-  // Physics
-  { id: "newton-laws",        title: "Newton's Laws of Motion",       category: "physics",   difficulty: "Beginner",     duration: "15 min", class: "Class 9",  tags: ["Force", "Motion"],       isPremium: false },
-  { id: "projectile-motion",  title: "Projectile Motion Simulator",   category: "physics",   difficulty: "Intermediate", duration: "12 min", class: "Class 11", tags: ["Kinematics"],            isPremium: false },
-  { id: "pendulum",           title: "Simple Pendulum & SHM",         category: "physics",   difficulty: "Intermediate", duration: "10 min", class: "Class 11", tags: ["SHM", "Oscillation"],    isPremium: true  },
-  { id: "wave-interference",  title: "Wave Interference & Diffraction",category: "physics",  difficulty: "Advanced",     duration: "20 min", class: "Class 12", tags: ["Waves", "Optics"],       isPremium: true  },
-  { id: "electric-field",     title: "Electric Field Visualizer",     category: "physics",   difficulty: "Intermediate", duration: "15 min", class: "Class 12", tags: ["Electrostatics"],        isPremium: true  },
-  { id: "magnetic-field",     title: "Magnetic Field Lines",          category: "physics",   difficulty: "Intermediate", duration: "12 min", class: "Class 12", tags: ["Magnetism"],             isPremium: true  },
-  { id: "ray-optics",         title: "Ray Optics: Lens & Mirror",     category: "physics",   difficulty: "Beginner",     duration: "10 min", class: "Class 10", tags: ["Optics", "Light"],       isPremium: false },
-  { id: "resistor-circuit",   title: "Resistor Circuits (Ohm's Law)", category: "physics",   difficulty: "Beginner",     duration: "8 min",  class: "Class 10", tags: ["Electricity", "Circuit"], isPremium: false },
-  // Chemistry
-  { id: "periodic-table",     title: "Interactive Periodic Table",    category: "chemistry", difficulty: "Beginner",     duration: "20 min", class: "Class 9",  tags: ["Elements", "Properties"], isPremium: false },
-  { id: "molecular-bonding",  title: "Molecular Bonding Visualizer",  category: "chemistry", difficulty: "Intermediate", duration: "15 min", class: "Class 11", tags: ["Bonding", "Structure"],   isPremium: true  },
-  { id: "acid-base",          title: "Acid-Base Titration Lab",       category: "chemistry", difficulty: "Intermediate", duration: "12 min", class: "Class 11", tags: ["Acids", "Bases"],         isPremium: true  },
-  { id: "reaction-simulator", title: "Chemical Reaction Simulator",   category: "chemistry", difficulty: "Advanced",     duration: "18 min", class: "Class 12", tags: ["Reactions", "Kinetics"],  isPremium: true  },
-  // Biology
-  { id: "cell-division",      title: "Cell Division: Mitosis & Meiosis", category: "biology", difficulty: "Beginner",   duration: "12 min", class: "Class 9",  tags: ["Cell", "DNA"],            isPremium: false },
-  { id: "genetics",           title: "Mendelian Genetics Simulator",  category: "biology",   difficulty: "Intermediate", duration: "15 min", class: "Class 12", tags: ["Genetics", "Heredity"],   isPremium: true  },
-  { id: "ecosystem",          title: "Ecosystem Food Web",            category: "biology",   difficulty: "Beginner",     duration: "10 min", class: "Class 9",  tags: ["Ecology", "Food Chain"],  isPremium: false },
-  { id: "photosynthesis",     title: "Photosynthesis Process",        category: "biology",   difficulty: "Beginner",     duration: "8 min",  class: "Class 10", tags: ["Plants", "Energy"],       isPremium: false },
-  // Mathematics
-  { id: "geometry-visualizer",title: "Geometry Visualizer",           category: "mathematics", difficulty: "Beginner",  duration: "15 min", class: "Class 9",  tags: ["Shapes", "Theorems"],     isPremium: false },
-  { id: "calculus-limits",    title: "Calculus: Limits & Derivatives",category: "mathematics", difficulty: "Advanced",  duration: "25 min", class: "Class 12", tags: ["Calculus", "Derivatives"], isPremium: true  },
-  { id: "statistics-viz",     title: "Statistics & Probability",      category: "mathematics", difficulty: "Intermediate",duration:"20 min", class: "Class 10", tags: ["Statistics", "Charts"],   isPremium: true  },
-  { id: "coordinate-geo",     title: "Coordinate Geometry Explorer",  category: "mathematics", difficulty: "Beginner",  duration: "12 min", class: "Class 10", tags: ["Coordinate", "Lines"],    isPremium: false },
-  // DSA
-  { id: "sorting-visualizer", title: "Sorting Algorithm Visualizer",  category: "dsa",       difficulty: "Beginner",     duration: "15 min", tags: ["Sorting", "Algorithms"], isPremium: false },
-  { id: "binary-tree",        title: "Binary Search Tree Operations", category: "dsa",       difficulty: "Intermediate", duration: "20 min", tags: ["Trees", "BST"],           isPremium: false },
-  { id: "graph-traversal",    title: "Graph BFS & DFS Visualizer",    category: "dsa",       difficulty: "Intermediate", duration: "15 min", tags: ["Graphs", "BFS", "DFS"],  isPremium: true  },
-  { id: "dp-visualizer",      title: "Dynamic Programming Visualizer",category: "dsa",       difficulty: "Advanced",     duration: "25 min", tags: ["DP", "Memoization"],      isPremium: true  },
-  { id: "linked-list",        title: "Linked List Operations",        category: "dsa",       difficulty: "Beginner",     duration: "12 min", tags: ["LinkedList", "Pointers"], isPremium: false },
-  { id: "heap-visualizer",    title: "Heap & Priority Queue",         category: "dsa",       difficulty: "Intermediate", duration: "15 min", tags: ["Heap", "Priority Queue"], isPremium: true  },
-  // CS
-  { id: "cpu-simulator",      title: "CPU Architecture Simulator",    category: "cs",        difficulty: "Advanced",     duration: "30 min", tags: ["CPU", "Architecture"],   isPremium: true  },
-  { id: "memory-management",  title: "Memory Management (OS)",        category: "cs",        difficulty: "Advanced",     duration: "25 min", tags: ["OS", "Memory"],          isPremium: true  },
-  { id: "network-packets",    title: "Network Packet Routing",        category: "cs",        difficulty: "Intermediate", duration: "20 min", tags: ["Networks", "TCP/IP"],    isPremium: true  },
-  { id: "cache-simulator",    title: "Cache Memory Simulator",        category: "cs",        difficulty: "Advanced",     duration: "20 min", tags: ["Cache", "Performance"],  isPremium: true  },
-  { id: "compiler-phases",    title: "Compiler Phases Visualizer",    category: "cs",        difficulty: "Advanced",     duration: "30 min", tags: ["Compiler", "Parsing"],   isPremium: true  },
-  // Electronics
-  { id: "logic-gates",        title: "Digital Logic Gate Simulator",  category: "electronics", difficulty: "Beginner",  duration: "15 min", tags: ["Logic Gates", "Boolean"], isPremium: false },
-  { id: "flip-flop",          title: "Flip-Flop & Sequential Logic",  category: "electronics", difficulty: "Intermediate",duration: "20 min", tags: ["Sequential", "Latches"], isPremium: true },
-  { id: "circuit-builder",    title: "Circuit Builder (RC, RL, RLC)", category: "electronics", difficulty: "Intermediate",duration: "18 min", tags: ["Circuits", "Components"], isPremium: true },
+/* ─── All Simulations ────────────────────────────────────────────────────── */
+const ALL_SIMULATIONS: Simulation[] = [
+  // ── Physics ────────────────────────────────────────────────────────────
+  { id:"force-motion",    category:"physics",   title:"Force & Motion",           description:"Apply Newton's 1st & 2nd laws. Adjust mass, force, friction — watch acceleration in real time.", class:"Class 9",  chapter:"Force & Motion",         difficulty:"Easy",    href:"/simulations/physics/force-motion",    tags:["newton","force","acceleration"], isPopular:true },
+  { id:"projectile",      category:"physics",   title:"Projectile Motion",        description:"Launch objects at different angles. Visualize trajectory, range, and time of flight.",              class:"Class 11", chapter:"Laws of Motion",         difficulty:"Medium",  href:"/simulations/physics/projectile",      tags:["projectile","angle","velocity"] },
+  { id:"gravitation",     category:"physics",   title:"Universal Gravitation",    description:"Explore gravitational attraction between two masses. Watch how distance affects force.",           class:"Class 9",  chapter:"Gravitation",            difficulty:"Easy",    href:"/simulations/physics/gravitation",     tags:["gravity","mass","planet"] },
+  { id:"waves",           category:"physics",   title:"Wave Propagation",         description:"Visualize transverse and longitudinal waves. Adjust frequency, amplitude, and wavelength.",       class:"Class 11", chapter:"Waves",                  difficulty:"Medium",  href:"/simulations/physics/waves",           tags:["wave","frequency","amplitude"] },
+  { id:"electric-field",  category:"physics",   title:"Electric Field Lines",     description:"Place charges and watch the electric field pattern emerge. Interactive field line renderer.",     class:"Class 12", chapter:"Electric Charges",       difficulty:"Medium",  href:"/simulations/physics/electric-field",  tags:["electric","field","charge"] },
+  { id:"simple-pendulum", category:"physics",   title:"Simple Pendulum",          description:"Vary length and gravity. Observe how period changes. Includes damped oscillation mode.",         class:"Class 11", chapter:"Oscillations",           difficulty:"Easy",    href:"/simulations/physics/pendulum",        tags:["pendulum","oscillation","gravity"] },
+  { id:"optics-refraction",category:"physics",  title:"Refraction of Light",      description:"Snell's Law visualizer. Change medium and angle of incidence. Total internal reflection demo.", class:"Class 10", chapter:"Light",                  difficulty:"Medium",  href:"/simulations/physics/refraction",      tags:["optics","refraction","lens"] },
+  { id:"capacitor",       category:"physics",   title:"Parallel Plate Capacitor", description:"Change plate separation, area, and dielectric. Watch capacitance and E-field change.",           class:"Class 12", chapter:"Capacitance",            difficulty:"Advanced",href:"/simulations/physics/capacitor",       tags:["capacitor","dielectric","charge"] },
+  { id:"doppler",         category:"physics",   title:"Doppler Effect",           description:"Move a sound source. Hear and visualize frequency compression/expansion due to motion.",         class:"Class 11", chapter:"Waves",                  difficulty:"Medium",  href:"/simulations/physics/doppler",         tags:["doppler","sound","frequency"] },
+  { id:"nuclear",         category:"physics",   title:"Nuclear Decay Chain",      description:"Simulate alpha/beta/gamma decay. Watch isotopes transform over time with half-life animation.",  class:"Class 12", chapter:"Nuclei",                 difficulty:"Advanced",href:"/simulations/physics/nuclear",         tags:["nuclear","decay","radioactive"] },
+  // ── Chemistry ──────────────────────────────────────────────────────────
+  { id:"periodic-table",  category:"chemistry", title:"Interactive Periodic Table",description:"Click any element — electron configuration, properties, discovery date, and uses.",             class:"Class 10", chapter:"Periodic Classification",difficulty:"Easy",    href:"/simulations/chemistry/periodic-table",tags:["periodic","element","atom"], isPopular:true },
+  { id:"acid-base",       category:"chemistry", title:"Acid–Base Titration",      description:"Perform virtual titration. Watch pH change as you add acid/base drop by drop.",                class:"Class 11", chapter:"Equilibrium",            difficulty:"Medium",  href:"/simulations/chemistry/titration",     tags:["acid","base","pH","titration"] },
+  { id:"molecular-bonds", category:"chemistry", title:"Molecular Bond Angles",    description:"Rotate 3D molecules. View bond angles, lengths, and dipole moments for common compounds.",     class:"Class 11", chapter:"Chemical Bonding",       difficulty:"Medium",  href:"/simulations/chemistry/bonds",         tags:["molecule","bond","VSEPR"] },
+  { id:"electrolysis",    category:"chemistry", title:"Electrolysis",             description:"Pass current through electrolyte solutions. See ions migrating and products forming.",           class:"Class 10", chapter:"Metals & Non-metals",   difficulty:"Easy",    href:"/simulations/chemistry/electrolysis",  tags:["electrolysis","ion","electrode"] },
+  { id:"gas-laws",        category:"chemistry", title:"Gas Laws (Boyle, Charles)",description:"Compress gas in a piston. Watch P·V, T·V, and P/T relationships in real time.",                class:"Class 11", chapter:"States of Matter",       difficulty:"Medium",  href:"/simulations/chemistry/gas-laws",      tags:["gas","pressure","volume","temperature"] },
+  // ── Biology ────────────────────────────────────────────────────────────
+  { id:"cell-division",   category:"biology",   title:"Mitosis & Meiosis",        description:"Watch a cell divide through all stages: Prophase, Metaphase, Anaphase, Telophase.",            class:"Class 11", chapter:"Cell Division",          difficulty:"Medium",  href:"/simulations/biology/cell-division",   tags:["cell","mitosis","meiosis","chromosome"] },
+  { id:"dna-replication", category:"biology",   title:"DNA Replication",          description:"Base-pairing animation. Helicase, polymerase, and Okazaki fragments in action.",                class:"Class 12", chapter:"Molecular Basis",        difficulty:"Advanced",href:"/simulations/biology/dna",             tags:["DNA","replication","genetics"] },
+  { id:"human-heart",     category:"biology",   title:"Human Heart & Circulation",description:"Interactive heart anatomy. Watch the cardiac cycle and blood flow path through chambers.",     class:"Class 10", chapter:"Life Processes",         difficulty:"Easy",    href:"/simulations/biology/heart",           tags:["heart","blood","circulation"], isNew:true },
+  { id:"photosynthesis",  category:"biology",   title:"Photosynthesis Process",   description:"Vary light intensity and CO₂. Watch chloroplast activity and glucose production change.",     class:"Class 10", chapter:"Life Processes",         difficulty:"Easy",    href:"/simulations/biology/photosynthesis",  tags:["photosynthesis","chloroplast","glucose"] },
+  // ── Mathematics ────────────────────────────────────────────────────────
+  { id:"function-grapher",category:"maths",     title:"Function Grapher",         description:"Plot any function. See tangents, derivatives, and integrals overlaid on the graph.",           class:"Class 11", chapter:"Relations & Functions",  difficulty:"Medium",  href:"/simulations/maths/function-grapher",  tags:["function","graph","calculus"], isPopular:true },
+  { id:"matrix-ops",      category:"maths",     title:"Matrix Operations",        description:"Visualize matrix multiplication, determinants, eigenvalues, and linear transformations.",       class:"Class 12", chapter:"Matrices",               difficulty:"Advanced",href:"/simulations/maths/matrix",            tags:["matrix","determinant","linear"] },
+  { id:"probability",     category:"maths",     title:"Probability Simulator",    description:"Roll dice, flip coins, draw cards. Observe how frequency converges to theoretical probability.",class:"Class 10", chapter:"Probability",            difficulty:"Easy",    href:"/simulations/maths/probability",       tags:["probability","statistics","dice"] },
+  { id:"geometry",        category:"maths",     title:"Interactive Geometry",     description:"Construct triangles, circles, and polygons. Verify theorems with drag-and-explore.",           class:"Class 9",  chapter:"Triangles",              difficulty:"Easy",    href:"/simulations/maths/geometry",          tags:["geometry","triangle","proof"] },
+  // ── DSA ────────────────────────────────────────────────────────────────
+  { id:"sorting-visualizer",category:"dsa",    title:"Sorting Algorithm Visualizer",description:"Watch Bubble, Merge, Quick, Heap sort in action. Compare speeds. Control array size and speed.", class:"Engineering", chapter:"Algorithms",         difficulty:"Easy",    href:"/simulations/dsa/sorting-visualizer", tags:["sort","bubble","merge","quick"], isPopular:true },
+  { id:"bst-visualizer",  category:"dsa",      title:"Binary Search Tree",         description:"Insert, delete, search nodes. See AVL rotations. Level-order and DFS traversal animations.",  class:"Engineering", chapter:"Trees",               difficulty:"Medium",  href:"/simulations/dsa/bst",                tags:["BST","tree","traversal"] },
+  { id:"graph-bfs-dfs",   category:"dsa",      title:"Graph BFS & DFS",            description:"Build custom graphs. Run BFS and DFS step-by-step. Watch the frontier expand visually.",       class:"Engineering", chapter:"Graphs",              difficulty:"Medium",  href:"/simulations/dsa/graph-traversal",    tags:["graph","BFS","DFS","traversal"] },
+  { id:"dp-visual",       category:"dsa",      title:"Dynamic Programming",        description:"Visualize LCS, Knapsack, LIS — see the DP table being filled step by step.",                   class:"Engineering", chapter:"Dynamic Programming", difficulty:"Advanced",href:"/simulations/dsa/dp",                 tags:["DP","dynamic","programming","table"], isNew:true },
+  { id:"heap-viz",        category:"dsa",      title:"Heap & Priority Queue",      description:"Build a min-heap or max-heap visually. Insert, extract-min, and heapify operations.",         class:"Engineering", chapter:"Heaps",               difficulty:"Medium",  href:"/simulations/dsa/heap",               tags:["heap","priority","queue"] },
+  { id:"linked-list",     category:"dsa",      title:"Linked List Operations",     description:"Insert, delete, reverse a singly/doubly/circular linked list — step by step animation.",      class:"Engineering", chapter:"Linked Lists",        difficulty:"Easy",    href:"/simulations/dsa/linked-list",        tags:["linked list","node","pointer"] },
+  // ── Networks ───────────────────────────────────────────────────────────
+  { id:"tcp-handshake",   category:"networks", title:"TCP 3-Way Handshake",        description:"Visualize SYN → SYN-ACK → ACK. See packet exchange and connection establishment.",           class:"Engineering", chapter:"Transport Layer",     difficulty:"Easy",    href:"/simulations/networks/tcp",           tags:["TCP","handshake","packet"] },
+  { id:"dns-resolution",  category:"networks", title:"DNS Resolution",             description:"Step-by-step domain name resolution. Recursive vs. iterative queries visualized.",            class:"Engineering", chapter:"Application Layer",   difficulty:"Medium",  href:"/simulations/networks/dns",           tags:["DNS","domain","resolution"] },
+  { id:"subnetting",      category:"networks", title:"IP Subnetting",              description:"Enter an IP + subnet mask. See the network divided visually. CIDR notation explained.",       class:"Engineering", chapter:"Network Layer",       difficulty:"Medium",  href:"/simulations/networks/subnetting",    tags:["IP","subnet","CIDR"] },
+  // ── Operating Systems ──────────────────────────────────────────────────
+  { id:"process-scheduling",category:"os",     title:"CPU Scheduling",             description:"Compare FCFS, SJF, Round Robin, Priority. Gantt chart + waiting/turnaround time.",           class:"Engineering", chapter:"Process Management",  difficulty:"Medium",  href:"/simulations/os/scheduling",          tags:["CPU","FCFS","SJF","Round Robin"], isPopular:true },
+  { id:"page-replacement", category:"os",      title:"Page Replacement Algorithms",description:"FIFO, LRU, Optimal — visualize page faults and hits on a reference string.",                 class:"Engineering", chapter:"Memory Management",   difficulty:"Medium",  href:"/simulations/os/page-replacement",    tags:["page","LRU","FIFO","memory"] },
+  { id:"deadlock",         category:"os",      title:"Deadlock Detection",         description:"Build a resource allocation graph. Run Banker's algorithm. See safe/unsafe states.",         class:"Engineering", chapter:"Process Management",  difficulty:"Advanced",href:"/simulations/os/deadlock",            tags:["deadlock","banker","resource"] },
+  // ── Database ───────────────────────────────────────────────────────────
+  { id:"normalization",    category:"database",title:"Database Normalization",     description:"Walk through 1NF → 2NF → 3NF → BCNF with example tables. See redundancies eliminated.",    class:"Engineering", chapter:"Normalization",       difficulty:"Medium",  href:"/simulations/database/normalization", tags:["normalization","1NF","BCNF"] },
+  { id:"b-tree-viz",       category:"database",title:"B-Tree Index",               description:"Insert keys into a B-tree. Watch splits and promotions. Understand database indexing.",       class:"Engineering", chapter:"Indexing",            difficulty:"Advanced",href:"/simulations/database/b-tree",        tags:["B-tree","index","database"] },
+  // ── Digital Logic ──────────────────────────────────────────────────────
+  { id:"logic-gates",      category:"digital", title:"Logic Gates Simulator",      description:"Build circuits with AND, OR, NOT, NAND, XOR gates. See truth tables update in real time.",  class:"Engineering", chapter:"Digital Logic",       difficulty:"Easy",    href:"/simulations/digital/logic-gates",    tags:["logic","gates","AND","OR","XOR"] },
+  { id:"flip-flops",       category:"digital", title:"Flip-Flops & Latches",       description:"SR, D, JK, T flip-flops — clocked behavior, state transitions, and timing diagrams.",       class:"Engineering", chapter:"Sequential Circuits", difficulty:"Medium",  href:"/simulations/digital/flip-flops",     tags:["flip-flop","latch","clock","SR"] },
+  // ── CPU / Memory ───────────────────────────────────────────────────────
+  { id:"cache-sim",        category:"cpu",     title:"Cache Memory Simulator",     description:"Direct mapped, set associative, fully associative — trace cache hits and misses.",           class:"Engineering", chapter:"Computer Org.",       difficulty:"Advanced",href:"/simulations/cpu/cache",              tags:["cache","memory","hit","miss"] },
+  { id:"instruction-cycle",category:"cpu",     title:"Instruction Cycle",          description:"Fetch → Decode → Execute → Write-back on a simplified CPU. See register values change.",    class:"Engineering", chapter:"Computer Org.",       difficulty:"Medium",  href:"/simulations/cpu/instruction-cycle",  tags:["CPU","fetch","decode","execute"] },
 ];
 
-/* ─── Difficulty badge colors ────────────────────────────────────────────── */
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Beginner:     "bg-green-500/10 text-green-600 border-green-500/20",
-  Intermediate: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  Advanced:     "bg-red-500/10 text-red-600 border-red-500/20",
+/* ─── Difficulty color ───────────────────────────────────────────────────── */
+const DIFF_STYLE: Record<SimDifficulty, string> = {
+  Easy:     "border-green-500/40 text-green-600",
+  Medium:   "border-yellow-500/40 text-yellow-600",
+  Advanced: "border-red-500/40 text-red-600",
 };
 
-/* ─── SimulationsCatalogue Component ────────────────────────────────────────*/
-export function SimulationsCatalogue() {
-  const [activeCategory, setActiveCategory] = useState<SimCategory | "all">("all");
-  const [searchQuery,    setSearchQuery]    = useState("");
+/* ─── SimulationsCatalogue Component ─────────────────────────────────────── */
 
-  // Filter simulations
-  const filtered = SIMULATIONS.filter((sim) => {
-    const matchesCategory = activeCategory === "all" || sim.category === activeCategory;
-    const matchesSearch   = !searchQuery ||
-      sim.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sim.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+/**
+ * Full simulations catalogue with category filters and search.
+ */
+export function SimulationsCatalogue() {
+  const [activeCategory, setActiveCategory] = useState("all"); // Active filter tab
+  const [searchQuery,    setSearchQuery]    = useState("");    // Search text
+
+  // Filter simulations based on active category and search query
+  const filtered = useMemo(() => {
+    return ALL_SIMULATIONS.filter(sim => {
+      // Category filter
+      const matchCat = activeCategory === "all" || sim.category === activeCategory;
+      // Search filter — checks title, description, and tags
+      const q = searchQuery.toLowerCase();
+      const matchSearch = !q
+        || sim.title.toLowerCase().includes(q)
+        || sim.description.toLowerCase().includes(q)
+        || sim.tags.some(t => t.toLowerCase().includes(q));
+      return matchCat && matchSearch;
+    });
+  }, [activeCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <section className="py-16 border-b bg-gradient-to-b from-muted/30 to-background text-center">
-        <div className="container px-4 md:px-6">
-          <Badge variant="secondary" className="mb-4">140+ Interactive Labs</Badge>
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Learn by{" "}
-            <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-              Doing
-            </span>
+    <div className="py-12">
+      <div className="container px-4 md:px-6">
+        {/* ── Page Header ────────────────────────────────────────── */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-foreground mb-3">
+            Interactive Simulations
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Interactive simulations for Physics, Chemistry, Biology, Mathematics, DSA, and Computer Science.
-            See concepts in action — not just on paper.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            140+ interactive simulations across Physics, Chemistry, Biology, Mathematics, DSA, and Computer Science.
+            Learn by doing, not just reading.
           </p>
         </div>
-      </section>
 
-      {/* Catalogue */}
-      <section className="py-12">
-        <div className="container px-4 md:px-6">
-          {/* Search */}
-          <div className="relative max-w-md mx-auto mb-8">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search simulations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+        {/* ── Search bar ─────────────────────────────────────────── */}
+        <div className="relative max-w-md mx-auto mb-8">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search simulations..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
-          {/* Category tabs */}
-          <div className="flex gap-2 flex-wrap justify-center mb-10">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeCategory === cat.id
-                    ? "bg-brand-500 text-white shadow-sm"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <cat.icon className={`h-4 w-4 ${activeCategory === cat.id ? "text-white" : cat.color}`} />
-                {cat.label}
-              </button>
-            ))}
-          </div>
+        {/* ── Category filter tabs ────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2 justify-center mb-8">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                activeCategory === cat.id
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "border-border text-muted-foreground hover:border-brand-500/50 hover:text-foreground"
+              }`}
+            >
+              <span>{cat.emoji}</span>
+              {cat.name}
+              {/* Show count for non-all categories */}
+              {cat.id !== "all" && (
+                <span className={`text-xs ${activeCategory === cat.id ? "text-white/70" : "text-muted-foreground"}`}>
+                  ({ALL_SIMULATIONS.filter(s => s.category === cat.id).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
-          {/* Results count */}
-          <p className="text-muted-foreground text-sm mb-6 text-center">
-            Showing {filtered.length} simulation{filtered.length !== 1 ? "s" : ""}
-          </p>
+        {/* ── Results count ───────────────────────────────────────── */}
+        <p className="text-sm text-muted-foreground mb-6 text-center">
+          Showing <strong>{filtered.length}</strong> simulations
+          {activeCategory !== "all" && ` in ${CATEGORIES.find(c => c.id === activeCategory)?.name}`}
+          {searchQuery && ` matching "${searchQuery}"`}
+        </p>
 
-          {/* Simulations grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filtered.map((sim, i) => (
-              <motion.div
-                key={sim.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03, duration: 0.35 }}
-                className="rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
-              >
-                {/* Color header bar */}
-                <div className={`h-1.5 w-full ${
-                  sim.category === "physics"     ? "bg-blue-500"    :
-                  sim.category === "chemistry"   ? "bg-green-500"   :
-                  sim.category === "biology"     ? "bg-emerald-500" :
-                  sim.category === "mathematics" ? "bg-purple-500"  :
-                  sim.category === "dsa"         ? "bg-orange-500"  :
-                  sim.category === "cs"          ? "bg-brand-500"   :
-                  "bg-yellow-500"
-                }`} />
-
-                <div className="p-5">
-                  {/* Badges */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="outline" className={`text-xs ${DIFFICULTY_COLORS[sim.difficulty]}`}>
-                      {sim.difficulty}
-                    </Badge>
-                    {sim.isPremium && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Star className="h-3 w-3 mr-1 text-yellow-500" />Pro
+        {/* ── Simulation grid ─────────────────────────────────────── */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map((sim, i) => (
+            <motion.div
+              key={sim.id}
+              initial={{ opacity: 0.01, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.5) }}
+            >
+              <Link href={sim.href}>
+                <div className="h-full rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all hover:border-brand-500/30 group cursor-pointer flex flex-col">
+                  {/* Tags: Popular / New */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {sim.isPopular && (
+                      <Badge variant="outline" className="h-5 text-xs gap-1 border-amber-500/40 text-amber-600">
+                        <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> Popular
                       </Badge>
                     )}
+                    {sim.isNew && (
+                      <Badge variant="outline" className="h-5 text-xs border-green-500/40 text-green-600">
+                        New
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className={`h-5 text-xs ${DIFF_STYLE[sim.difficulty]}`}>
+                      {sim.difficulty}
+                    </Badge>
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-semibold text-foreground text-sm mb-2 leading-snug group-hover:text-brand-500 transition-colors">
+                  <h3 className="font-semibold text-foreground text-sm group-hover:text-brand-500 transition-colors mb-1.5 leading-snug flex-1">
                     {sim.title}
                   </h3>
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {sim.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {tag}
-                      </span>
-                    ))}
-                    {sim.class && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {sim.class}
-                      </span>
-                    )}
-                  </div>
+                  {/* Description */}
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3">
+                    {sim.description}
+                  </p>
 
-                  {/* Duration + Launch */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">⏱ {sim.duration}</span>
-                    <Link href={`/simulations/${sim.category}`}>
-                      <button className="flex items-center gap-1.5 text-xs font-semibold text-brand-500 hover:text-brand-600 transition-colors">
-                        <Play className="h-3.5 w-3.5" />
-                        Launch
-                      </button>
-                    </Link>
+                  {/* Meta: class + chapter */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+                    <span className="bg-muted px-2 py-0.5 rounded-full">{sim.class}</span>
+                    <div className="flex items-center gap-1 text-brand-500">
+                      <Play className="h-3 w-3" /> Launch
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Empty state */}
-          {filtered.length === 0 && (
-            <div className="text-center py-16 text-muted-foreground">
-              No simulations found for &quot;{searchQuery}&quot;
-            </div>
-          )}
+              </Link>
+            </motion.div>
+          ))}
         </div>
-      </section>
+
+        {/* Empty state */}
+        {filtered.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground">No simulations found. Try a different search or category.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => { setSearchQuery(""); setActiveCategory("all"); }}
+            >
+              Clear Filters
+            </Button>
+          </div>
+        )}
+
+        {/* ── CTA ────────────────────────────────────────────────── */}
+        <div className="mt-12 text-center p-8 rounded-2xl border bg-brand-500/5 border-brand-500/20">
+          <h3 className="text-xl font-bold text-foreground mb-2">Request a Simulation</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Don't see what you need? Request it and our team will build it.
+          </p>
+          <Link href="/contact">
+            <Button className="gap-1.5">
+              Request a Simulation <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

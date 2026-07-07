@@ -1,92 +1,46 @@
 /**
  * @file features/about/components/ValuesSection.tsx
- * @description Core values section for the About page
- *
- * Displays LearnVeda's 6 core values in a responsive grid.
- * Each value has an icon, title, and descriptive paragraph.
+ * @description 6 core values grid for the About page
+ * Used in: app/(marketing)/about/page.tsx
  */
 
-"use client"; // Framer Motion entry animations require client rendering
+"use client";
 
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  Scale, Lightbulb, HeartHandshake, Zap,
-  ShieldCheck, Globe2,
-} from "lucide-react"; // Icons for each value
+import { Zap, Shield, Heart, Users, BookOpen, Globe } from "lucide-react";
 
-/* ─── Values Data ────────────────────────────────────────────────────────── */
 const VALUES = [
-  {
-    icon:  Scale,
-    title: "Equity First",
-    color: "bg-blue-500/10 text-blue-500",
-    desc:  "Every feature we build is designed to close the educational gap between well-resourced and under-resourced students.",
-  },
-  {
-    icon:  Lightbulb,
-    title: "Quality of Learning",
-    color: "bg-yellow-500/10 text-yellow-500",
-    desc:  "We obsess over clarity and correctness. Every simulation is scientifically accurate. Every chapter is reviewed by subject matter experts.",
-  },
-  {
-    icon:  HeartHandshake,
-    title: "Student First",
-    color: "bg-rose-500/10 text-rose-500",
-    desc:  "Every product decision is made by asking: does this help the student learn better? Not: does this generate more revenue?",
-  },
-  {
-    icon:  Zap,
-    title: "Speed to Value",
-    color: "bg-orange-500/10 text-orange-500",
-    desc:  "Students shouldn't wait months to benefit. We ship fast, iterate faster, and always improve based on real usage data.",
-  },
-  {
-    icon:  ShieldCheck,
-    title: "Safe & Honest",
-    color: "bg-green-500/10 text-green-500",
-    desc:  "No ads. No manipulative design patterns. No dark UX. We earn trust by being transparent and honest with every user.",
-  },
-  {
-    icon:  Globe2,
-    title: "Open Knowledge",
-    color: "bg-brand-500/10 text-brand-500",
-    desc:  "Knowledge is a public good. Our free tier ensures that cost is never a barrier to quality education on LearnVeda.",
-  },
+  { icon: Zap,      title: "Speed of Learning",    color: "text-yellow-500", bg: "bg-yellow-500/10", desc: "Structured day-plans replace aimless exploration. Every minute spent on LearnVeda counts toward a defined goal." },
+  { icon: Shield,   title: "Trust & Accuracy",     color: "text-blue-500",   bg: "bg-blue-500/10",   desc: "Every chapter is reviewed against NCERT syllabi. Simulations are validated by subject-matter experts." },
+  { icon: Heart,    title: "Student-First Design",  color: "text-red-500",    bg: "bg-red-500/10",    desc: "We design for students who study at midnight, on mobile, with patchy internet. Offline-first, dark mode, fast." },
+  { icon: Users,    title: "Community Learning",    color: "text-green-500",  bg: "bg-green-500/10",  desc: "Learning happens best with peers. Live battles, forums, and group challenges create the social layer that solo study lacks." },
+  { icon: BookOpen, title: "Depth Over Breadth",    color: "text-purple-500", bg: "bg-purple-500/10", desc: "We don't try to cover everything. We cover what matters — CBSE syllabus, core CS, and placement-critical tracks — deeply." },
+  { icon: Globe,    title: "Vernacular Commitment", color: "text-orange-500", bg: "bg-orange-500/10", desc: "11 Indian languages supported. Because a student who understands in Hindi shouldn't be disadvantaged vs one who reads in English." },
 ];
 
-/* ─── ValuesSection Component ────────────────────────────────────────────── */
 export function ValuesSection() {
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-16">
       <div className="container px-4 md:px-6">
-        {/* Section header */}
-        <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">Core Values</h2>
-          <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
-            These six values guide every decision we make — from content quality to product design.
-          </p>
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-foreground mb-3">What We Stand For</h2>
+          <p className="text-muted-foreground">6 values that guide every product decision we make.</p>
         </div>
-
-        {/* Values grid — 2 columns on mobile, 3 on desktop */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {VALUES.map((val, i) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
+          {VALUES.map((v, i) => (
             <motion.div
-              key={val.title}
-              initial={{ opacity: 0, y: 20 }}      // Start invisible slightly below
-              whileInView={{ opacity: 1, y: 0 }}   // Animate into view
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: i * 0.08, duration: 0.45 }}
-              className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition-shadow"
+              key={v.title}
+              initial={{ opacity: 0.01, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
             >
-              {/* Value icon */}
-              <div className={`inline-flex p-3 rounded-xl mb-4 ${val.color}`}>
-                <val.icon className="h-6 w-6" />
+              <div className={`inline-flex p-2.5 rounded-xl ${v.bg} ${v.color} mb-3`}>
+                <v.icon className="h-5 w-5" />
               </div>
-              {/* Value title */}
-              <h3 className="font-semibold text-foreground mb-2">{val.title}</h3>
-              {/* Value description */}
-              <p className="text-sm text-muted-foreground leading-relaxed">{val.desc}</p>
+              <h3 className="font-semibold text-foreground mb-1.5">{v.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{v.desc}</p>
             </motion.div>
           ))}
         </div>

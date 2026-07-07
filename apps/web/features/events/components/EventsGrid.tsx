@@ -1,185 +1,151 @@
 /**
  * @file features/events/components/EventsGrid.tsx
- * @description Events listing for the Events page
+ * @description Events grid component for the /events page
  *
- * Shows all upcoming and past events:
- *  - Live Coding Battles
- *  - CBSE Board Mock Tests
- *  - AI/ML Workshops
- *  - Hackathons
- *  - Guest lectures
+ * Shows upcoming and past events in a responsive card grid:
+ * - Live events (happening now) — highlighted
+ * - Upcoming events — with countdown + registration CTA
+ * - Past events — with recording links
  *
- * Events are filtered by type and status (upcoming/past).
+ * Categories: Hackathon, Workshop, Live Class, Webinar, Battle Tournament, Quiz
+ *
+ * Used in: app/(marketing)/events/page.tsx
  */
 
-"use client"; // Client component for filtering state
+"use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Users, Trophy, ExternalLink, Filter, Sparkles, Code2, BookOpen } from "lucide-react";
-import { Badge } from "@/components/ui/badge"; // Status badge
+import {
+  Calendar, Clock, Users, MapPin, ArrowRight,
+  Zap, BookOpen, Trophy, Radio, Code2, Star,
+  ChevronRight, Play,
+} from "lucide-react";
+import { Badge }  from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-/* ─── Event Type Definitions ─────────────────────────────────────────────── */
-type EventStatus = "upcoming" | "live" | "past";
-type EventType   = "battle" | "workshop" | "hackathon" | "mock-test" | "lecture" | "olympiad";
+/* ─── Types ──────────────────────────────────────────────────────────────── */
+type EventCategory = "hackathon" | "workshop" | "live-class" | "webinar" | "battle" | "quiz";
+type EventStatus   = "live" | "upcoming" | "past";
 
-interface Event {
-  id:          string;
-  title:       string;
-  type:        EventType;
-  status:      EventStatus;
-  date:        string;         // Display date string
-  time:        string;         // Display time string
-  duration:    string;         // e.g. "2 hours"
-  participants: number;
-  maxParticipants?: number;
-  prize?:      string;         // Prize for competitions
-  host:        string;         // Host / organizer name
-  description: string;
-  tags:        string[];
-  registrationUrl?: string;
+interface EventItem {
+  id:         string;
+  title:      string;
+  description:string;
+  category:   EventCategory;
+  status:     EventStatus;
+  date:       string;         // Display date string
+  time:       string;         // Display time string (IST)
+  duration:   string;         // Duration (e.g., "2 hours")
+  seats:      number;         // Total seats
+  registered: number;         // Already registered
+  host:       string;         // Host name
+  tags:       string[];
+  href:       string;
+  isPremium?: boolean;
 }
 
-/* ─── Events Data ────────────────────────────────────────────────────────── */
-const EVENTS: Event[] = [
+/* ─── Category icons + colors ────────────────────────────────────────────── */
+const CAT_CONFIG: Record<EventCategory, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
+  hackathon:  { icon: <Code2  className="h-4 w-4" />, color: "text-purple-500", bg: "bg-purple-500/10", label: "Hackathon"    },
+  workshop:   { icon: <BookOpen className="h-4 w-4" />, color: "text-blue-500", bg: "bg-blue-500/10",   label: "Workshop"     },
+  "live-class":{ icon: <Radio  className="h-4 w-4" />, color: "text-red-500",   bg: "bg-red-500/10",    label: "Live Class"   },
+  webinar:    { icon: <Users  className="h-4 w-4" />, color: "text-teal-500",  bg: "bg-teal-500/10",   label: "Webinar"      },
+  battle:     { icon: <Zap    className="h-4 w-4" />, color: "text-orange-500",bg: "bg-orange-500/10", label: "Battle"       },
+  quiz:       { icon: <Trophy className="h-4 w-4" />, color: "text-amber-500", bg: "bg-amber-500/10",  label: "Quiz"         },
+};
+
+/* ─── Demo Events Data ────────────────────────────────────────────────────── */
+const EVENTS: EventItem[] = [
   {
-    id:          "battle-weekly-01",
-    title:       "Weekly Math Battle Championship",
-    type:        "battle",
-    status:      "upcoming",
-    date:        "July 12, 2025",
-    time:        "7:00 PM IST",
-    duration:    "2 hours",
-    participants: 234,
-    maxParticipants: 500,
-    prize:       "₹5,000 + Pro subscription",
-    host:        "LearnVeda",
-    description: "Compete in real-time 1v1 math battles. Class 10 and above. Topics: Algebra, Geometry, Trigonometry.",
-    tags:        ["Mathematics", "Battle", "Class 10+"],
-    registrationUrl: "#",
+    id: "ev1", status: "live",
+    title:       "LIVE: Class 12 Physics — Wave Optics Deep Dive",
+    description: "60-minute live session covering wave optics from CBSE perspective with NEET/JEE application. Q&A session included.",
+    category: "live-class", date: "Today", time: "5:00 PM IST", duration: "1 hour",
+    seats: 500, registered: 312, host: "Dr. Sharma", tags: ["Physics", "Class 12", "JEE"],
+    href: "/events/live-physics-wave-optics",
   },
   {
-    id:          "ai-workshop-01",
-    title:       "Introduction to Machine Learning with Python",
-    type:        "workshop",
-    status:      "upcoming",
-    date:        "July 15, 2025",
-    time:        "4:00 PM IST",
-    duration:    "3 hours",
-    participants: 412,
-    maxParticipants: 500,
-    host:        "LearnVeda AI Team",
-    description: "Hands-on workshop: build your first ML model using Python, scikit-learn, and pandas. No prior ML experience required.",
-    tags:        ["AI", "Python", "Machine Learning", "Workshop"],
-    registrationUrl: "#",
+    id: "ev2", status: "upcoming",
+    title:       "Python for Beginners — 3-Day Bootcamp",
+    description: "Start from zero, write your first web scraper by day 3. Hands-on with real exercises. Certificate included.",
+    category: "workshop", date: "Jul 12, 2026", time: "10:00 AM IST", duration: "3 days",
+    seats: 200, registered: 147, host: "LearnVeda Team", tags: ["Python", "Beginner", "Certificate"],
+    href: "/events/python-bootcamp-july",
   },
   {
-    id:          "cbse-mock-01",
-    title:       "CBSE Class 12 Physics Mock Test",
-    type:        "mock-test",
-    status:      "upcoming",
-    date:        "July 20, 2025",
-    time:        "10:00 AM IST",
-    duration:    "3 hours",
-    participants: 1240,
-    host:        "LearnVeda Test Center",
-    description: "Full-length CBSE Class 12 Physics mock test. Covers all chapters. Detailed solution PDF provided after the test.",
-    tags:        ["CBSE", "Class 12", "Physics", "Mock Test"],
-    registrationUrl: "#",
+    id: "ev3", status: "upcoming",
+    title:       "National Coding Battle — July Edition",
+    description: "1v1 and team battles across DSA, Math, and Python. Prize pool ₹10,000. Open to all registered students.",
+    category: "battle", date: "Jul 15, 2026", time: "6:00 PM IST", duration: "2 hours",
+    seats: 1000, registered: 689, host: "LearnVeda", tags: ["DSA", "Competition", "Prize"],
+    href: "/events/battle-july-2026", isPopular: true,
+  } as EventItem & { isPopular?: boolean },
+  {
+    id: "ev4", status: "upcoming",
+    title:       "CBSE Class 10 Board Prep Webinar",
+    description: "Last 30 days strategy for CBSE Class 10 board exams. Exam pattern analysis, important topics, and time management.",
+    category: "webinar", date: "Jul 18, 2026", time: "7:00 PM IST", duration: "1.5 hours",
+    seats: 2000, registered: 1203, host: "Priya Sharma", tags: ["Class 10", "Boards", "Strategy"],
+    href: "/events/cbse-class10-webinar",
   },
   {
-    id:          "hackathon-01",
-    title:       "LearnVeda Build-a-thon 2025",
-    type:        "hackathon",
-    status:      "upcoming",
-    date:        "August 1–3, 2025",
-    time:        "9:00 AM IST",
-    duration:    "48 hours",
-    participants: 89,
-    maxParticipants: 200,
-    prize:       "₹50,000 + Internship offers",
-    host:        "LearnVeda Engineering",
-    description: "Build an innovative EdTech solution in 48 hours. Open to all college students. Solo or teams of up to 3.",
-    tags:        ["Hackathon", "Engineering", "Open Source"],
-    registrationUrl: "#",
+    id: "ev5", status: "upcoming",
+    title:       "System Design Interview Prep — Live",
+    description: "Mock system design interview with real-time feedback. Cover Load Balancer, Caching, Database sharding design.",
+    category: "live-class", date: "Jul 20, 2026", time: "8:00 PM IST", duration: "2 hours",
+    seats: 100, registered: 78, host: "Rahul Nair", tags: ["System Design", "Interview", "SDE"],
+    href: "/events/system-design-live", isPremium: true,
   },
   {
-    id:          "dsa-workshop-01",
-    title:       "DSA Bootcamp: Arrays & Strings",
-    type:        "workshop",
-    status:      "live",
-    date:        "Today",
-    time:        "6:00 PM IST",
-    duration:    "2 hours",
-    participants: 567,
-    host:        "LearnVeda Instructors",
-    description: "Deep dive into Arrays and Strings — the most common DSA interview topics. 20+ problems solved live.",
-    tags:        ["DSA", "Interview Prep", "Coding"],
-    registrationUrl: "#",
-  },
-  {
-    id:          "science-olympiad-01",
-    title:       "National Science Olympiad 2025",
-    type:        "olympiad",
-    status:      "past",
-    date:        "June 15, 2025",
-    time:        "10:00 AM IST",
-    duration:    "90 minutes",
-    participants: 3245,
-    prize:       "Certificates + Medals",
-    host:        "LearnVeda",
-    description: "National-level science olympiad for Class 9–12. Physics, Chemistry, Biology sections.",
-    tags:        ["Science", "Olympiad", "Class 9-12"],
+    id: "ev6", status: "past",
+    title:       "LearnVeda Hackathon 2026 — Results & Showcase",
+    description: "Winners presentation from our 48-hour hackathon. 120 teams, 12 winners. Watch the winning projects showcase.",
+    category: "hackathon", date: "Jun 28, 2026", time: "4:00 PM IST", duration: "2 hours",
+    seats: 500, registered: 487, host: "LearnVeda", tags: ["Hackathon", "Projects"],
+    href: "/events/hackathon-2026-results",
   },
 ];
 
-/* ─── Event type config ──────────────────────────────────────────────────── */
-const EVENT_TYPE_CONFIG: Record<EventType, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  battle:    { label: "Live Battle",  icon: Trophy,    color: "bg-red-500/10 text-red-500 border-red-500/20"     },
-  workshop:  { label: "Workshop",    icon: Sparkles,   color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
-  hackathon: { label: "Hackathon",   icon: Code2,      color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
-  "mock-test": { label: "Mock Test", icon: BookOpen,   color: "bg-blue-500/10 text-blue-500 border-blue-500/20"  },
-  lecture:   { label: "Lecture",     icon: Users,      color: "bg-green-500/10 text-green-500 border-green-500/20" },
-  olympiad:  { label: "Olympiad",    icon: Trophy,     color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
-};
-
-/* ─── Filter tabs ────────────────────────────────────────────────────────── */
-const FILTERS: { label: string; value: "all" | EventStatus }[] = [
-  { label: "All Events",  value: "all"      },
-  { label: "🔴 Live Now", value: "live"     },
-  { label: "Upcoming",    value: "upcoming" },
-  { label: "Past",        value: "past"     },
+/* ─── Status filter tabs ─────────────────────────────────────────────────── */
+const STATUS_FILTERS: { id: string; label: string }[] = [
+  { id: "all",      label: "All Events" },
+  { id: "live",     label: "🔴 Live Now" },
+  { id: "upcoming", label: "Upcoming" },
+  { id: "past",     label: "Past" },
 ];
 
 /* ─── EventsGrid Component ───────────────────────────────────────────────── */
 export function EventsGrid() {
-  const [filter, setFilter] = useState<"all" | EventStatus>("all"); // Active filter tab
+  const [activeFilter, setActiveFilter] = useState("all");
 
   // Filter events based on active tab
-  const filtered = filter === "all" ? EVENTS : EVENTS.filter((e) => e.status === filter);
+  const filtered = activeFilter === "all"
+    ? EVENTS
+    : EVENTS.filter(e => e.status === activeFilter);
 
   return (
-    <section className="py-20 bg-background">
+    <div className="py-12">
       <div className="container px-4 md:px-6">
-        {/* ── Header ───────────────────────────────────────────────────── */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Events & Competitions</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Join live battles, workshops, hackathons, and olympiads. Compete, learn, and win prizes.
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-foreground mb-3">Events & Live Sessions</h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Live classes, workshops, hackathons, and battle tournaments — happening every week.
           </p>
         </div>
 
-        {/* ── Filter tabs ───────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 mb-10 flex-wrap justify-center">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          {FILTERS.map((f) => (
+        {/* Filter tabs */}
+        <div className="flex flex-wrap gap-2 justify-center mb-8">
+          {STATUS_FILTERS.map(f => (
             <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}   // Set active filter
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                filter === f.value
-                  ? "bg-brand-500 text-white shadow-sm"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
+              key={f.id}
+              onClick={() => setActiveFilter(f.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                activeFilter === f.id
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "border-border text-muted-foreground hover:border-brand-500/50"
               }`}
             >
               {f.label}
@@ -187,105 +153,97 @@ export function EventsGrid() {
           ))}
         </div>
 
-        {/* ── Events grid ───────────────────────────────────────────────── */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Events grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((event, i) => {
-            const typeConfig = EVENT_TYPE_CONFIG[event.type];
-            const TypeIcon   = typeConfig.icon;
+            const catConfig = CAT_CONFIG[event.category];
+            const seatsLeft = event.seats - event.registered;
+            const seatsLow  = seatsLeft < 50; // Low seat warning
 
             return (
               <motion.div
                 key={event.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0.01, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4 }}
-                className="rounded-2xl border bg-card shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                transition={{ duration: 0.35, delay: i * 0.06 }}
               >
-                {/* Status + type header */}
-                <div className={`px-5 py-3 flex items-center justify-between border-b ${
-                  event.status === "live" ? "bg-red-500/10" : "bg-muted/30"
+                <div className={`h-full rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition-all flex flex-col ${
+                  event.status === "live" ? "border-red-500/40" : ""
                 }`}>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${typeConfig.color}`}
-                  >
-                    <TypeIcon className="h-3 w-3 mr-1" />
-                    {typeConfig.label}
-                  </Badge>
-                  {event.status === "live" && (
-                    <span className="flex items-center gap-1.5 text-xs text-red-500 font-semibold">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      LIVE
-                    </span>
-                  )}
-                  {event.status === "past" && (
-                    <Badge variant="secondary" className="text-xs">Ended</Badge>
-                  )}
-                </div>
-
-                {/* Event content */}
-                <div className="p-5">
-                  <h3 className="font-bold text-foreground mb-2 leading-tight">{event.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{event.description}</p>
-
-                  {/* Event meta */}
-                  <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-brand-500" />
-                      {event.date} at {event.time}
+                  {/* Category icon + status */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`flex items-center gap-1.5 ${catConfig.color}`}>
+                      <div className={`p-1.5 rounded-lg ${catConfig.bg}`}>{catConfig.icon}</div>
+                      <span className="text-xs font-medium">{catConfig.label}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-brand-500" />
-                      {event.duration}
+                    <div className="flex gap-1.5">
+                      {event.status === "live" && (
+                        <Badge className="bg-red-500 text-white text-xs animate-pulse">🔴 LIVE</Badge>
+                      )}
+                      {(event as EventItem & { isPremium?: boolean }).isPremium && (
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-xs gap-1">
+                          <Star className="h-2.5 w-2.5" /> Pro
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5 text-brand-500" />
-                      {event.participants.toLocaleString()} registered
-                      {event.maxParticipants && ` / ${event.maxParticipants.toLocaleString()} max`}
-                    </div>
-                    {event.prize && (
-                      <div className="flex items-center gap-2">
-                        <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                        {event.prize}
-                      </div>
-                    )}
                   </div>
 
+                  {/* Title */}
+                  <h3 className="font-semibold text-foreground mb-1.5 leading-snug">{event.title}</h3>
+
+                  {/* Description */}
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">{event.description}</p>
+
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {event.tags.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">
-                        {tag}
-                      </span>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {event.tags.map(tag => (
+                      <span key={tag} className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-full">{tag}</span>
                     ))}
                   </div>
 
+                  {/* Meta: date, time, duration */}
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" /> {event.date}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" /> {event.time}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      <span className={seatsLow ? "text-orange-600 font-medium" : ""}>
+                        {seatsLow ? `${seatsLeft} seats left` : `${event.registered} registered`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" /> {event.duration}
+                    </div>
+                  </div>
+
+                  {/* Host */}
+                  <p className="text-xs text-muted-foreground mb-3">Hosted by <strong>{event.host}</strong></p>
+
                   {/* CTA */}
-                  {event.status !== "past" && event.registrationUrl && (
-                    <a
-                      href={event.registrationUrl}
-                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
-                    >
-                      {event.status === "live" ? "Join Now" : "Register Free"}
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                  {event.status === "past" && (
-                    <div className="text-center py-2 text-sm text-muted-foreground">Event has ended</div>
-                  )}
+                  <Link href={event.href}>
+                    <Button className="w-full gap-1.5" size="sm" variant={event.status === "past" ? "outline" : "default"}>
+                      {event.status === "live"     ? <><Play className="h-3.5 w-3.5" /> Join Live</>     :
+                       event.status === "upcoming" ? <>Register <ArrowRight className="h-3.5 w-3.5" /></> :
+                       <>Watch Recording <Play className="h-3.5 w-3.5" /></>}
+                    </Button>
+                  </Link>
                 </div>
               </motion.div>
             );
           })}
         </div>
 
-        {/* Empty state */}
+        {/* No events */}
         {filtered.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="text-center py-12 text-muted-foreground">
             No events found for this filter.
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

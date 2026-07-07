@@ -1,489 +1,311 @@
 /**
  * @file features/practice/components/PracticeHub.tsx
- * @description Full-featured Practice Hub for LearnVeda
+ * @description Practice hub — MCQ practice, daily challenges, PYQs, coding playground
  *
  * Sections:
- *  1. Hero           — headline, stats row, search
- *  2. Practice Modes — 8 practice card types (quiz, mock, code, PYQ, daily, timed, flash, assignments)
- *  3. Subject Quick-Access — shortcut grid by CBSE class / CS subject
- *  4. Today's Challenge — single daily problem highlight
- *  5. Recent Sessions — last 3 practice sessions (demo data)
- *  6. Progress Stats  — accuracy, questions attempted, streaks
+ *  1. Daily challenge card (auto-refreshes daily)
+ *  2. Practice modes: Quick MCQ / Full Test / PYQ / Coding
+ *  3. Subject-wise practice picker
+ *  4. Your practice stats (accuracy, streak, problems solved)
+ *  5. Recent practice sessions
  *
- * Demo mode: all data is static; real API calls replace it when MongoDB is live.
+ * Used in: app/(marketing)/practice/page.tsx
  */
 
-"use client"; // Client component — interactive tabs, animations
+"use client";
 
-import React, { useState } from "react";                   // React core
-import Link  from "next/link";                             // Client-side navigation
-import { motion } from "framer-motion";                    // Entry animations
+import React, { useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
-  BookOpen, Code2, FileText, Target, Clock,
-  Brain, Zap, ArrowRight, CheckCircle, TrendingUp,
-  Flame, Star, Filter, Search, Award, BarChart3,
-  CircleDot, Play, AlertCircle, ChevronRight,
-} from "lucide-react";                                     // Icons
-import { Badge }  from "@/components/ui/badge";            // Label badge
-import { Button } from "@/components/ui/button";           // CTA button
-import { Input }  from "@/components/ui/input";            // Search input
-import { Progress } from "@/components/ui/progress";       // XP progress bar
+  Zap, Clock, Target, BookOpen, Code2, Trophy,
+  ArrowRight, Star, CheckCircle2, Play, Calendar,
+  Flame, TrendingUp, ChevronRight, BarChart3,
+} from "lucide-react";
+import { Badge }  from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-/* ══════════════════════════════════════════════════════════════════════════ */
-/*  STATIC DATA                                                              */
-/* ══════════════════════════════════════════════════════════════════════════ */
-
-/** 8 practice mode cards */
+/* ─── Practice Modes ─────────────────────────────────────────────────────── */
 const PRACTICE_MODES = [
   {
-    id: "quiz",
-    emoji: "🧠",
-    title: "Subject Quizzes",
-    desc: "MCQs for every chapter across Class 9–12, Engineering, and Core CS.",
-    badge: "10,000+ Questions",
+    id:    "quick-mcq",
+    title: "Quick MCQ",
+    desc:  "10 questions · 10 minutes · Any subject",
+    emoji: "⚡",
     color: "from-blue-500 to-cyan-500",
-    href: "/practice/quiz",
-    stats: { label: "Avg. Score", value: "78%" },
+    bg:    "bg-blue-500/10",
+    border:"border-blue-500/20",
+    href:  "/practice/quick",
+    xp:    20,
   },
   {
-    id: "mock",
+    id:    "full-test",
+    title: "Full Mock Test",
+    desc:  "Board simulation · 3 hours · All subjects",
     emoji: "📋",
-    title: "Mock Tests",
-    desc: "Full-length CBSE, JEE, NEET, and placement mock tests with auto-grading.",
-    badge: "Timed Exams",
-    color: "from-purple-500 to-pink-500",
-    href: "/practice/mock",
-    stats: { label: "Tests Available", value: "50+" },
+    color: "from-purple-500 to-violet-500",
+    bg:    "bg-purple-500/10",
+    border:"border-purple-500/20",
+    href:  "/test-center",
+    xp:    200,
   },
   {
-    id: "code",
-    emoji: "💻",
-    title: "Coding Playground",
-    desc: "In-browser IDE for 13 languages — solve problems and run test cases.",
-    badge: "13 Languages",
-    color: "from-green-500 to-teal-500",
-    href: "/compiler",
-    stats: { label: "Problems", value: "200+" },
-  },
-  {
-    id: "pyq",
-    emoji: "📚",
+    id:    "pyq",
     title: "Previous Year Papers",
-    desc: "CBSE board, JEE Main, NEET, and GATE previous year questions with solutions.",
-    badge: "PYQ Bank",
-    color: "from-orange-500 to-red-500",
-    href: "/practice/pyq",
-    stats: { label: "Years Covered", value: "2010–2024" },
+    desc:  "2015–2025 board papers with solutions",
+    emoji: "📜",
+    color: "from-orange-500 to-amber-500",
+    bg:    "bg-orange-500/10",
+    border:"border-orange-500/20",
+    href:  "/practice/pyq",
+    xp:    50,
   },
   {
-    id: "daily",
-    emoji: "🎯",
-    title: "Daily Challenge",
-    desc: "One new problem every day — maintain your streak and earn bonus XP.",
-    badge: "Streak Builder",
-    color: "from-yellow-500 to-orange-500",
-    href: "/practice/daily",
-    stats: { label: "XP Bonus", value: "3× Today" },
-  },
-  {
-    id: "timed",
-    emoji: "⏱️",
-    title: "Timed Drills",
-    desc: "Speed-practice under time pressure — build exam confidence and accuracy.",
-    badge: "Pressure Training",
-    color: "from-cyan-500 to-blue-500",
-    href: "/practice/timed",
-    stats: { label: "Best Time", value: "4.2s/q" },
-  },
-  {
-    id: "flash",
-    emoji: "🃏",
-    title: "Flashcards",
-    desc: "Spaced repetition flashcards for formulas, definitions, and key concepts.",
-    badge: "Spaced Repetition",
-    color: "from-pink-500 to-rose-500",
-    href: "/practice/flashcards",
-    stats: { label: "Cards", value: "2,000+" },
-  },
-  {
-    id: "assign",
-    emoji: "✅",
-    title: "Assignment Tracker",
-    desc: "Create, share, and track custom assignments with progress analytics.",
-    badge: "Self-Paced",
-    color: "from-indigo-500 to-violet-500",
-    href: "/practice/assignments",
-    stats: { label: "Templates", value: "30+" },
+    id:    "coding",
+    title: "Coding Playground",
+    desc:  "Write and run code — Python, Java, C++, JS",
+    emoji: "💻",
+    color: "from-green-500 to-teal-500",
+    bg:    "bg-green-500/10",
+    border:"border-green-500/20",
+    href:  "/compiler",
+    xp:    30,
   },
 ];
 
-/** CBSE quick-access by class */
-const CBSE_SHORTCUTS = [
-  { label: "Class 9 Maths",     href: "/learn/class-9",  tag: "15 Chapters" },
-  { label: "Class 9 Science",   href: "/learn/class-9",  tag: "14 Chapters" },
-  { label: "Class 10 Maths",    href: "/learn/class-10", tag: "15 Chapters" },
-  { label: "Class 10 Science",  href: "/learn/class-10", tag: "16 Chapters" },
-  { label: "Class 11 Physics",  href: "/learn/class-11", tag: "14 Chapters" },
-  { label: "Class 12 Maths",    href: "/learn/class-12", tag: "13 Chapters" },
-  { label: "DSA Practice",      href: "/core-cs/dsa",    tag: "60 Days"     },
-  { label: "JEE Mock Tests",    href: "/test-center",    tag: "30+ Tests"   },
+/* ─── Subject practice options ───────────────────────────────────────────── */
+const SUBJECTS = [
+  { id:"maths",   emoji:"📐", label:"Mathematics",  levels:["Class 9","Class 10","Class 11","Class 12"],  href:"/practice/subject/mathematics" },
+  { id:"physics", emoji:"⚛️", label:"Physics",      levels:["Class 9","Class 10","Class 11","Class 12"],  href:"/practice/subject/physics"     },
+  { id:"chem",    emoji:"🧪", label:"Chemistry",    levels:["Class 9","Class 10","Class 11","Class 12"],  href:"/practice/subject/chemistry"   },
+  { id:"bio",     emoji:"🌿", label:"Biology",      levels:["Class 9","Class 10","Class 11","Class 12"],  href:"/practice/subject/biology"     },
+  { id:"cs",      emoji:"💻", label:"Computer Sci", levels:["Class 9","Class 10","Class 12"],              href:"/practice/subject/cs"          },
+  { id:"sst",     emoji:"🌍", label:"Social Sci",   levels:["Class 9","Class 10"],                        href:"/practice/subject/social"      },
+  { id:"dsa",     emoji:"🌳", label:"DSA",          levels:["Engineering","Placement"],                   href:"/practice/subject/dsa"         },
+  { id:"python",  emoji:"🐍", label:"Python",       levels:["Beginner","Intermediate"],                   href:"/practice/subject/python"      },
 ];
 
-/** Demo recent practice sessions */
-const RECENT_SESSIONS = [
-  { subject: "Class 10 — Trigonometry",  mode: "Quiz",      score: 85, date: "Today",      xp: 45  },
-  { subject: "Python — OOP Concepts",    mode: "Flashcards", score: 70, date: "Yesterday",  xp: 30  },
-  { subject: "JEE Physics Mock — Optics", mode: "Mock Test", score: 62, date: "2 days ago", xp: 60  },
-];
-
-/** Demo overall stats */
+/* ─── Demo practice stats ─────────────────────────────────────────────────── */
 const DEMO_STATS = [
-  { label: "Questions Attempted", value: "1,247",  icon: <CircleDot className="h-4 w-4" />, color: "text-blue-500"   },
-  { label: "Avg. Accuracy",       value: "74%",    icon: <Target    className="h-4 w-4" />, color: "text-green-500"  },
-  { label: "Practice Streak",     value: "7 days", icon: <Flame     className="h-4 w-4" />, color: "text-orange-500" },
-  { label: "XP Earned",           value: "2,840",  icon: <Zap       className="h-4 w-4" />, color: "text-yellow-500" },
+  { icon: Target,    label:"Accuracy",       value:"78%",   color:"text-green-500"  },
+  { icon: Star,      label:"Problems Solved",value:"342",   color:"text-yellow-500" },
+  { icon: Flame,     label:"Practice Streak",value:"5 days",color:"text-orange-500" },
+  { icon: TrendingUp,label:"This Week",      value:"+47 Q", color:"text-brand-500"  },
 ];
 
-/* ══════════════════════════════════════════════════════════════════════════ */
-/*  COMPONENT                                                                */
-/* ══════════════════════════════════════════════════════════════════════════ */
+/* ─── Daily challenge ─────────────────────────────────────────────────────── */
+const DAILY_CHALLENGE = {
+  subject:   "Mathematics",
+  class:     "Class 10",
+  question:  "If α and β are the zeroes of x² - 5x + 6, find the value of α² + β².",
+  options:   ["13", "25", "17", "19"],
+  answer:    0, // Index of correct option (13)
+  xp:        30,
+  hint:      "Use α² + β² = (α + β)² - 2αβ. Find α + β and αβ from the polynomial.",
+};
 
-/**
- * PracticeHub
- * Main practice page component with all practice modes and stats.
- */
+/* ─── PracticeHub Component ──────────────────────────────────────────────── */
 export function PracticeHub() {
-  /* ── State ──────────────────────────────────────────────────────────── */
-  const [search, setSearch] = useState(""); // Search term for practice modes
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showAnswer,     setShowAnswer]     = useState(false);
+  const [showHint,       setShowHint]       = useState(false);
 
-  /* ── Filtered modes ─────────────────────────────────────────────────── */
-  const filteredModes = search.trim()
-    ? PRACTICE_MODES.filter(
-        (m) =>
-          m.title.toLowerCase().includes(search.toLowerCase()) ||
-          m.desc.toLowerCase().includes(search.toLowerCase())
-      )
-    : PRACTICE_MODES;
-
-  /* ── Render ─────────────────────────────────────────────────────────── */
   return (
-    <div className="pb-20">
+    <div className="py-12">
+      <div className="container px-4 md:px-6 max-w-7xl mx-auto">
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* HERO                                                           */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-b from-purple-950/5 to-background">
-        {/* Background orbs */}
-        <div className="absolute top-10 left-1/3 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-
-        <div className="container px-4 md:px-6 relative text-center">
-          {/* Label badge */}
-          <motion.div
-            initial={{ opacity: 0.01, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Badge variant="outline" className="mb-5 gap-2 px-4 py-1.5 text-sm rounded-full border-purple-500/30 bg-purple-500/5 text-purple-600 dark:text-purple-400">
-              <Brain className="h-3.5 w-3.5" />
-              10,000+ Questions · 50+ Mock Tests · Daily Challenges
-            </Badge>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0.01, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-5"
-          >
-            Practice Makes{" "}
-            <span className="text-gradient">Perfect</span>
-          </motion.h1>
-
-          {/* Sub-headline */}
-          <motion.p
-            initial={{ opacity: 0.01, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
-          >
-            MCQ quizzes, mock exams, coding challenges, flashcards, and previous year papers
-            — everything you need to ace your exams and interviews.
-          </motion.p>
-
-          {/* Search bar */}
-          <motion.div
-            initial={{ opacity: 0.01, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex max-w-md mx-auto gap-2"
-          >
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search practice modes…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-12 rounded-xl"
-              />
-            </div>
-          </motion.div>
-
-          {/* Stats strip */}
-          <motion.div
-            initial={{ opacity: 0.01 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-muted-foreground"
-          >
-            {["✅ Free forever", "✅ No sign-in for basic access", "✅ NCERT aligned", "✅ Instant results"].map((item) => (
-              <span key={item} className="whitespace-nowrap">{item}</span>
-            ))}
-          </motion.div>
+        {/* ── Page header ─────────────────────────────────────────── */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-foreground mb-3">Practice Hub</h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            10,000+ MCQs, previous year papers, daily challenges, and a live coding playground.
+          </p>
         </div>
-      </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* STATS ROW                                                      */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="border-y bg-muted/40 py-6">
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {DEMO_STATS.map((stat) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0.01, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="flex items-center gap-3 rounded-xl bg-background border p-4"
-              >
-                {/* Icon */}
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-muted ${stat.color}`}>
-                  {stat.icon}
-                </div>
-                <div>
-                  <div className="text-xl font-black tabular-nums">{stat.value}</div>
-                  <div className="text-xs text-muted-foreground">{stat.label}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* PRACTICE MODES GRID                                            */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="py-14">
-        <div className="container px-4 md:px-6">
-          {/* Section heading */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Practice Modes</h2>
-              <p className="text-muted-foreground text-sm mt-1">
-                Choose your practice style — {filteredModes.length} mode{filteredModes.length !== 1 ? "s" : ""} available
-              </p>
-            </div>
-          </div>
-
-          {/* Cards grid */}
-          {filteredModes.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {filteredModes.map((mode, i) => (
-                <motion.div
-                  key={mode.id}
-                  initial={{ opacity: 0.01, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.06, duration: 0.45 }}
-                >
-                  <Link href={mode.href} className="group block h-full">
-                    <div className="h-full rounded-2xl border bg-card overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                      {/* Gradient header stripe */}
-                      <div className={`h-1.5 w-full bg-gradient-to-r ${mode.color}`} />
-                      <div className="p-5 flex flex-col gap-3">
-                        {/* Emoji */}
-                        <div className="text-3xl">{mode.emoji}</div>
-
-                        {/* Gradient icon */}
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${mode.color} text-white`}>
-                          <Brain className="h-5 w-5" />
-                        </div>
-
-                        {/* Badge */}
-                        <Badge variant="secondary" className="self-start text-xs">{mode.badge}</Badge>
-
-                        {/* Title + desc */}
-                        <div className="flex-1">
-                          <h3 className="font-bold mb-1.5 group-hover:text-brand-500 transition-colors">{mode.title}</h3>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{mode.desc}</p>
-                        </div>
-
-                        {/* Stat highlight */}
-                        <div className="rounded-lg bg-muted px-3 py-2 text-xs flex justify-between items-center">
-                          <span className="text-muted-foreground">{mode.stats.label}</span>
-                          <span className="font-bold">{mode.stats.value}</span>
-                        </div>
-
-                        {/* CTA */}
-                        <div className="flex items-center gap-1 text-xs font-semibold text-brand-500 group-hover:gap-2 transition-all">
-                          Start Practice <ArrowRight className="h-3 w-3" />
+            {/* ── Practice Modes ──────────────────────────────────── */}
+            <section>
+              <h2 className="text-lg font-bold text-foreground mb-4">Choose Practice Mode</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {PRACTICE_MODES.map((mode, i) => (
+                  <motion.div
+                    key={mode.id}
+                    initial={{ opacity: 0.01, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.08 }}
+                  >
+                    <Link href={mode.href}>
+                      <div className={`rounded-2xl border ${mode.border} ${mode.bg} p-5 hover:shadow-md transition-all group cursor-pointer`}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">{mode.emoji}</span>
+                          <div className="flex-1">
+                            <p className="font-semibold text-foreground group-hover:text-brand-500 transition-colors">{mode.title}</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">{mode.desc}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs border-yellow-500/40 text-yellow-600 flex-shrink-0 gap-1">
+                            <Star className="h-2.5 w-2.5" /> +{mode.xp} XP
+                          </Badge>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            /* Empty state */
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No practice modes match your search.</p>
-              <Button variant="ghost" size="sm" onClick={() => setSearch("")} className="mt-2">
-                Clear Search
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TODAY'S DAILY CHALLENGE                                        */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="py-10 bg-muted/30">
-        <div className="container px-4 md:px-6">
-          <motion.div
-            initial={{ opacity: 0.01, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="rounded-2xl border bg-card overflow-hidden"
-          >
-            {/* Gold gradient header */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400" />
-            <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-              {/* Left — challenge details */}
-              <div className="flex-1">
+            {/* ── Daily Challenge ──────────────────────────────────── */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-brand-500" />
+                <h2 className="text-lg font-bold text-foreground">Daily Challenge</h2>
+                <Badge variant="outline" className="text-xs gap-1 border-yellow-500/40 text-yellow-600">
+                  <Star className="h-2.5 w-2.5" /> +{DAILY_CHALLENGE.xp} XP
+                </Badge>
+              </div>
+
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500/10 text-yellow-500">
-                    <Flame className="h-4 w-4" />
-                  </div>
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-500/40 bg-yellow-500/5">
-                    Daily Challenge — July 2026
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">{DAILY_CHALLENGE.subject}</Badge>
+                  <Badge variant="outline" className="text-xs">{DAILY_CHALLENGE.class}</Badge>
                 </div>
-                <h3 className="text-xl font-bold mb-2">
-                  Prove You Know Quadratic Equations
-                </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  10 MCQs from Class 10 Mathematics — Chapter 4. Time limit: 12 minutes.
-                  Earn <strong className="text-yellow-500">3× XP bonus</strong> for completing today.
-                </p>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> 10 Questions</span>
-                  <span className="flex items-center gap-1"><Clock    className="h-3 w-3" /> 12 Minutes</span>
-                  <span className="flex items-center gap-1"><Zap      className="h-3 w-3" /> 3× XP Bonus</span>
-                  <span className="flex items-center gap-1"><Award    className="h-3 w-3" /> Badge Available</span>
-                </div>
-              </div>
 
-              {/* Right — CTA */}
-              <div className="flex flex-col items-center gap-3">
-                <Button size="lg" variant="gradient" asChild className="w-full sm:w-auto">
-                  <Link href="/practice/daily">
-                    <Play className="h-4 w-4 fill-current" />
-                    Start Today&apos;s Challenge
-                  </Link>
-                </Button>
-                <p className="text-xs text-muted-foreground">Resets at midnight IST</p>
+                {/* Question */}
+                <p className="text-foreground font-medium mb-4">{DAILY_CHALLENGE.question}</p>
+
+                {/* Options */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {DAILY_CHALLENGE.options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setSelectedOption(i); setShowAnswer(true); }}
+                      className={`p-3 rounded-xl border text-sm text-left transition-all ${
+                        showAnswer
+                          ? i === DAILY_CHALLENGE.answer
+                            ? "border-green-500 bg-green-500/10 text-green-700"
+                            : i === selectedOption
+                              ? "border-red-500 bg-red-500/10 text-red-700"
+                              : "border-border text-muted-foreground"
+                          : selectedOption === i
+                            ? "border-brand-500 bg-brand-500/10 text-brand-600"
+                            : "border-border hover:border-brand-500/50"
+                      }`}
+                    >
+                      <span className="font-bold">{["A","B","C","D"][i]}.</span> {opt}
+                      {showAnswer && i === DAILY_CHALLENGE.answer && <CheckCircle2 className="inline h-4 w-4 ml-2 text-green-500" />}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {!showAnswer && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowHint(!showHint)}
+                      className="gap-1"
+                    >
+                      💡 {showHint ? "Hide" : "Show"} Hint
+                    </Button>
+                  )}
+                  {showAnswer && (
+                    <Button size="sm" variant="outline" onClick={() => { setSelectedOption(null); setShowAnswer(false); setShowHint(false); }}>
+                      Next Question →
+                    </Button>
+                  )}
+                </div>
+
+                {/* Hint */}
+                {showHint && !showAnswer && (
+                  <p className="mt-3 text-sm text-muted-foreground bg-muted p-3 rounded-xl">
+                    💡 {DAILY_CHALLENGE.hint}
+                  </p>
+                )}
+              </div>
+            </section>
+
+            {/* ── Subject-wise practice ────────────────────────────── */}
+            <section>
+              <h2 className="text-lg font-bold text-foreground mb-4">Practice by Subject</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {SUBJECTS.map((sub, i) => (
+                  <motion.div
+                    key={sub.id}
+                    initial={{ opacity: 0.01, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.05 }}
+                  >
+                    <Link href={sub.href}>
+                      <div className="rounded-xl border bg-card p-3.5 hover:border-brand-500/40 hover:shadow-sm transition-all group text-center cursor-pointer">
+                        <div className="text-xl mb-1">{sub.emoji}</div>
+                        <p className="text-xs font-semibold text-foreground group-hover:text-brand-500 transition-colors">{sub.label}</p>
+                        <p className="text-xs text-muted-foreground">{sub.levels[0]}{sub.levels.length > 1 ? ` +${sub.levels.length - 1}` : ""}</p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* ── Stats Sidebar ───────────────────────────────────────── */}
+          <div className="space-y-4">
+            {/* Practice stats */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="h-5 w-5 text-brand-500" />
+                <h3 className="font-semibold text-foreground">Your Stats</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {DEMO_STATS.map(stat => (
+                  <div key={stat.label} className="text-center p-3 bg-muted/50 rounded-xl">
+                    <div className={`flex justify-center mb-1 ${stat.color}`}>
+                      <stat.icon className="h-4 w-4" />
+                    </div>
+                    <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* SUBJECT QUICK-ACCESS                                           */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="py-14">
-        <div className="container px-4 md:px-6">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight mb-1">Quick Access by Subject</h2>
-            <p className="text-muted-foreground text-sm">Jump directly to practice for any subject</p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {CBSE_SHORTCUTS.map((item, i) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0.01, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <Link href={item.href} className="group block">
-                  <div className="rounded-xl border bg-card p-3 text-center hover:shadow-md hover:border-brand-500/30 hover:-translate-y-0.5 transition-all">
-                    <div className="font-semibold text-xs mb-1 group-hover:text-brand-500 transition-colors leading-tight">
-                      {item.label}
+            {/* Quick links */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold text-foreground mb-3">Quick Access</h3>
+              <div className="space-y-2">
+                {[
+                  { label:"Chapter MCQ Bank",       href:"/practice/mcq",    emoji:"📚" },
+                  { label:"PYQ 2015–2025",           href:"/practice/pyq",    emoji:"📜" },
+                  { label:"Flashcards",             href:"/flashcards",       emoji:"🃏" },
+                  { label:"Compiler Playground",    href:"/compiler",         emoji:"💻" },
+                  { label:"Live Battle",            href:"/live-battles",     emoji:"⚡" },
+                ].map(link => (
+                  <Link key={link.label} href={link.href}>
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-muted transition-colors text-sm text-muted-foreground hover:text-foreground">
+                      <span>{link.emoji}</span> {link.label}
+                      <ChevronRight className="h-3.5 w-3.5 ml-auto" />
                     </div>
-                    <div className="text-xs text-muted-foreground">{item.tag}</div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA to premium */}
+            <div className="rounded-2xl border bg-brand-500/5 border-brand-500/20 p-5 text-center">
+              <Trophy className="h-8 w-8 text-brand-500 mx-auto mb-2" />
+              <h3 className="font-semibold text-foreground mb-1">Unlock Full Practice</h3>
+              <p className="text-xs text-muted-foreground mb-3">10,000+ MCQs + PYPs + AI analysis</p>
+              <Link href="/pricing">
+                <Button size="sm" className="w-full gap-1">
+                  Go Pro <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* RECENT SESSIONS                                                */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="py-10 bg-muted/30">
-        <div className="container px-4 md:px-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Recent Sessions</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard">View All <ChevronRight className="h-3 w-3" /></Link>
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-3 max-w-2xl">
-            {RECENT_SESSIONS.map((session, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0.01, x: -10 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07 }}
-                className="flex items-center gap-4 rounded-xl border bg-card p-4"
-              >
-                {/* Score indicator */}
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-black text-sm ${
-                  session.score >= 80 ? "bg-green-500/10 text-green-500"
-                  : session.score >= 60 ? "bg-yellow-500/10 text-yellow-500"
-                  : "bg-red-500/10 text-red-500"
-                }`}>
-                  {session.score}%
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate">{session.subject}</div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                    <Badge variant="secondary" className="text-xs py-0">{session.mode}</Badge>
-                    <span>{session.date}</span>
-                  </div>
-                </div>
-
-                {/* XP earned */}
-                <div className="flex items-center gap-1 text-xs font-bold text-yellow-500">
-                  <Zap className="h-3 w-3" /> +{session.xp} XP
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

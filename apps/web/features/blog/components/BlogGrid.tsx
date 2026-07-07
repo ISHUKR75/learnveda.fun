@@ -1,231 +1,254 @@
 /**
  * @file features/blog/components/BlogGrid.tsx
- * @description Blog listing grid for the LearnVeda Blog
+ * @description Blog article grid for the /blog page
  *
- * Shows articles organized by category:
- *  - Study tips & strategies
- *  - Subject deep-dives (physics, math, etc.)
- *  - Programming tutorials
- *  - Career advice
- *  - LearnVeda news & updates
+ * Shows articles across all categories:
+ * - Featured article (large hero card)
+ * - Category filter pills
+ * - Article grid with author, date, read time, tags
  *
- * In production: fetches from MongoDB (BlogPost model) or a CMS.
- * For now: uses static demo articles with realistic content.
+ * SEO: Each article has a JSON-LD TechArticle schema (in [slug]/page.tsx)
+ * Used in: app/(marketing)/blog/page.tsx
  */
 
-"use client"; // Client component — category filtering state
+"use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
-import { Clock, User, Tag, ChevronRight, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Clock, User, ArrowRight, Tag, TrendingUp, BookOpen, Code2, Briefcase, GraduationCap, Bell } from "lucide-react";
 import { Badge }  from "@/components/ui/badge";
-import { Input }  from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
+type BlogCategory = "all" | "cbse" | "coding" | "career" | "engineering" | "platform";
+
 interface BlogPost {
-  slug:       string;
-  title:      string;
-  excerpt:    string;
-  category:   string;
-  author:     string;
-  readTime:   number;     // Minutes
-  date:       string;     // Display date string
-  isPremium:  boolean;    // Pro-only content
-  emoji:      string;     // Emoji for visual interest
+  id:       string;
+  title:    string;
+  excerpt:  string;
+  category: Exclude<BlogCategory, "all">;
+  author:   string;
+  date:     string;
+  readTime: string;   // e.g. "5 min read"
+  tags:     string[];
+  href:     string;
+  isFeatured?: boolean;
+  isNew?:      boolean;
 }
 
-/* ─── Demo Blog Posts ────────────────────────────────────────────────────── */
+/* ─── Category config ────────────────────────────────────────────────────── */
+const CATEGORY_CONFIG: Record<Exclude<BlogCategory, "all">, { label: string; icon: React.ReactNode; color: string }> = {
+  cbse:        { label:"CBSE & Boards",  icon:<BookOpen className="h-3.5 w-3.5" />,     color:"border-blue-500/40 text-blue-600"   },
+  coding:      { label:"Coding",         icon:<Code2 className="h-3.5 w-3.5" />,         color:"border-green-500/40 text-green-600" },
+  career:      { label:"Career",         icon:<Briefcase className="h-3.5 w-3.5" />,     color:"border-amber-500/40 text-amber-600" },
+  engineering: { label:"Engineering",    icon:<GraduationCap className="h-3.5 w-3.5" />, color:"border-purple-500/40 text-purple-600"},
+  platform:    { label:"Platform News",  icon:<Bell className="h-3.5 w-3.5" />,          color:"border-red-500/40 text-red-600"     },
+};
+
+/* ─── Blog posts demo data ────────────────────────────────────────────────── */
 const POSTS: BlogPost[] = [
   {
-    slug: "how-to-study-for-cbse-boards",
-    title: "How to Study for CBSE Board Exams: A 90-Day Preparation Guide",
-    excerpt: "A proven step-by-step plan to score 90%+ in your CBSE board exams. From chapter selection order to last-minute revision strategies.",
-    category: "Study Tips", author: "LearnVeda Team", readTime: 8, date: "June 28, 2025", isPremium: false, emoji: "📋",
+    id:"p1", category:"cbse", isFeatured:true,
+    title:"The Complete Class 10 Board Exam Strategy for 2025-26",
+    excerpt:"A data-driven study strategy for CBSE Class 10 boards. Chapter-wise weightage, high-yield topics, and a 30-day revision plan that actually works.",
+    author:"Priya Sharma", date:"Jul 5, 2026", readTime:"8 min read",
+    tags:["Class 10","Board Exam","Strategy","CBSE"],
+    href:"/blog/class-10-board-strategy-2026",
   },
   {
-    slug: "python-vs-java-beginners",
-    title: "Python vs Java for Beginners in 2025: The Honest Comparison",
-    excerpt: "We look at use cases, job market demand, learning curve, and which language will help you land your first programming job faster.",
-    category: "Programming", author: "Arjun Dev Team", readTime: 6, date: "June 20, 2025", isPremium: false, emoji: "⚡",
+    id:"p2", category:"coding", isNew:true,
+    title:"Python vs JavaScript in 2026 — Which Should You Learn First?",
+    excerpt:"A practical comparison for beginners. Career paths, syntax difficulty, job market demand, and why the answer depends on your goal.",
+    author:"Rahul Nair", date:"Jul 3, 2026", readTime:"6 min read",
+    tags:["Python","JavaScript","Beginner","Career"],
+    href:"/blog/python-vs-javascript-2026",
   },
   {
-    slug: "dsa-roadmap-placements",
-    title: "The Complete DSA Roadmap for Campus Placements",
-    excerpt: "From arrays to dynamic programming — the exact order to learn DSA topics and which problems to practice for FAANG and top Indian companies.",
-    category: "Career", author: "LearnVeda", readTime: 12, date: "June 15, 2025", isPremium: false, emoji: "🚀",
+    id:"p3", category:"career",
+    title:"How to Get a Software Engineering Internship in India as a 2nd Year Student",
+    excerpt:"A step-by-step guide from building your GitHub to cracking OA rounds at top Indian tech companies. What most students get wrong.",
+    author:"Vikram Singh", date:"Jun 28, 2026", readTime:"10 min read",
+    tags:["Internship","SDE","Career","Placement"],
+    href:"/blog/sde-internship-guide-india",
   },
   {
-    slug: "physics-class-12-tips",
-    title: "Class 12 Physics: Chapter-wise Study Strategy for 100/100",
-    excerpt: "A subject expert breaks down which chapters carry the most marks, common mistake patterns, and how to approach derivations in board exams.",
-    category: "CBSE", author: "Physics Expert", readTime: 10, date: "June 10, 2025", isPremium: false, emoji: "⚛️",
+    id:"p4", category:"cbse",
+    title:"NCERT vs Reference Books for Class 12 Physics — What Actually Works",
+    excerpt:"The honest answer based on 5 years of board result data. Which HC Verma chapters to prioritize, and when NCERT is enough.",
+    author:"Dr. Sharma", date:"Jun 25, 2026", readTime:"7 min read",
+    tags:["Class 12","Physics","NCERT","JEE"],
+    href:"/blog/ncert-vs-reference-books-physics",
   },
   {
-    slug: "system-design-beginners",
-    title: "System Design for Beginners: Where to Start",
-    excerpt: "If system design interviews feel overwhelming, start here. We explain load balancers, databases, caching, and scalability with simple analogies.",
-    category: "Engineering", author: "LearnVeda", readTime: 9, date: "June 5, 2025", isPremium: true, emoji: "🏗️",
+    id:"p5", category:"coding",
+    title:"Top 10 DSA Problems Every Indian Engineering Student Must Solve",
+    excerpt:"Curated from Google, Amazon, Flipkart, and TCS NQT interviews. With solutions in Python and Java, explained step-by-step.",
+    author:"Rahul Nair", date:"Jun 20, 2026", readTime:"12 min read",
+    tags:["DSA","Algorithms","Placement","Interview"],
+    href:"/blog/top-dsa-problems-india-placement",
   },
   {
-    slug: "pomodoro-technique-students",
-    title: "Why the Pomodoro Technique Works for Indian Students",
-    excerpt: "The science behind focused study sessions and how LearnVeda's streak system naturally implements the principles of spaced repetition and interleaving.",
-    category: "Study Tips", author: "LearnVeda", readTime: 5, date: "May 28, 2025", isPremium: false, emoji: "🍅",
+    id:"p6", category:"engineering",
+    title:"CSE vs ECE vs IT in India — A 2026 Salary and Placement Guide",
+    excerpt:"Branch-wise placement data from 50+ NITs and private colleges. Average packages, top recruiters, and which branch actually matters.",
+    author:"Sneha Patel", date:"Jun 15, 2026", readTime:"9 min read",
+    tags:["Engineering","CSE","ECE","Placement","Salary"],
+    href:"/blog/cse-vs-ece-vs-it-placement-2026",
   },
   {
-    slug: "learnveda-simulations-launched",
-    title: "140 Interactive Simulations Are Now Live on LearnVeda",
-    excerpt: "We just shipped 140 interactive simulations across Physics, Chemistry, Biology, Mathematics, DSA, and Computer Science. Here's what's new.",
-    category: "Platform News", author: "LearnVeda Team", readTime: 4, date: "May 20, 2025", isPremium: false, emoji: "🎉",
+    id:"p7", category:"platform", isNew:true,
+    title:"Introducing Live Battles 2.0 — Team Mode is Here",
+    excerpt:"You asked for team battles. We built them. 2v2 and 3v3 battles with shared scoring, combined XP, and a new tournament bracket format.",
+    author:"LearnVeda Team", date:"Jul 1, 2026", readTime:"3 min read",
+    tags:["Platform","Live Battles","Feature"],
+    href:"/blog/live-battles-team-mode",
   },
   {
-    slug: "mathematics-class-10-chapters",
-    title: "Class 10 Mathematics: Chapter-wise Weightage Analysis",
-    excerpt: "Which chapters carry the most marks in the CBSE Class 10 Maths board exam? We analysed 10 years of papers to give you the exact weightage.",
-    category: "CBSE", author: "Maths Expert", readTime: 7, date: "May 15, 2025", isPremium: false, emoji: "📊",
+    id:"p8", category:"career",
+    title:"GATE 2027 Preparation Guide — Start Now or Miss the Bus",
+    excerpt:"A realistic timeline and subject-wise strategy for GATE CSE 2027. Which subjects to start immediately, which to leave for the end.",
+    author:"Vikram Singh", date:"Jun 10, 2026", readTime:"11 min read",
+    tags:["GATE","CSE","Exam","Strategy"],
+    href:"/blog/gate-2027-preparation-guide",
   },
 ];
 
-/* ─── Categories ─────────────────────────────────────────────────────────── */
-const CATEGORIES = ["All", "Study Tips", "Programming", "CBSE", "Engineering", "Career", "Platform News"];
+/* ─── Category filter pills ──────────────────────────────────────────────── */
+const FILTERS: { id: BlogCategory; label: string }[] = [
+  { id:"all",         label:"All Posts"    },
+  { id:"cbse",        label:"CBSE & Boards"},
+  { id:"coding",      label:"Coding"       },
+  { id:"career",      label:"Career"       },
+  { id:"engineering", label:"Engineering"  },
+  { id:"platform",    label:"Platform"     },
+];
 
 /* ─── BlogGrid Component ─────────────────────────────────────────────────── */
 export function BlogGrid() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [searchQuery,    setSearchQuery]    = useState("");
+  const [activeFilter, setActiveFilter] = useState<BlogCategory>("all");
 
-  // Filter posts
-  const filtered = POSTS.filter((post) => {
-    const matchesCat    = activeCategory === "All" || post.category === activeCategory;
-    const matchesSearch = !searchQuery ||
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const featured  = POSTS.find(p => p.isFeatured);
+  const remaining = POSTS.filter(p => !p.isFeatured && (activeFilter === "all" || p.category === activeFilter));
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <section className="py-16 border-b bg-gradient-to-b from-muted/30 to-background text-center">
-        <div className="container px-4 md:px-6">
-          <Badge variant="secondary" className="mb-4">LearnVeda Blog</Badge>
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Study Smarter,{" "}
-            <span className="bg-gradient-to-r from-brand-500 to-purple-500 bg-clip-text text-transparent">
-              Learn Better
-            </span>
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Expert study tips, programming tutorials, CBSE guides, and career advice — all in one place.
-          </p>
+    <div className="py-12">
+      <div className="container px-4 md:px-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-foreground mb-3">LearnVeda Blog</h1>
+          <p className="text-muted-foreground">Study tips, coding guides, career advice, and platform updates.</p>
         </div>
-      </section>
 
-      {/* Content */}
-      <section className="py-12">
-        <div className="container px-4 md:px-6">
-          {/* Search */}
-          <div className="relative max-w-md mb-8">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search articles..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+        {/* Category filter pills */}
+        <div className="flex flex-wrap gap-2 justify-center mb-8">
+          {FILTERS.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setActiveFilter(f.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                activeFilter === f.id
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "border-border text-muted-foreground hover:border-brand-500/50"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Category filter */}
-          <div className="flex gap-2 flex-wrap mb-10">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeCategory === cat
-                    ? "bg-brand-500 text-white"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Featured post (first result) */}
-          {filtered[0] && searchQuery === "" && (
-            <div className="mb-8">
-              <Link
-                href={`/blog/${filtered[0].slug}`}
-                className="group block rounded-2xl border bg-card p-8 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-              >
-                <div className="flex items-start gap-6">
-                  <span className="text-5xl flex-shrink-0">{filtered[0].emoji}</span>
-                  <div>
-                    <Badge variant="secondary" className="mb-3">{filtered[0].category}</Badge>
-                    <h2 className="text-xl md:text-2xl font-bold text-foreground group-hover:text-brand-500 transition-colors mb-2">
-                      {filtered[0].title}
-                    </h2>
-                    <p className="text-muted-foreground leading-relaxed mb-4">{filtered[0].excerpt}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" />{filtered[0].author}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{filtered[0].readTime} min read</span>
-                      <span>{filtered[0].date}</span>
-                    </div>
-                  </div>
+        {/* Featured article — full width hero card */}
+        {featured && (activeFilter === "all" || activeFilter === featured.category) && (
+          <motion.div
+            initial={{ opacity: 0.01, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <Link href={featured.href}>
+              <div className="rounded-2xl border bg-gradient-to-br from-brand-500/10 to-purple-500/10 border-brand-500/20 p-7 hover:shadow-lg transition-all group cursor-pointer">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Badge className="bg-brand-500 text-white text-xs">⭐ Featured</Badge>
+                  <Badge variant="outline" className={`text-xs ${CATEGORY_CONFIG[featured.category].color}`}>
+                    {CATEGORY_CONFIG[featured.category].label}
+                  </Badge>
                 </div>
-              </Link>
-            </div>
-          )}
+                <h2 className="text-xl md:text-2xl font-bold text-foreground group-hover:text-brand-500 transition-colors mb-2 max-w-2xl">
+                  {featured.title}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-4 max-w-2xl">{featured.excerpt}</p>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" />{featured.author}</span>
+                  <span>{featured.date}</span>
+                  <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{featured.readTime}</span>
+                  <span className="ml-auto flex items-center gap-1 text-brand-500 font-medium">
+                    Read more <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
 
-          {/* Posts grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {(searchQuery || activeCategory !== "All" ? filtered : filtered.slice(1)).map((post, i) => (
+        {/* Article grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {remaining.map((post, i) => {
+            const catConfig = CATEGORY_CONFIG[post.category];
+            return (
               <motion.div
-                key={post.slug}
-                initial={{ opacity: 0, y: 16 }}
+                key={post.id}
+                initial={{ opacity: 0.01, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4 }}
+                transition={{ duration: 0.3, delay: i * 0.06 }}
               >
-                <Link
-                  href={`/blog/${post.slug}`}
-                  className="group block rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition-shadow h-full"
-                >
-                  <span className="text-3xl block mb-4">{post.emoji}</span>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="secondary" className="text-xs">{post.category}</Badge>
-                    {post.isPremium && (
-                      <Badge className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-                        <Sparkles className="h-3 w-3 mr-1" />Pro
+                <Link href={post.href}>
+                  <div className="h-full rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md hover:border-brand-500/30 transition-all group cursor-pointer flex flex-col">
+                    {/* Category + New badge */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <Badge variant="outline" className={`text-xs h-5 gap-1 ${catConfig.color}`}>
+                        {catConfig.icon} {catConfig.label}
                       </Badge>
-                    )}
-                  </div>
-                  <h2 className="font-bold text-foreground group-hover:text-brand-500 transition-colors mb-2 leading-snug">
-                    {post.title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">
-                    {post.excerpt}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
-                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{post.readTime} min</span>
-                    <span className="flex items-center gap-1 group-hover:text-brand-500 transition-colors">
-                      Read more <ChevronRight className="h-3.5 w-3.5" />
-                    </span>
+                      {post.isNew && <Badge className="text-xs h-5 bg-green-500">New</Badge>}
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="font-semibold text-foreground mb-2 group-hover:text-brand-500 transition-colors leading-snug flex-1">
+                      {post.title}
+                    </h3>
+
+                    {/* Excerpt */}
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">
+                      {post.excerpt}
+                    </p>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {post.tags.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
+                      <span className="flex items-center gap-1"><User className="h-3 w-3" />{post.author}</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{post.readTime}</span>
+                      <span className="ml-auto text-brand-500 font-medium">Read →</span>
+                    </div>
                   </div>
                 </Link>
               </motion.div>
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="text-center py-16 text-muted-foreground">
-              No articles found for your search. Try a different keyword.
-            </div>
-          )}
+            );
+          })}
         </div>
-      </section>
+
+        {/* Load more */}
+        <div className="text-center mt-10">
+          <Button variant="outline" className="gap-1.5">
+            Load More Articles <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

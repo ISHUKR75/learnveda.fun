@@ -35,7 +35,7 @@ const TransactionalSchema = z.object({
   type:   z.enum(["welcome", "streak", "verify", "certificate", "battle-result"]),
   to:     z.string().email(),  // Recipient email address
   name:   z.string().min(1),   // Recipient name for personalization
-  data?:  z.record(z.unknown()), // Additional template data
+  data:   z.record(z.unknown()).optional(), // Additional template data (optional)
 });
 
 /** Union schema — accepts either broadcast or transactional */
